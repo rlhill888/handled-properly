@@ -1,0 +1,9 @@
+.shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--surface);
+}
+
+.content {
+  flex: 1;
+}
