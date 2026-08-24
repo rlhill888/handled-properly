@@ -4,6 +4,7 @@ import styles from "../portal-shell.module.css";
 const ADMIN_LINKS = [
   { label: "Forms", href: "/portal/admin/form" },
   { label: "Event Tracker", href: "/portal/admin/event-tracker" },
+  { label: "Mass Email Manager", href: "/portal/admin/email-manager" },
 ];
 
 export default function AdminLayout({
