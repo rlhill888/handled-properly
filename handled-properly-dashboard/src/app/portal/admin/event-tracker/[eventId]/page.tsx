@@ -67,7 +67,12 @@ export default async function EventDetailPage({
             {event.series && <span className={styles.pill}>Series: {event.series.label}</span>}
           </div>
         </div>
-        {event.status === "active" && <MarkCompletedButton eventId={event.id} />}
+        <div className={styles.actions}>
+          <Link href={`/portal/admin/event-tracker/${event.id}/assignments`} className={styles.secondaryButton}>
+            View Assignments
+          </Link>
+          {event.status === "active" && <MarkCompletedButton eventId={event.id} />}
+        </div>
       </div>
 
       <div className={styles.card}>
