@@ -1,143 +1,64 @@
-import styles from "./form.module.css";
+import Link from "next/link";
+import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import styles from "@/styles/admin-shared.module.css";
 
-type Submission = {
-  id: string;
-  name: string;
-  tag: string;
-  eventDate: string;
-  submittedAt: string;
-  status: "pending" | "reviewed";
-};
+export default async function FormTemplatesPage() {
+  const supabase = await createSupabaseServerClient();
 
-const CLIENT_SUBMISSIONS: Submission[] = [
-  {
-    id: "1",
-    name: "Emily & James Carter",
-    tag: "Wedding",
-    eventDate: "2026-09-12",
-    submittedAt: "2026-06-02",
-    status: "pending",
-  },
-  {
-    id: "2",
-    name: "Priya Raman",
-    tag: "Corporate Gala",
-    eventDate: "2026-08-21",
-    submittedAt: "2026-06-10",
-    status: "pending",
-  },
-  {
-    id: "3",
-    name: "Marcus Lee",
-    tag: "Birthday Party",
-    eventDate: "2026-07-04",
-    submittedAt: "2026-06-15",
-    status: "reviewed",
-  },
-];
+  const { data, error } = await supabase
+    .from("form_templates")
+    .select("id, name, created_at, form_fields(count)")
+    .order("created_at", { ascending: false });
 
-const STAFF_VENDOR_SUBMISSIONS: Submission[] = [
-  {
-    id: "1",
-    name: "Jordan Smith",
-    tag: "Staff",
-    eventDate: "2026-07-18",
-    submittedAt: "2026-06-08",
-    status: "pending",
-  },
-  {
-    id: "2",
-    name: "Blossom Floral Co.",
-    tag: "Vendor",
-    eventDate: "2026-08-02",
-    submittedAt: "2026-06-12",
-    status: "reviewed",
-  },
-];
-
-function IntakeCardList({ submissions }: { submissions: Submission[] }) {
-  return (
-    <div className={styles.cardGrid}>
-      {submissions.map((submission) => (
-        <article key={submission.id} className={styles.card}>
-          <span className={styles.cardEventType}>{submission.tag}</span>
-          <h3 className={styles.cardName}>{submission.name}</h3>
-          <dl className={styles.cardMeta}>
-            <div>
-              <dt>Event Date</dt>
-              <dd>{submission.eventDate}</dd>
-            </div>
-            <div>
-              <dt>Submitted</dt>
-              <dd>{submission.submittedAt}</dd>
-            </div>
-          </dl>
-        </article>
-      ))}
-    </div>
-  );
-}
-
-export default function FormPage() {
-  const pendingSubmissions = CLIENT_SUBMISSIONS.filter(
-    (submission) => submission.status === "pending"
-  );
-  const reviewedSubmissions = CLIENT_SUBMISSIONS.filter(
-    (submission) => submission.status === "reviewed"
-  );
-
-  const pendingStaffVendorSubmissions = STAFF_VENDOR_SUBMISSIONS.filter(
-    (submission) => submission.status === "pending"
-  );
-  const reviewedStaffVendorSubmissions = STAFF_VENDOR_SUBMISSIONS.filter(
-    (submission) => submission.status === "reviewed"
-  );
+  const templates = data ?? [];
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.title}>Forms</h1>
+      <div className={styles.header}>
+        <div>
+          <span className={styles.eyebrow}>Admin</span>
+          <h1 className={styles.title}>Form Templates</h1>
+          <p className={styles.description}>
+            Build reusable forms once, then attach them to events, assignments, or emails.
+          </p>
+        </div>
+        <Link href="/portal/admin/form/new" className={styles.primaryButton}>
+          New Template
+        </Link>
+      </div>
 
-      <div className={styles.sections}>
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>New Client Intake Form</h2>
-            <a
-              href="/portal/admin/form/edit-client-intake-form"
-              className={styles.editButton}
-            >
-              Edit Form
-            </a>
-          </div>
+      {error && <p className={styles.error}>Could not load templates: {error.message}</p>}
 
-          <div className={styles.subsection}>
-            <h3 className={styles.subsectionTitle}>Pending Intake Forms</h3>
-            <IntakeCardList submissions={pendingSubmissions} />
-          </div>
-
-          <div className={styles.subsection}>
-            <h3 className={styles.subsectionTitle}>Reviewed Intake Forms</h3>
-            <IntakeCardList submissions={reviewedSubmissions} />
-          </div>
-        </section>
-
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>Staff & Vendor Forms</h2>
-            <button type="button" className={styles.editButton}>
-              View All Forms
-            </button>
-          </div>
-
-          <div className={styles.subsection}>
-            <h3 className={styles.subsectionTitle}>Pending Forms</h3>
-            <IntakeCardList submissions={pendingStaffVendorSubmissions} />
-          </div>
-
-          <div className={styles.subsection}>
-            <h3 className={styles.subsectionTitle}>Reviewed Forms</h3>
-            <IntakeCardList submissions={reviewedStaffVendorSubmissions} />
-          </div>
-        </section>
+      <div className={styles.card}>
+        <h2 className={styles.cardTitle}>All Templates ({templates.length})</h2>
+        {templates.length === 0 ? (
+          <p className={styles.emptyState}>No form templates yet.</p>
+        ) : (
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Fields</th>
+                <th>Created</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {templates.map((template) => (
+                <tr key={template.id}>
+                  <td>{template.name}</td>
+                  <td>{template.form_fields?.[0]?.count ?? 0}</td>
+                  <td>{new Date(template.created_at).toLocaleDateString()}</td>
+                  <td>
+                    <Link href={`/portal/admin/form/${template.id}`} className={styles.link}>
+                      Edit
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

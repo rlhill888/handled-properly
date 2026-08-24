@@ -32,7 +32,7 @@ const FONT_OPTIONS = {
 
 type FontOption = keyof typeof FONT_OPTIONS;
 
-type FormTheme = {
+export type FormTheme = {
   backgroundColor: string;
   fontSize: number;
   cardOpacity: number;
@@ -50,7 +50,7 @@ type FormTheme = {
   descriptionMarginBottom: number;
 };
 
-const DEFAULT_THEME: FormTheme = {
+export const DEFAULT_THEME: FormTheme = {
   backgroundColor: "#f5f5f5",
   fontSize: 14,
   cardOpacity: 1,
@@ -119,15 +119,32 @@ function FieldPreview({ field }: { field: FormField }) {
   return <input className={styles.previewInput} type={field.type} disabled />;
 }
 
+export type FormBuilderSaveData = {
+  title: string;
+  description: string;
+  theme: FormTheme;
+  fields: FormField[];
+};
+
 export default function FormBuilder({
   initialFields,
+  initialTitle = "",
+  initialDescription = "",
+  initialTheme,
+  onSave,
+  saveLabel = "Save",
 }: {
   initialFields: FormField[];
+  initialTitle?: string;
+  initialDescription?: string;
+  initialTheme?: FormTheme;
+  onSave: (data: FormBuilderSaveData) => Promise<{ error?: string } | void>;
+  saveLabel?: string;
 }) {
   const [fields, setFields] = useState<FormField[]>(initialFields);
-  const [theme, setTheme] = useState<FormTheme>(DEFAULT_THEME);
-  const [formTitle, setFormTitle] = useState("");
-  const [formDescription, setFormDescription] = useState("");
+  const [theme, setTheme] = useState<FormTheme>(initialTheme ?? DEFAULT_THEME);
+  const [formTitle, setFormTitle] = useState(initialTitle);
+  const [formDescription, setFormDescription] = useState(initialDescription);
   const [viewMode, setViewMode] = useState<"preview" | "edit">("preview");
   const [selectedId, setSelectedId] = useState<string | null>(
     initialFields[0]?.id ?? null,
@@ -135,8 +152,40 @@ export default function FormBuilder({
   const [newLabel, setNewLabel] = useState("");
   const [newType, setNewType] = useState<FormFieldType>("text");
   const [newRequired, setNewRequired] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const selectedField = fields.find((field) => field.id === selectedId) ?? null;
+
+  const handleMoveField = (id: string, direction: -1 | 1) => {
+    setFields((current) => {
+      const index = current.findIndex((field) => field.id === id);
+      const targetIndex = index + direction;
+      if (index === -1 || targetIndex < 0 || targetIndex >= current.length) {
+        return current;
+      }
+      const next = [...current];
+      [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+      return next;
+    });
+  };
+
+  const handleSave = async () => {
+    if (!formTitle.trim()) {
+      setSaveError("Give the form a title before saving.");
+      return;
+    }
+    setSaving(true);
+    setSaveError(null);
+    const result = await onSave({
+      title: formTitle.trim(),
+      description: formDescription.trim(),
+      theme,
+      fields,
+    });
+    setSaving(false);
+    if (result?.error) setSaveError(result.error);
+  };
 
   const handleAddField = (e: React.FormEvent) => {
     e.preventDefault();
@@ -189,6 +238,18 @@ export default function FormBuilder({
 
   return (
     <div className={styles.builder}>
+      <div className={styles.saveBar}>
+        {saveError && <span className={styles.saveError}>{saveError}</span>}
+        <button
+          type="button"
+          className={styles.saveButton}
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? "Saving…" : saveLabel}
+        </button>
+      </div>
+
       <div className={styles.themePanel}>
         <label className={styles.themeControlWide}>
           Form title
@@ -582,13 +643,33 @@ export default function FormBuilder({
       ) : (
         <div className={styles.customizeLayout}>
           <ul className={styles.questionList}>
-            {fields.map((field) => (
+            {fields.map((field, index) => (
               <li
                 key={field.id}
                 className={`${styles.questionItem} ${
                   field.id === selectedId ? styles.questionItemActive : ""
                 }`}
               >
+                <div className={styles.reorderButtons}>
+                  <button
+                    type="button"
+                    className={styles.reorderButton}
+                    onClick={() => handleMoveField(field.id, -1)}
+                    disabled={index === 0}
+                    aria-label={`Move ${field.label} up`}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.reorderButton}
+                    onClick={() => handleMoveField(field.id, 1)}
+                    disabled={index === fields.length - 1}
+                    aria-label={`Move ${field.label} down`}
+                  >
+                    ↓
+                  </button>
+                </div>
                 <button
                   type="button"
                   className={styles.questionItemSelect}

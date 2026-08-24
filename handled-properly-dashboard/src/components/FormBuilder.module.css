@@ -5,6 +5,42 @@
   width: 100%;
 }
 
+.saveBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+}
+
+.saveError {
+  font-size: 13px;
+  font-weight: 600;
+  color: #c0392b;
+}
+
+.saveButton {
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  background: #0a0a0a;
+  border: 1px solid #0a0a0a;
+  border-radius: 4px;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.saveButton:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.saveButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .themePanel {
   display: flex;
   flex-wrap: wrap;
@@ -284,6 +320,36 @@
 .questionItemActive {
   border-color: #0a0a0a;
   background: #f5f5f5;
+}
+
+.reorderButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.reorderButton {
+  width: 20px;
+  height: 18px;
+  line-height: 1;
+  font-size: 11px;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.reorderButton:hover:not(:disabled) {
+  border-color: #0a0a0a;
+  color: #0a0a0a;
+}
+
+.reorderButton:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .questionItemSelect {
