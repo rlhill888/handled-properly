@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import { sendMassEmail, type ActionState } from "./actions";
 import { saveEmailTemplate } from "./templates-actions";
+import { draftEmailWithAI } from "./ai-actions";
 import SubmitButton from "@/components/portal/SubmitButton";
 import styles from "@/styles/admin-shared.module.css";
 
@@ -37,6 +38,10 @@ export default function ComposeForm({
   const [templateName, setTemplateName] = useState("");
   const [templateSaving, setTemplateSaving] = useState(false);
   const [templateMessage, setTemplateMessage] = useState<string | null>(null);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiDrafting, setAiDrafting] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [isAiDraft, setIsAiDraft] = useState(false);
 
   const handleSaveTemplate = async () => {
     if (!templateName.trim()) {
@@ -45,7 +50,12 @@ export default function ComposeForm({
     }
     setTemplateSaving(true);
     setTemplateMessage(null);
-    const result = await saveEmailTemplate(templateName, subject, bodyHtml);
+    const result = await saveEmailTemplate(
+      templateName,
+      subject,
+      bodyHtml,
+      isAiDraft ? "ai_draft" : "manual"
+    );
     setTemplateSaving(false);
     if (result?.error) {
       setTemplateMessage(result.error);
@@ -53,6 +63,20 @@ export default function ComposeForm({
     }
     setTemplateName("");
     setTemplateMessage("Saved.");
+  };
+
+  const handleGenerateWithAI = async () => {
+    setAiDrafting(true);
+    setAiError(null);
+    const result = await draftEmailWithAI(aiPrompt);
+    setAiDrafting(false);
+    if ("error" in result) {
+      setAiError(result.error);
+      return; // manually-entered subject/body, if any, are left untouched
+    }
+    setSubject(result.subject);
+    setBodyHtml(result.bodyHtml);
+    setIsAiDraft(true);
   };
 
   const recipientCount = useMemo(() => {
@@ -89,6 +113,35 @@ export default function ComposeForm({
       )}
 
       <div className={styles.field}>
+        <label className={styles.label} htmlFor="ai_prompt">
+          Draft with AI <span className={styles.optional}>(optional — describe what you want)</span>
+        </label>
+        <div className={styles.formRow}>
+          <input
+            id="ai_prompt"
+            className={styles.input}
+            placeholder="Remind staff about Saturday's 8am setup call"
+            value={aiPrompt}
+            onChange={(e) => setAiPrompt(e.target.value)}
+          />
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            disabled={aiDrafting || !aiPrompt.trim()}
+            onClick={handleGenerateWithAI}
+          >
+            {aiDrafting ? "Drafting…" : "Generate"}
+          </button>
+        </div>
+        {aiError && <p className={styles.error}>{aiError}</p>}
+        {isAiDraft && !aiError && (
+          <p className={styles.description}>
+            AI-drafted — review and edit below before sending.
+          </p>
+        )}
+      </div>
+
+      <div className={styles.field}>
         <label className={styles.label} htmlFor="subject">
           Subject
         </label>
@@ -98,7 +151,10 @@ export default function ComposeForm({
           required
           className={styles.input}
           value={subject}
-          onChange={(e) => setSubject(e.target.value)}
+          onChange={(e) => {
+            setSubject(e.target.value);
+            setIsAiDraft(false);
+          }}
         />
       </div>
 
@@ -114,7 +170,10 @@ export default function ComposeForm({
           style={{ minHeight: 200, fontFamily: "monospace" }}
           placeholder="<p>Hi there,</p>"
           value={bodyHtml}
-          onChange={(e) => setBodyHtml(e.target.value)}
+          onChange={(e) => {
+            setBodyHtml(e.target.value);
+            setIsAiDraft(false);
+          }}
         />
       </div>
 
