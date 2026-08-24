@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import styles from "./portal.module.css";
 
 export default function PortalLoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -15,9 +18,21 @@ export default function PortalLoginPage() {
     setSubmitting(true);
 
     try {
-      // TODO: wire up to real auth once the backend is in place.
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      setError("Login is not connected yet.");
+      const supabase = createClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        setError(signInError.message);
+        return;
+      }
+
+      // /portal looks up whether this session belongs to the admin or an
+      // event staff member and redirects to the right section.
+      router.push("/portal");
+      router.refresh();
     } finally {
       setSubmitting(false);
     }
