@@ -391,6 +391,7 @@ export type Database = {
           id: string
           name: string
           source: Database["public"]["Enums"]["email_template_source"]
+          subject: string
         }
         Insert: {
           body_html: string
@@ -398,6 +399,7 @@ export type Database = {
           id?: string
           name: string
           source?: Database["public"]["Enums"]["email_template_source"]
+          subject?: string
         }
         Update: {
           body_html?: string
@@ -405,6 +407,7 @@ export type Database = {
           id?: string
           name?: string
           source?: Database["public"]["Enums"]["email_template_source"]
+          subject?: string
         }
         Relationships: []
       }

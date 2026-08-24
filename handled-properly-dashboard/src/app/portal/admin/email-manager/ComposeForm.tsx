@@ -2,6 +2,7 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { sendMassEmail, type ActionState } from "./actions";
+import { saveEmailTemplate } from "./templates-actions";
 import SubmitButton from "@/components/portal/SubmitButton";
 import styles from "@/styles/admin-shared.module.css";
 
@@ -18,15 +19,41 @@ export default function ComposeForm({
   categories,
   contacts,
   events,
+  initialSubject = "",
+  initialBody = "",
 }: {
   categories: Category[];
   contacts: ContactPreview[];
   events: EventOption[];
+  initialSubject?: string;
+  initialBody?: string;
 }) {
   const [state, formAction] = useActionState<ActionState, FormData>(sendMassEmail, null);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [eventId, setEventId] = useState("");
   const [eventFilterType, setEventFilterType] = useState<"staff" | "attendees">("staff");
+  const [subject, setSubject] = useState(initialSubject);
+  const [bodyHtml, setBodyHtml] = useState(initialBody);
+  const [templateName, setTemplateName] = useState("");
+  const [templateSaving, setTemplateSaving] = useState(false);
+  const [templateMessage, setTemplateMessage] = useState<string | null>(null);
+
+  const handleSaveTemplate = async () => {
+    if (!templateName.trim()) {
+      setTemplateMessage("Name the template first.");
+      return;
+    }
+    setTemplateSaving(true);
+    setTemplateMessage(null);
+    const result = await saveEmailTemplate(templateName, subject, bodyHtml);
+    setTemplateSaving(false);
+    if (result?.error) {
+      setTemplateMessage(result.error);
+      return;
+    }
+    setTemplateName("");
+    setTemplateMessage("Saved.");
+  };
 
   const recipientCount = useMemo(() => {
     let matches = contacts;
@@ -65,7 +92,14 @@ export default function ComposeForm({
         <label className={styles.label} htmlFor="subject">
           Subject
         </label>
-        <input id="subject" name="subject" required className={styles.input} />
+        <input
+          id="subject"
+          name="subject"
+          required
+          className={styles.input}
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+        />
       </div>
 
       <div className={styles.field}>
@@ -79,8 +113,28 @@ export default function ComposeForm({
           className={styles.textarea}
           style={{ minHeight: 200, fontFamily: "monospace" }}
           placeholder="<p>Hi there,</p>"
+          value={bodyHtml}
+          onChange={(e) => setBodyHtml(e.target.value)}
         />
       </div>
+
+      <div className={styles.formRow}>
+        <input
+          className={styles.input}
+          placeholder="Template name to save this as…"
+          value={templateName}
+          onChange={(e) => setTemplateName(e.target.value)}
+        />
+        <button
+          type="button"
+          className={styles.secondaryButton}
+          disabled={templateSaving}
+          onClick={handleSaveTemplate}
+        >
+          {templateSaving ? "Saving…" : "Save as Template"}
+        </button>
+      </div>
+      {templateMessage && <p className={styles.description}>{templateMessage}</p>}
 
       <div className={styles.field}>
         <span className={styles.label}>
