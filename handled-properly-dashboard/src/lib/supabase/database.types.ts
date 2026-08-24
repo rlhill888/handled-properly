@@ -821,6 +821,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_own_staff_account: { Args: never; Returns: undefined }
       can_staff_view_form_attachment: {
         Args: { target_attachment_id: string }
         Returns: boolean

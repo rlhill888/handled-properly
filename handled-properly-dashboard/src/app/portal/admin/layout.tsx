@@ -5,6 +5,7 @@ import styles from "../portal-shell.module.css";
 
 const ADMIN_LINKS = [
   { label: "Clients", href: "/portal/admin/clients" },
+  { label: "Staff", href: "/portal/admin/staff" },
   { label: "Forms", href: "/portal/admin/form" },
   { label: "Event Tracker", href: "/portal/admin/event-tracker" },
   { label: "Mass Email Manager", href: "/portal/admin/email-manager" },
