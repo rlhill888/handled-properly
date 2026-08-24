@@ -826,6 +826,10 @@ export type Database = {
         Args: { target_attachment_id: string }
         Returns: boolean
       }
+      create_conversation: {
+        Args: { participant_event_staff_ids: string[]; target_event_id: string }
+        Returns: string
+      }
       current_event_staff_id: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
       is_conversation_participant: {

@@ -1,0 +1,51 @@
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 480px;
+}
+
+.messageList {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 4px;
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--surface);
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+
+.messageMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.messageTime {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.messageBody {
+  font-size: 14px;
+  color: var(--foreground);
+  white-space: pre-wrap;
+}
+
+.composer {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.composer input {
+  flex: 1;
+}

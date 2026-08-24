@@ -122,6 +122,26 @@ export async function removeFromRoster(
   return {};
 }
 
+export async function setStaffCanStartConversations(
+  eventId: string,
+  allowed: boolean
+): Promise<{ error?: string }> {
+  const actor = await getCurrentActor();
+  if (actor?.role !== "admin") return { error: "Not authorized." };
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from("events")
+    .update({ staff_can_start_conversations: allowed })
+    .eq("id", eventId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/portal/admin/event-tracker/${eventId}`);
+  revalidatePath(`/portal/staff/events/${eventId}/conversations`);
+  return {};
+}
+
 export async function markEventCompleted(eventId: string): Promise<{ error?: string }> {
   const actor = await getCurrentActor();
   if (actor?.role !== "admin") return { error: "Not authorized." };

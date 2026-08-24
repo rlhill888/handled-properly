@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import MarkCompletedButton from "./MarkCompletedButton";
 import RosterManager from "./RosterManager";
+import ConversationSettingToggle from "./ConversationSettingToggle";
 import styles from "@/styles/admin-shared.module.css";
 
 export default async function EventDetailPage({
@@ -16,7 +17,7 @@ export default async function EventDetailPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, name, starts_at, location, status, completed_at, client:clients(company_name,contacts(name)), series:event_series(id, label)"
+      "id, name, starts_at, location, status, completed_at, staff_can_start_conversations, client:clients(company_name,contacts(name)), series:event_series(id, label)"
     )
     .eq("id", eventId)
     .maybeSingle();
@@ -71,6 +72,9 @@ export default async function EventDetailPage({
           <Link href={`/portal/admin/event-tracker/${event.id}/assignments`} className={styles.secondaryButton}>
             View Assignments
           </Link>
+          <Link href={`/portal/admin/event-tracker/${event.id}/conversations`} className={styles.secondaryButton}>
+            View Conversations
+          </Link>
           {event.status === "active" && <MarkCompletedButton eventId={event.id} />}
         </div>
       </div>
@@ -99,6 +103,13 @@ export default async function EventDetailPage({
             )}
           </tbody>
         </table>
+        <div style={{ marginTop: 16 }}>
+          <ConversationSettingToggle
+            eventId={event.id}
+            initialAllowed={event.staff_can_start_conversations}
+            disabled={event.status === "completed"}
+          />
+        </div>
       </div>
 
       <div className={styles.card}>

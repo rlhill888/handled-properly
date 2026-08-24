@@ -42,12 +42,20 @@ export default async function StaffEventDetailPage({
             {event.series && <span className={styles.pill}>Series: {event.series.label}</span>}
           </div>
         </div>
-        <Link
-          href={`/portal/staff/events/${event.id}/assignments`}
-          className={styles.secondaryButton}
-        >
-          View Assignments
-        </Link>
+        <div className={styles.actions}>
+          <Link
+            href={`/portal/staff/events/${event.id}/assignments`}
+            className={styles.secondaryButton}
+          >
+            View Assignments
+          </Link>
+          <Link
+            href={`/portal/staff/events/${event.id}/conversations`}
+            className={styles.secondaryButton}
+          >
+            View Conversations
+          </Link>
+        </div>
       </div>
 
       <div className={styles.card}>
