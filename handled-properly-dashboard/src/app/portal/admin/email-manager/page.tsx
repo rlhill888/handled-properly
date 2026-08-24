@@ -5,23 +5,39 @@ import styles from "@/styles/admin-shared.module.css";
 export default async function EmailManagerPage() {
   const supabase = await createSupabaseServerClient();
 
-  const [{ data: categories }, { data: contactCategories }, { data: contacts }, { data: sends }] =
-    await Promise.all([
-      supabase.from("categories").select("id, name").order("name", { ascending: true }),
-      supabase.from("contact_categories").select("contact_id, category_id"),
-      supabase.from("contacts").select("id"),
-      supabase
-        .from("email_sends")
-        .select("id, subject, sent_at, email_recipients(count)")
-        .order("sent_at", { ascending: false })
-        .limit(20),
-    ]);
+  const [
+    { data: categories },
+    { data: contactCategories },
+    { data: contacts },
+    { data: sends },
+    { data: events },
+    { data: rosterRows },
+    { data: attendanceRows },
+  ] = await Promise.all([
+    supabase.from("categories").select("id, name").order("name", { ascending: true }),
+    supabase.from("contact_categories").select("contact_id, category_id"),
+    supabase.from("contacts").select("id"),
+    supabase
+      .from("email_sends")
+      .select("id, subject, sent_at, email_recipients(count)")
+      .order("sent_at", { ascending: false })
+      .limit(20),
+    supabase.from("events").select("id, name").order("name", { ascending: true }),
+    supabase.from("roster_entries").select("event_id, event_staff(contact_id)"),
+    supabase.from("event_attendance").select("event_id, contact_id"),
+  ]);
 
   const contactPreviews = (contacts ?? []).map((c) => ({
     id: c.id,
     categoryIds: (contactCategories ?? [])
       .filter((cc) => cc.contact_id === c.id)
       .map((cc) => cc.category_id),
+    staffEventIds: (rosterRows ?? [])
+      .filter((r) => r.event_staff?.contact_id === c.id)
+      .map((r) => r.event_id),
+    attendeeEventIds: (attendanceRows ?? [])
+      .filter((a) => a.contact_id === c.id)
+      .map((a) => a.event_id),
   }));
 
   return (
@@ -38,7 +54,7 @@ export default async function EmailManagerPage() {
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Compose</h2>
-        <ComposeForm categories={categories ?? []} contacts={contactPreviews} />
+        <ComposeForm categories={categories ?? []} contacts={contactPreviews} events={events ?? []} />
       </div>
 
       <div className={styles.card}>

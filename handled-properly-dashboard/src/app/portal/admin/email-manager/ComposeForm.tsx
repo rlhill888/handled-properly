@@ -6,23 +6,45 @@ import SubmitButton from "@/components/portal/SubmitButton";
 import styles from "@/styles/admin-shared.module.css";
 
 type Category = { id: string; name: string };
-type ContactPreview = { id: string; categoryIds: string[] };
+type EventOption = { id: string; name: string };
+type ContactPreview = {
+  id: string;
+  categoryIds: string[];
+  staffEventIds: string[];
+  attendeeEventIds: string[];
+};
 
 export default function ComposeForm({
   categories,
   contacts,
+  events,
 }: {
   categories: Category[];
   contacts: ContactPreview[];
+  events: EventOption[];
 }) {
   const [state, formAction] = useActionState<ActionState, FormData>(sendMassEmail, null);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [eventId, setEventId] = useState("");
+  const [eventFilterType, setEventFilterType] = useState<"staff" | "attendees">("staff");
 
   const recipientCount = useMemo(() => {
-    if (selectedCategoryIds.length === 0) return contacts.length;
-    return contacts.filter((c) => c.categoryIds.some((id) => selectedCategoryIds.includes(id)))
-      .length;
-  }, [contacts, selectedCategoryIds]);
+    let matches = contacts;
+
+    if (selectedCategoryIds.length > 0) {
+      matches = matches.filter((c) => c.categoryIds.some((id) => selectedCategoryIds.includes(id)));
+    }
+
+    if (eventId) {
+      matches = matches.filter((c) =>
+        eventFilterType === "staff"
+          ? c.staffEventIds.includes(eventId)
+          : c.attendeeEventIds.includes(eventId)
+      );
+    }
+
+    return matches.length;
+  }, [contacts, selectedCategoryIds, eventId, eventFilterType]);
 
   const toggleCategory = (id: string) => {
     setSelectedCategoryIds((current) =>
@@ -62,14 +84,11 @@ export default function ComposeForm({
 
       <div className={styles.field}>
         <span className={styles.label}>
-          Recipients{" "}
-          <span className={styles.optional}>
-            (no categories selected = everyone, {contacts.length} total)
-          </span>
+          Category filter <span className={styles.optional}>(none = everyone)</span>
         </span>
         <div className={styles.metaRow}>
           {categories.length === 0 && (
-            <span className={styles.emptyState}>No categories yet — all contacts will receive this.</span>
+            <span className={styles.emptyState}>No categories yet.</span>
           )}
           {categories.map((category) => (
             <label key={category.id} className={styles.checkboxRow}>
@@ -84,11 +103,44 @@ export default function ComposeForm({
             </label>
           ))}
         </div>
-        <p className={styles.description}>
-          This will send to <strong>{recipientCount}</strong> recipient
-          {recipientCount === 1 ? "" : "s"}.
-        </p>
       </div>
+
+      <div className={styles.field}>
+        <span className={styles.label}>
+          Event filter <span className={styles.optional}>(optional, combines with category filter)</span>
+        </span>
+        <div className={styles.formRow}>
+          <select
+            className={styles.select}
+            name="event_id"
+            value={eventId}
+            onChange={(e) => setEventId(e.target.value)}
+          >
+            <option value="">No event filter</option>
+            {events.map((event) => (
+              <option key={event.id} value={event.id}>
+                {event.name}
+              </option>
+            ))}
+          </select>
+          {eventId && (
+            <select
+              className={styles.select}
+              name="event_filter_type"
+              value={eventFilterType}
+              onChange={(e) => setEventFilterType(e.target.value as "staff" | "attendees")}
+            >
+              <option value="staff">Staff on this event</option>
+              <option value="attendees">Attendees of this event</option>
+            </select>
+          )}
+        </div>
+      </div>
+
+      <p className={styles.description}>
+        This will send to <strong>{recipientCount}</strong> recipient
+        {recipientCount === 1 ? "" : "s"}.
+      </p>
 
       <div className={styles.actions}>
         <SubmitButton pendingLabel="Sending…">Send</SubmitButton>
