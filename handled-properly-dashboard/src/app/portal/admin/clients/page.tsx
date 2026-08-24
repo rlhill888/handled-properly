@@ -1,0 +1,71 @@
+import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import ClientRow, { type ClientRowData } from "./ClientRow";
+import NewClientForm from "./NewClientForm";
+import styles from "@/styles/admin-shared.module.css";
+
+export default async function ClientsPage() {
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("clients")
+    .select("id, company_name, notes, contacts(id, name, email, phone)")
+    .order("created_at", { ascending: false });
+
+  const clients: ClientRowData[] = (data ?? [])
+    .filter((row) => row.contacts !== null)
+    .map((row) => ({
+      clientId: row.id,
+      contactId: row.contacts!.id,
+      name: row.contacts!.name,
+      email: row.contacts!.email,
+      phone: row.contacts!.phone,
+      companyName: row.company_name,
+      notes: row.notes,
+    }));
+
+  return (
+    <div className={styles.page}>
+      <div className={styles.header}>
+        <div>
+          <span className={styles.eyebrow}>Admin</span>
+          <h1 className={styles.title}>Clients</h1>
+          <p className={styles.description}>
+            People who hire Handled Properly for events. Add a client here before creating events
+            for them.
+          </p>
+        </div>
+      </div>
+
+      {error && <p className={styles.error}>Could not load clients: {error.message}</p>}
+
+      <div className={styles.card}>
+        <h2 className={styles.cardTitle}>Add Client</h2>
+        <NewClientForm />
+      </div>
+
+      <div className={styles.card}>
+        <h2 className={styles.cardTitle}>All Clients ({clients.length})</h2>
+        {clients.length === 0 ? (
+          <p className={styles.emptyState}>No clients yet.</p>
+        ) : (
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Company</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {clients.map((client) => (
+                <ClientRow key={client.clientId} client={client} />
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
