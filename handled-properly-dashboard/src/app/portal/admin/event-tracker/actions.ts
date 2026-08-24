@@ -60,6 +60,68 @@ export async function createEvent(
   redirect(`/portal/admin/event-tracker/${event.id}`);
 }
 
+async function assertEventActive(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  eventId: string
+): Promise<{ error?: string }> {
+  const { data: event, error } = await supabase
+    .from("events")
+    .select("status")
+    .eq("id", eventId)
+    .maybeSingle();
+
+  if (error) return { error: error.message };
+  if (!event) return { error: "Event not found." };
+  if (event.status === "completed") {
+    return { error: "This event is completed and its roster is locked." };
+  }
+  return {};
+}
+
+export async function addToRoster(eventId: string, eventStaffId: string): Promise<{ error?: string }> {
+  const actor = await getCurrentActor();
+  if (actor?.role !== "admin") return { error: "Not authorized." };
+
+  const supabase = await createSupabaseServerClient();
+  const activeCheck = await assertEventActive(supabase, eventId);
+  if (activeCheck.error) return activeCheck;
+
+  const { error } = await supabase
+    .from("roster_entries")
+    .insert({ event_id: eventId, event_staff_id: eventStaffId });
+
+  if (error) {
+    if (error.code === "23505") return { error: "Already on this event's roster." };
+    return { error: error.message };
+  }
+
+  revalidatePath(`/portal/admin/event-tracker/${eventId}`);
+  return {};
+}
+
+export async function removeFromRoster(
+  eventId: string,
+  eventStaffId: string
+): Promise<{ error?: string }> {
+  const actor = await getCurrentActor();
+  if (actor?.role !== "admin") return { error: "Not authorized." };
+
+  const supabase = await createSupabaseServerClient();
+  const activeCheck = await assertEventActive(supabase, eventId);
+  if (activeCheck.error) return activeCheck;
+
+  const { error } = await supabase
+    .from("roster_entries")
+    .delete()
+    .eq("event_id", eventId)
+    .eq("event_staff_id", eventStaffId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/portal/admin/event-tracker/${eventId}`);
+  return {};
+}
+
 export async function markEventCompleted(eventId: string): Promise<{ error?: string }> {
   const actor = await getCurrentActor();
   if (actor?.role !== "admin") return { error: "Not authorized." };

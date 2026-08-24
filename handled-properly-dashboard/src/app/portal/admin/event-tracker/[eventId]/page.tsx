@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import MarkCompletedButton from "./MarkCompletedButton";
+import RosterManager from "./RosterManager";
 import styles from "@/styles/admin-shared.module.css";
 
 export default async function EventDetailPage({
@@ -23,6 +24,31 @@ export default async function EventDetailPage({
   if (!event) notFound();
 
   const clientName = event.client?.company_name || event.client?.contacts?.name || "—";
+
+  const [{ data: rosterRows }, { data: allStaff }] = await Promise.all([
+    supabase
+      .from("roster_entries")
+      .select("event_staff_id, event_staff(id, contacts(name, email))")
+      .eq("event_id", eventId),
+    supabase.from("event_staff").select("id, contacts(name, email)"),
+  ]);
+
+  const rosterMembers = (rosterRows ?? [])
+    .filter((row) => row.event_staff?.contacts)
+    .map((row) => ({
+      id: row.event_staff!.id,
+      name: row.event_staff!.contacts!.name,
+      email: row.event_staff!.contacts!.email,
+    }));
+
+  const rosterIds = new Set(rosterMembers.map((m) => m.id));
+  const availableStaff = (allStaff ?? [])
+    .filter((staff) => staff.contacts && !rosterIds.has(staff.id))
+    .map((staff) => ({
+      id: staff.id,
+      name: staff.contacts!.name,
+      email: staff.contacts!.email,
+    }));
 
   return (
     <div className={styles.page}>
@@ -68,6 +94,16 @@ export default async function EventDetailPage({
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className={styles.card}>
+        <h2 className={styles.cardTitle}>Roster</h2>
+        <RosterManager
+          eventId={event.id}
+          rosterMembers={rosterMembers}
+          availableStaff={availableStaff}
+          isLocked={event.status === "completed"}
+        />
       </div>
     </div>
   );
