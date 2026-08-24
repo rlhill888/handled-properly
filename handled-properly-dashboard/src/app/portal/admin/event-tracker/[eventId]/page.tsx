@@ -4,6 +4,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import MarkCompletedButton from "./MarkCompletedButton";
 import RosterManager from "./RosterManager";
 import ConversationSettingToggle from "./ConversationSettingToggle";
+import FormAttachmentManager from "@/components/portal/FormAttachmentManager";
 import styles from "@/styles/admin-shared.module.css";
 
 export default async function EventDetailPage({
@@ -26,13 +27,20 @@ export default async function EventDetailPage({
 
   const clientName = event.client?.company_name || event.client?.contacts?.name || "—";
 
-  const [{ data: rosterRows }, { data: allStaff }] = await Promise.all([
-    supabase
-      .from("roster_entries")
-      .select("event_staff_id, event_staff(id, contacts(name, email))")
-      .eq("event_id", eventId),
-    supabase.from("event_staff").select("id, contacts(name, email)"),
-  ]);
+  const [{ data: rosterRows }, { data: allStaff }, { data: formTemplates }, { data: formAttachments }] =
+    await Promise.all([
+      supabase
+        .from("roster_entries")
+        .select("event_staff_id, event_staff(id, contacts(name, email))")
+        .eq("event_id", eventId),
+      supabase.from("event_staff").select("id, contacts(name, email)"),
+      supabase.from("form_templates").select("id, name").order("name", { ascending: true }),
+      supabase
+        .from("form_attachments")
+        .select("id, staff_visible, form_templates(id, name)")
+        .eq("target_type", "event")
+        .eq("target_id", eventId),
+    ]);
 
   const rosterMembers = (rosterRows ?? [])
     .filter((row) => row.event_staff?.contacts)
@@ -49,6 +57,15 @@ export default async function EventDetailPage({
       id: staff.id,
       name: staff.contacts!.name,
       email: staff.contacts!.email,
+    }));
+
+  const attachedForms = (formAttachments ?? [])
+    .filter((a) => a.form_templates)
+    .map((a) => ({
+      id: a.id,
+      templateId: a.form_templates!.id,
+      templateName: a.form_templates!.name,
+      staffVisible: a.staff_visible,
     }));
 
   return (
@@ -119,6 +136,18 @@ export default async function EventDetailPage({
           rosterMembers={rosterMembers}
           availableStaff={availableStaff}
           isLocked={event.status === "completed"}
+        />
+      </div>
+
+      <div className={styles.card}>
+        <h2 className={styles.cardTitle}>Forms</h2>
+        <FormAttachmentManager
+          targetType="event"
+          targetId={event.id}
+          basePath={`/portal/admin/event-tracker/${event.id}`}
+          availableTemplates={formTemplates ?? []}
+          attached={attachedForms}
+          siteUrl={process.env.NEXT_PUBLIC_SITE_URL ?? ""}
         />
       </div>
     </div>
