@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { updateAssignment, deleteAssignment, type ActionState } from "./actions";
 import SubmitButton from "@/components/portal/SubmitButton";
 import styles from "@/styles/admin-shared.module.css";
-import cardStyles from "./assignments.module.css";
+import cardStyles from "@/styles/assignments-board.module.css";
 import type { StaffOption } from "./NewAssignmentForm";
 
 export type AssignmentData = {

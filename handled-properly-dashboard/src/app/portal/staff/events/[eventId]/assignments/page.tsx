@@ -1,26 +1,30 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import NewAssignmentForm, { type StaffOption } from "./NewAssignmentForm";
-import AssignmentCard, { type AssignmentData } from "./AssignmentCard";
+import { getCurrentActor } from "@/lib/auth/get-current-actor";
+import StaffAssignmentCard, { type StaffAssignmentData } from "./StaffAssignmentCard";
 import styles from "@/styles/admin-shared.module.css";
 import boardStyles from "@/styles/assignments-board.module.css";
 
-const COLUMNS: { status: AssignmentData["status"]; label: string }[] = [
+const COLUMNS: { status: StaffAssignmentData["status"]; label: string }[] = [
   { status: "ready", label: "Ready to Work" },
   { status: "in_progress", label: "In Progress" },
   { status: "blocked", label: "Blocked" },
   { status: "done", label: "Done" },
 ];
 
-export default async function EventAssignmentsPage({
+export default async function StaffEventAssignmentsPage({
   params,
 }: {
   params: Promise<{ eventId: string }>;
 }) {
   const { eventId } = await params;
   const supabase = await createSupabaseServerClient();
+  const actor = await getCurrentActor();
+  const currentStaffId = actor?.role === "event_staff" ? actor.eventStaffId : null;
 
+  // RLS (staff_select_rostered_events) scopes this — no row means either
+  // the event doesn't exist or this staff member isn't on its roster.
   const { data: event } = await supabase
     .from("events")
     .select("id, name, status")
@@ -29,26 +33,16 @@ export default async function EventAssignmentsPage({
 
   if (!event) notFound();
 
-  const [{ data: rosterRows }, { data: assignmentRows }] = await Promise.all([
-    supabase
-      .from("roster_entries")
-      .select("event_staff(id, contacts(name))")
-      .eq("event_id", eventId),
-    supabase
-      .from("assignments")
-      .select(
-        "id, title, description, status, tags, due_date, priority, pickup_setting, assignment_assignees(event_staff(id, contacts(name)))"
-      )
-      .eq("event_id", eventId)
-      .is("parent_assignment_id", null)
-      .order("created_at", { ascending: true }),
-  ]);
+  const { data: assignmentRows } = await supabase
+    .from("assignments")
+    .select(
+      "id, title, description, status, tags, due_date, priority, pickup_setting, assignment_assignees(event_staff(id, contacts(name)))"
+    )
+    .eq("event_id", eventId)
+    .is("parent_assignment_id", null)
+    .order("created_at", { ascending: true });
 
-  const rosterStaff: StaffOption[] = (rosterRows ?? [])
-    .filter((r) => r.event_staff?.contacts)
-    .map((r) => ({ id: r.event_staff!.id, name: r.event_staff!.contacts!.name }));
-
-  const assignments: AssignmentData[] = (assignmentRows ?? []).map((row) => ({
+  const assignments: StaffAssignmentData[] = (assignmentRows ?? []).map((row) => ({
     id: row.id,
     title: row.title,
     description: row.description,
@@ -69,23 +63,19 @@ export default async function EventAssignmentsPage({
 
   return (
     <div className={styles.page}>
-      <Link href={`/portal/admin/event-tracker/${eventId}`} className={styles.link}>
+      <Link href={`/portal/staff/events/${eventId}`} className={styles.link}>
         ← Back to {event.name}
       </Link>
 
       <div className={styles.header}>
         <div>
-          <span className={styles.eyebrow}>Admin · Assignments</span>
+          <span className={styles.eyebrow}>Event Staff · Assignments</span>
           <h1 className={styles.title}>{event.name}</h1>
+          <p className={styles.description}>
+            You see every assignment for this event, including ones not assigned to you.
+          </p>
         </div>
       </div>
-
-      {!isLocked && (
-        <div className={styles.card}>
-          <h2 className={styles.cardTitle}>New Assignment</h2>
-          <NewAssignmentForm eventId={eventId} rosterStaff={rosterStaff} />
-        </div>
-      )}
 
       <div className={boardStyles.board}>
         {COLUMNS.map((column) => (
@@ -97,11 +87,11 @@ export default async function EventAssignmentsPage({
             {assignments
               .filter((a) => a.status === column.status)
               .map((assignment) => (
-                <AssignmentCard
+                <StaffAssignmentCard
                   key={assignment.id}
                   eventId={eventId}
                   assignment={assignment}
-                  rosterStaff={rosterStaff}
+                  currentStaffId={currentStaffId}
                   isLocked={isLocked}
                 />
               ))}
