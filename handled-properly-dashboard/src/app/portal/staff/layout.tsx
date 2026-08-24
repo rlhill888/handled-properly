@@ -4,7 +4,7 @@ import { getCurrentActor } from "@/lib/auth/get-current-actor";
 import styles from "../portal-shell.module.css";
 
 const STAFF_LINKS = [
-  { label: "Event", href: "/portal/staff/event" },
+  { label: "Events", href: "/portal/staff/events" },
   { label: "Chat", href: "/portal/staff/chat" },
 ];
 
