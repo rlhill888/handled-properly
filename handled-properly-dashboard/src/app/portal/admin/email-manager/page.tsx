@@ -21,6 +21,7 @@ export default async function EmailManagerPage({
     { data: rosterRows },
     { data: attendanceRows },
     { data: templates },
+    { data: formTemplates },
   ] = await Promise.all([
     supabase.from("categories").select("id, name").order("name", { ascending: true }),
     supabase.from("contact_categories").select("contact_id, category_id"),
@@ -37,6 +38,7 @@ export default async function EmailManagerPage({
       .from("email_templates")
       .select("id, name, subject, body_html, source, created_at")
       .order("created_at", { ascending: false }),
+    supabase.from("form_templates").select("id, name").order("name", { ascending: true }),
   ]);
 
   const contactPreviews = (contacts ?? []).map((c) => ({
@@ -72,6 +74,7 @@ export default async function EmailManagerPage({
           categories={categories ?? []}
           contacts={contactPreviews}
           events={events ?? []}
+          formTemplates={formTemplates ?? []}
           initialSubject={selectedTemplate?.subject ?? ""}
           initialBody={selectedTemplate?.body_html ?? ""}
           key={templateId ?? "blank"}

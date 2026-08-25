@@ -19,6 +19,7 @@ export async function sendMassEmail(
   const categoryIds = formData.getAll("category_ids").map(String);
   const eventId = String(formData.get("event_id") ?? "");
   const eventFilterType = String(formData.get("event_filter_type") ?? ""); // "staff" | "attendees"
+  const formTemplateId = String(formData.get("form_template_id") ?? "");
 
   if (!subject || !bodyHtml) return { error: "Subject and body are required." };
 
@@ -80,8 +81,38 @@ export async function sendMassEmail(
 
   if (sendError) return { error: sendError.message };
 
+  // The attachment's target_id is the email_send's own id, so the
+  // attachment row can only be created after the email_send exists —
+  // and the fill link it produces must be folded into body_html and
+  // persisted before we send, so the stored copy matches what recipients
+  // actually received.
+  let finalBodyHtml = bodyHtml;
+  if (formTemplateId) {
+    const { data: attachment, error: attachmentError } = await supabase
+      .from("form_attachments")
+      .insert({
+        form_template_id: formTemplateId,
+        target_type: "email_send",
+        target_id: emailSend.id,
+        staff_visible: false,
+      })
+      .select("id")
+      .single();
+
+    if (attachmentError) return { error: attachmentError.message };
+
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+    finalBodyHtml = `${bodyHtml}<p><a href="${siteUrl}/forms/fill/${attachment.id}">Fill out this form</a></p>`;
+
+    const { error: updateError } = await supabase
+      .from("email_sends")
+      .update({ body_html: finalBodyHtml, form_attachment_id: attachment.id })
+      .eq("id", emailSend.id);
+    if (updateError) return { error: updateError.message };
+  }
+
   const results = await Promise.allSettled(
-    recipients.map((r) => sendEmail({ to: r.email, subject, bodyHtml }))
+    recipients.map((r) => sendEmail({ to: r.email, subject, bodyHtml: finalBodyHtml }))
   );
 
   const failures = results.filter((r) => r.status === "rejected").length;

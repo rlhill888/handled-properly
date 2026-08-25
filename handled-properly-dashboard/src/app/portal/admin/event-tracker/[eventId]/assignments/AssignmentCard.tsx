@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { updateAssignment, deleteAssignment, type ActionState } from "./actions";
 import SubmitButton from "@/components/portal/SubmitButton";
 import NewAssignmentForm, { type StaffOption } from "./NewAssignmentForm";
+import FormAttachmentManager, { type AttachedForm } from "@/components/portal/FormAttachmentManager";
 import styles from "@/styles/admin-shared.module.css";
 import cardStyles from "@/styles/assignments-board.module.css";
 
@@ -18,6 +19,7 @@ export type AssignmentData = {
   pickupSetting: "admin_only" | "open_pickup";
   assigneeIds: string[];
   assigneeNames: string[];
+  attachedForms: AttachedForm[];
   children: AssignmentData[];
 };
 
@@ -26,11 +28,15 @@ export default function AssignmentCard({
   assignment,
   rosterStaff,
   isLocked,
+  formTemplates,
+  siteUrl,
 }: {
   eventId: string;
   assignment: AssignmentData;
   rosterStaff: StaffOption[];
   isLocked: boolean;
+  formTemplates: { id: string; name: string }[];
+  siteUrl: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [childrenExpanded, setChildrenExpanded] = useState(true);
@@ -55,6 +61,20 @@ export default function AssignmentCard({
   const doneCount = assignment.children.filter((c) => c.status === "done").length;
   const hasChildren = assignment.children.length > 0;
 
+  const formsSection = (
+    <div className={cardStyles.subSection}>
+      <span className={cardStyles.subToggle}>Forms</span>
+      <FormAttachmentManager
+        targetType="assignment"
+        targetId={assignment.id}
+        basePath={`/portal/admin/event-tracker/${eventId}/assignments`}
+        availableTemplates={formTemplates}
+        attached={assignment.attachedForms}
+        siteUrl={siteUrl}
+      />
+    </div>
+  );
+
   const subAssignmentsSection = (
     <>
       {(hasChildren || !isLocked) && (
@@ -78,6 +98,8 @@ export default function AssignmentCard({
                   assignment={child}
                   rosterStaff={rosterStaff}
                   isLocked={isLocked}
+                  formTemplates={formTemplates}
+                  siteUrl={siteUrl}
                 />
               ))}
             </div>
@@ -156,6 +178,7 @@ export default function AssignmentCard({
             </button>
           </div>
         )}
+        {formsSection}
         {subAssignmentsSection}
       </div>
     );
@@ -266,6 +289,7 @@ export default function AssignmentCard({
           </button>
         </div>
       </form>
+      {formsSection}
       {subAssignmentsSection}
     </div>
   );

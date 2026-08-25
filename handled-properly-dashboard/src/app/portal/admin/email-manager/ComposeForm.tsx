@@ -9,6 +9,7 @@ import styles from "@/styles/admin-shared.module.css";
 
 type Category = { id: string; name: string };
 type EventOption = { id: string; name: string };
+type FormTemplateOption = { id: string; name: string };
 type ContactPreview = {
   id: string;
   categoryIds: string[];
@@ -20,12 +21,14 @@ export default function ComposeForm({
   categories,
   contacts,
   events,
+  formTemplates,
   initialSubject = "",
   initialBody = "",
 }: {
   categories: Category[];
   contacts: ContactPreview[];
   events: EventOption[];
+  formTemplates: FormTemplateOption[];
   initialSubject?: string;
   initialBody?: string;
 }) {
@@ -248,6 +251,20 @@ export default function ComposeForm({
             </select>
           )}
         </div>
+      </div>
+
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="form_template_id">
+          Attach a fillable form <span className={styles.optional}>(optional — a fill link is appended to the email)</span>
+        </label>
+        <select id="form_template_id" name="form_template_id" defaultValue="" className={styles.select}>
+          <option value="">No form attached</option>
+          {formTemplates.map((template) => (
+            <option key={template.id} value={template.id}>
+              {template.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       <p className={styles.description}>
