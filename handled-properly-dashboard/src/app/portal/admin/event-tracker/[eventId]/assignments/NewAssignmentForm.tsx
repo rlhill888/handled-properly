@@ -10,11 +10,17 @@ export type StaffOption = { id: string; name: string };
 export default function NewAssignmentForm({
   eventId,
   rosterStaff,
+  parentAssignmentId = null,
+  submitLabel = "Create Assignment",
+  onCreated,
 }: {
   eventId: string;
   rosterStaff: StaffOption[];
+  parentAssignmentId?: string | null;
+  submitLabel?: string;
+  onCreated?: () => void;
 }) {
-  const boundAction = createAssignment.bind(null, eventId);
+  const boundAction = createAssignment.bind(null, eventId, parentAssignmentId);
   const [state, formAction] = useActionState<ActionState, FormData>(boundAction, null);
   const formRef = useRef<HTMLFormElement>(null);
   const previousState = useRef<ActionState>(null);
@@ -22,8 +28,10 @@ export default function NewAssignmentForm({
   useEffect(() => {
     if (previousState.current !== null && state === null) {
       formRef.current?.reset();
+      onCreated?.();
     }
     previousState.current = state;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
   return (
@@ -102,7 +110,7 @@ export default function NewAssignmentForm({
       )}
 
       <div className={styles.actions}>
-        <SubmitButton pendingLabel="Creating…">Create Assignment</SubmitButton>
+        <SubmitButton pendingLabel="Creating…">{submitLabel}</SubmitButton>
       </div>
     </form>
   );

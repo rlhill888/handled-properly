@@ -16,6 +16,7 @@ export type StaffAssignmentData = {
   pickupSetting: "admin_only" | "open_pickup";
   assigneeIds: string[];
   assigneeNames: string[];
+  children: StaffAssignmentData[];
 };
 
 const STATUS_OPTIONS: { value: StaffAssignmentData["status"]; label: string }[] = [
@@ -38,6 +39,10 @@ export default function StaffAssignmentCard({
 }) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [childrenExpanded, setChildrenExpanded] = useState(true);
+
+  const doneCount = assignment.children.filter((c) => c.status === "done").length;
+  const hasChildren = assignment.children.length > 0;
 
   const isAlreadyAssigned = Boolean(currentStaffId && assignment.assigneeIds.includes(currentStaffId));
   const canPickUp = assignment.pickupSetting === "open_pickup" && !isAlreadyAssigned && !isLocked;
@@ -115,6 +120,31 @@ export default function StaffAssignmentCard({
             >
               Pick Up
             </button>
+          )}
+        </div>
+      )}
+
+      {hasChildren && (
+        <div className={cardStyles.subSection}>
+          <button
+            type="button"
+            className={cardStyles.subToggle}
+            onClick={() => setChildrenExpanded((e) => !e)}
+          >
+            {childrenExpanded ? "▾" : "▸"} Sub-assignments ({doneCount}/{assignment.children.length} done)
+          </button>
+          {childrenExpanded && (
+            <div className={cardStyles.subList}>
+              {assignment.children.map((child) => (
+                <StaffAssignmentCard
+                  key={child.id}
+                  eventId={eventId}
+                  assignment={child}
+                  currentStaffId={currentStaffId}
+                  isLocked={isLocked}
+                />
+              ))}
+            </div>
           )}
         </div>
       )}

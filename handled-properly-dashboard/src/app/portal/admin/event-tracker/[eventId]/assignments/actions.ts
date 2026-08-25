@@ -43,6 +43,7 @@ function parseTags(raw: string): string[] {
 
 export async function createAssignment(
   eventId: string,
+  parentAssignmentId: string | null,
   _prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {
@@ -66,6 +67,7 @@ export async function createAssignment(
     .from("assignments")
     .insert({
       event_id: eventId,
+      parent_assignment_id: parentAssignmentId,
       title,
       description: description || null,
       tags,

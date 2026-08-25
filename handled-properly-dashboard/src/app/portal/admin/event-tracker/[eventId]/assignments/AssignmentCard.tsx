@@ -3,9 +3,9 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { updateAssignment, deleteAssignment, type ActionState } from "./actions";
 import SubmitButton from "@/components/portal/SubmitButton";
+import NewAssignmentForm, { type StaffOption } from "./NewAssignmentForm";
 import styles from "@/styles/admin-shared.module.css";
 import cardStyles from "@/styles/assignments-board.module.css";
-import type { StaffOption } from "./NewAssignmentForm";
 
 export type AssignmentData = {
   id: string;
@@ -18,6 +18,7 @@ export type AssignmentData = {
   pickupSetting: "admin_only" | "open_pickup";
   assigneeIds: string[];
   assigneeNames: string[];
+  children: AssignmentData[];
 };
 
 export default function AssignmentCard({
@@ -32,6 +33,8 @@ export default function AssignmentCard({
   isLocked: boolean;
 }) {
   const [editing, setEditing] = useState(false);
+  const [childrenExpanded, setChildrenExpanded] = useState(true);
+  const [addingSubAssignment, setAddingSubAssignment] = useState(false);
   const boundUpdate = updateAssignment.bind(null, eventId, assignment.id);
   const [state, formAction, isPending] = useActionState<ActionState, FormData>(boundUpdate, null);
   const wasPending = useRef(false);
@@ -48,6 +51,68 @@ export default function AssignmentCard({
     const result = await deleteAssignment(eventId, assignment.id);
     if (result?.error) alert(result.error);
   };
+
+  const doneCount = assignment.children.filter((c) => c.status === "done").length;
+  const hasChildren = assignment.children.length > 0;
+
+  const subAssignmentsSection = (
+    <>
+      {(hasChildren || !isLocked) && (
+        <div className={cardStyles.subSection}>
+          {hasChildren && (
+            <button
+              type="button"
+              className={cardStyles.subToggle}
+              onClick={() => setChildrenExpanded((e) => !e)}
+            >
+              {childrenExpanded ? "▾" : "▸"} Sub-assignments ({doneCount}/{assignment.children.length}{" "}
+              done)
+            </button>
+          )}
+          {hasChildren && childrenExpanded && (
+            <div className={cardStyles.subList}>
+              {assignment.children.map((child) => (
+                <AssignmentCard
+                  key={child.id}
+                  eventId={eventId}
+                  assignment={child}
+                  rosterStaff={rosterStaff}
+                  isLocked={isLocked}
+                />
+              ))}
+            </div>
+          )}
+          {!isLocked && !addingSubAssignment && (
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() => setAddingSubAssignment(true)}
+            >
+              + Add Sub-assignment
+            </button>
+          )}
+          {!isLocked && addingSubAssignment && (
+            <div className={cardStyles.subList}>
+              <NewAssignmentForm
+                eventId={eventId}
+                rosterStaff={rosterStaff}
+                parentAssignmentId={assignment.id}
+                submitLabel="Add Sub-assignment"
+                onCreated={() => setAddingSubAssignment(false)}
+              />
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => setAddingSubAssignment(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
 
   if (!editing) {
     return (
@@ -91,6 +156,7 @@ export default function AssignmentCard({
             </button>
           </div>
         )}
+        {subAssignmentsSection}
       </div>
     );
   }
@@ -200,6 +266,7 @@ export default function AssignmentCard({
           </button>
         </div>
       </form>
+      {subAssignmentsSection}
     </div>
   );
 }

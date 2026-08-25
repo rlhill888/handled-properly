@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentActor } from "@/lib/auth/get-current-actor";
 import StaffAssignmentCard, { type StaffAssignmentData } from "./StaffAssignmentCard";
+import { buildAssignmentTree } from "@/lib/data/assignment-tree";
 import styles from "@/styles/admin-shared.module.css";
 import boardStyles from "@/styles/assignments-board.module.css";
 
@@ -36,14 +37,14 @@ export default async function StaffEventAssignmentsPage({
   const { data: assignmentRows } = await supabase
     .from("assignments")
     .select(
-      "id, title, description, status, tags, due_date, priority, pickup_setting, assignment_assignees(event_staff(id, contacts(name)))"
+      "id, parent_assignment_id, title, description, status, tags, due_date, priority, pickup_setting, assignment_assignees(event_staff(id, contacts(name)))"
     )
     .eq("event_id", eventId)
-    .is("parent_assignment_id", null)
     .order("created_at", { ascending: true });
 
-  const assignments: StaffAssignmentData[] = (assignmentRows ?? []).map((row) => ({
+  const flatAssignments = (assignmentRows ?? []).map((row) => ({
     id: row.id,
+    parentAssignmentId: row.parent_assignment_id,
     title: row.title,
     description: row.description,
     status: row.status,
@@ -58,6 +59,8 @@ export default async function StaffEventAssignmentsPage({
       .map((a) => a.event_staff?.contacts?.name)
       .filter((name): name is string => Boolean(name)),
   }));
+
+  const assignments: StaffAssignmentData[] = buildAssignmentTree(flatAssignments);
 
   const isLocked = event.status === "completed";
 
