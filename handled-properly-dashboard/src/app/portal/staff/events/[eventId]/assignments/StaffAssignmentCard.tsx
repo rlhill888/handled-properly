@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { staffSetStatus, staffPickupAssignment } from "./actions";
 import styles from "@/styles/admin-shared.module.css";
 import cardStyles from "@/styles/assignments-board.module.css";
@@ -16,6 +17,7 @@ export type StaffAssignmentData = {
   pickupSetting: "admin_only" | "open_pickup";
   assigneeIds: string[];
   assigneeNames: string[];
+  visibleForms: { id: string; templateName: string }[];
   children: StaffAssignmentData[];
 };
 
@@ -91,6 +93,16 @@ export default function StaffAssignmentCard({
             <span key={name} className={styles.badgeMuted}>
               {name}
             </span>
+          ))}
+        </div>
+      )}
+
+      {assignment.visibleForms.length > 0 && (
+        <div className={styles.metaRow}>
+          {assignment.visibleForms.map((form) => (
+            <Link key={form.id} href={`/portal/staff/form-results/${form.id}`} className={styles.pill}>
+              {form.templateName} — View results
+            </Link>
           ))}
         </div>
       )}

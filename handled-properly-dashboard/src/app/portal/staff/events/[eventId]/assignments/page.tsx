@@ -42,6 +42,27 @@ export default async function StaffEventAssignmentsPage({
     .eq("event_id", eventId)
     .order("created_at", { ascending: true });
 
+  const assignmentIds = (assignmentRows ?? []).map((row) => row.id);
+  // RLS (staff_select_visible_form_attachments) already limits this to
+  // staff_visible attachments on assignments this staff member is rostered
+  // for — no extra filtering needed here.
+  const { data: formAttachments } =
+    assignmentIds.length > 0
+      ? await supabase
+          .from("form_attachments")
+          .select("id, target_id, form_templates(name)")
+          .eq("target_type", "assignment")
+          .in("target_id", assignmentIds)
+      : { data: [] };
+
+  const visibleFormsByAssignment = new Map<string, { id: string; templateName: string }[]>();
+  for (const a of formAttachments ?? []) {
+    if (!a.form_templates) continue;
+    const list = visibleFormsByAssignment.get(a.target_id) ?? [];
+    list.push({ id: a.id, templateName: a.form_templates.name });
+    visibleFormsByAssignment.set(a.target_id, list);
+  }
+
   const flatAssignments = (assignmentRows ?? []).map((row) => ({
     id: row.id,
     parentAssignmentId: row.parent_assignment_id,
@@ -58,6 +79,7 @@ export default async function StaffEventAssignmentsPage({
     assigneeNames: row.assignment_assignees
       .map((a) => a.event_staff?.contacts?.name)
       .filter((name): name is string => Boolean(name)),
+    visibleForms: visibleFormsByAssignment.get(row.id) ?? [],
   }));
 
   const assignments: StaffAssignmentData[] = buildAssignmentTree(flatAssignments);

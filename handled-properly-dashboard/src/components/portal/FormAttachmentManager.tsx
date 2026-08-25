@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import {
   attachFormTemplate,
   setAttachmentStaffVisible,
@@ -77,6 +78,7 @@ export default function FormAttachmentManager({
               <th>Template</th>
               <th>Fill link</th>
               {showStaffToggle && <th>Staff visible</th>}
+              <th>Results</th>
               <th></th>
             </tr>
           </thead>
@@ -103,6 +105,11 @@ export default function FormAttachmentManager({
                     />
                   </td>
                 )}
+                <td>
+                  <Link href={`/portal/admin/form/results/${a.id}`} className={styles.link}>
+                    View results
+                  </Link>
+                </td>
                 <td>
                   <button
                     type="button"

@@ -3,6 +3,24 @@ import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import styles from "@/styles/admin-shared.module.css";
 
+// RLS (staff_select_visible_form_attachments -> can_staff_view_form_attachment)
+// only ever returns rows this staff member is entitled to see: staff_visible
+// attachments on an Event they're rostered on. No app-level filtering needed.
+async function getVisibleEventForms(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  eventId: string
+) {
+  const { data } = await supabase
+    .from("form_attachments")
+    .select("id, form_templates(name)")
+    .eq("target_type", "event")
+    .eq("target_id", eventId);
+
+  return (data ?? [])
+    .filter((a) => a.form_templates)
+    .map((a) => ({ id: a.id, templateName: a.form_templates!.name }));
+}
+
 export default async function StaffEventDetailPage({
   params,
 }: {
@@ -24,6 +42,7 @@ export default async function StaffEventDetailPage({
   if (!event) notFound();
 
   const clientName = event.client?.company_name || event.client?.contacts?.name || "—";
+  const visibleForms = await getVisibleEventForms(supabase, event.id);
 
   return (
     <div className={styles.page}>
@@ -83,6 +102,23 @@ export default async function StaffEventDetailPage({
           </tbody>
         </table>
       </div>
+
+      {visibleForms.length > 0 && (
+        <div className={styles.card}>
+          <h2 className={styles.cardTitle}>Forms</h2>
+          <div className={styles.metaRow}>
+            {visibleForms.map((form) => (
+              <Link
+                key={form.id}
+                href={`/portal/staff/form-results/${form.id}`}
+                className={styles.pill}
+              >
+                {form.templateName} — View results
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
