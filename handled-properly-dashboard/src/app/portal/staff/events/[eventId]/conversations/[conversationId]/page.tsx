@@ -43,8 +43,8 @@ export default async function StaffConversationPage({
 
   return (
     <div className={styles.page}>
-      <Link href={`/portal/staff/events/${eventId}/conversations`} className={styles.link}>
-        ← Back to Conversations
+      <Link href={`/portal/staff/events/${eventId}/conversations`} className={styles.backLink} aria-label="Back to Conversations">
+        ←
       </Link>
 
       <div className={styles.header}>

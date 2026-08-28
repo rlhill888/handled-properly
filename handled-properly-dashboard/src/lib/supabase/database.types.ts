@@ -7,30 +7,10 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -711,6 +691,35 @@ export type Database = {
           },
         ]
       }
+      roster_categories: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roster_categories_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       roster_entries: {
         Row: {
           added_at: string
@@ -737,6 +746,36 @@ export type Database = {
           },
           {
             foreignKeyName: "roster_entries_event_staff_id_fkey"
+            columns: ["event_staff_id"]
+            isOneToOne: false
+            referencedRelation: "event_staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roster_entry_categories: {
+        Row: {
+          category_id: string
+          event_staff_id: string
+        }
+        Insert: {
+          category_id: string
+          event_staff_id: string
+        }
+        Update: {
+          category_id?: string
+          event_staff_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roster_entry_categories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "roster_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roster_entry_categories_event_staff_id_fkey"
             columns: ["event_staff_id"]
             isOneToOne: false
             referencedRelation: "event_staff"
@@ -1001,9 +1040,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       assigned_via: ["admin", "pickup"],
@@ -1028,4 +1064,3 @@ export const Constants = {
     },
   },
 } as const
-

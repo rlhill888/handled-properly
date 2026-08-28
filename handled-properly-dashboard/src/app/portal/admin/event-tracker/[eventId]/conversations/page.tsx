@@ -40,8 +40,8 @@ export default async function AdminEventConversationsPage({
 
   return (
     <div className={styles.page}>
-      <Link href={`/portal/admin/event-tracker/${eventId}`} className={styles.link}>
-        ← Back to {event.name}
+      <Link href={`/portal/admin/event-tracker/${eventId}`} className={styles.backLink} aria-label={`Back to ${event.name}`}>
+        ←
       </Link>
 
       <div className={styles.header}>
@@ -68,7 +68,7 @@ export default async function AdminEventConversationsPage({
         {!conversations || conversations.length === 0 ? (
           <p className={styles.emptyState}>No conversations yet.</p>
         ) : (
-          <table className={styles.table}>
+          <table className={`${styles.table} ${styles.cardRows}`}>
             <thead>
               <tr>
                 <th>Participants</th>
@@ -79,14 +79,14 @@ export default async function AdminEventConversationsPage({
             <tbody>
               {conversations.map((conversation) => (
                 <tr key={conversation.id}>
-                  <td>
+                  <td data-label="Participants" className={styles.cardPrimaryCell}>
                     {conversation.conversation_participants
                       .map((p) => p.event_staff?.contacts?.name)
                       .filter(Boolean)
                       .join(", ") || "—"}
                   </td>
-                  <td>{new Date(conversation.created_at).toLocaleString()}</td>
-                  <td>
+                  <td data-label="Started">{new Date(conversation.created_at).toLocaleString()}</td>
+                  <td className={styles.cardActionCell}>
                     <Link
                       href={`/portal/admin/event-tracker/${eventId}/conversations/${conversation.id}`}
                       className={styles.link}

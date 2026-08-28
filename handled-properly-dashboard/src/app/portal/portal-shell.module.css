@@ -6,4 +6,11 @@
 
 .content {
   flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 899px) {
+  .shell {
+    flex-direction: column;
+  }
 }

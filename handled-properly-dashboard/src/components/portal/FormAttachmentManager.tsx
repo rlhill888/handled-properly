@@ -7,6 +7,7 @@ import {
   setAttachmentStaffVisible,
   removeFormAttachment,
 } from "@/lib/actions/form-attachments";
+import SelectDropdown from "./SelectDropdown";
 import styles from "@/styles/admin-shared.module.css";
 
 export type FormAttachmentTargetType = "event" | "assignment" | "email_send";
@@ -72,7 +73,7 @@ export default function FormAttachmentManager({
       {attached.length === 0 ? (
         <p className={styles.emptyState}>No forms attached yet.</p>
       ) : (
-        <table className={styles.table}>
+        <table className={`${styles.table} ${styles.cardRows}`}>
           <thead>
             <tr>
               <th>Template</th>
@@ -85,12 +86,14 @@ export default function FormAttachmentManager({
           <tbody>
             {attached.map((a) => (
               <tr key={a.id}>
-                <td>{a.templateName}</td>
-                <td>
-                  <code style={{ fontSize: 12 }}>{`${siteUrl}/forms/fill/${a.id}`}</code>
+                <td data-label="Template" className={styles.cardPrimaryCell}>
+                  {a.templateName}
+                </td>
+                <td data-label="Fill link">
+                  <code style={{ fontSize: 12, wordBreak: "break-all" }}>{`${siteUrl}/forms/fill/${a.id}`}</code>
                 </td>
                 {showStaffToggle && (
-                  <td>
+                  <td data-label="Staff visible">
                     {/* Uncontrolled + keyed on the server value: toggles
                         instantly without the controlled-input snap-back
                         (no local state to reconcile with the prop until
@@ -105,12 +108,12 @@ export default function FormAttachmentManager({
                     />
                   </td>
                 )}
-                <td>
+                <td data-label="Results">
                   <Link href={`/portal/admin/form/results/${a.id}`} className={styles.link}>
                     View results
                   </Link>
                 </td>
-                <td>
+                <td className={styles.cardActionCell}>
                   <button
                     type="button"
                     className={styles.dangerButton}
@@ -127,18 +130,14 @@ export default function FormAttachmentManager({
       )}
 
       <div className={styles.formRow}>
-        <select
-          className={styles.select}
+        <SelectDropdown
+          options={attachableTemplates.map((t) => ({ id: t.id, label: t.name }))}
           value={selectedTemplateId}
-          onChange={(e) => setSelectedTemplateId(e.target.value)}
-        >
-          <option value="">Attach a form template…</option>
-          {attachableTemplates.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
+          onChange={setSelectedTemplateId}
+          placeholder="Attach a form template…"
+          createLabel="New Form Template"
+          createHref="/portal/admin/form/new"
+        />
         <button
           type="button"
           className={styles.secondaryButton}

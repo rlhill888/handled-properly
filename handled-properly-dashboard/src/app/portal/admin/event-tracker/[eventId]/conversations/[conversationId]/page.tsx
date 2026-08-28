@@ -41,8 +41,8 @@ export default async function AdminConversationPage({
 
   return (
     <div className={styles.page}>
-      <Link href={`/portal/admin/event-tracker/${eventId}/conversations`} className={styles.link}>
-        ← Back to Conversations
+      <Link href={`/portal/admin/event-tracker/${eventId}/conversations`} className={styles.backLink} aria-label="Back to Conversations">
+        ←
       </Link>
 
       <div className={styles.header}>

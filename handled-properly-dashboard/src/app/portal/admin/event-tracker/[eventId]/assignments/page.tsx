@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import NewAssignmentForm, { type StaffOption } from "./NewAssignmentForm";
+import { getAssignmentsBoardData } from "./data";
 import AssignmentCard, { type AssignmentData } from "./AssignmentCard";
-import { buildAssignmentTree } from "@/lib/data/assignment-tree";
+import NewAssignmentForm from "./NewAssignmentForm";
+import AddModalButton from "@/components/portal/AddModalButton";
 import styles from "@/styles/admin-shared.module.css";
 import boardStyles from "@/styles/assignments-board.module.css";
 
@@ -14,7 +15,7 @@ const COLUMNS: { status: AssignmentData["status"]; label: string }[] = [
   { status: "done", label: "Done" },
 ];
 
-export default async function EventAssignmentsPage({
+export default async function EventAssignmentsDetailPage({
   params,
 }: {
   params: Promise<{ eventId: string }>;
@@ -30,93 +31,35 @@ export default async function EventAssignmentsPage({
 
   if (!event) notFound();
 
-  const [{ data: rosterRows }, { data: assignmentRows }, { data: formTemplates }] = await Promise.all([
-    supabase
-      .from("roster_entries")
-      .select("event_staff(id, contacts(name))")
-      .eq("event_id", eventId),
-    supabase
-      .from("assignments")
-      .select(
-        "id, parent_assignment_id, title, description, status, tags, due_date, priority, pickup_setting, assignment_assignees(event_staff(id, contacts(name)))"
-      )
-      .eq("event_id", eventId)
-      .order("created_at", { ascending: true }),
-    supabase.from("form_templates").select("id, name").order("name", { ascending: true }),
-  ]);
-
-  const assignmentIds = (assignmentRows ?? []).map((row) => row.id);
-  const { data: formAttachments } =
-    assignmentIds.length > 0
-      ? await supabase
-          .from("form_attachments")
-          .select("id, target_id, staff_visible, form_templates(id, name)")
-          .eq("target_type", "assignment")
-          .in("target_id", assignmentIds)
-      : { data: [] };
-
-  const attachmentsByAssignment = new Map<
-    string,
-    { id: string; templateId: string; templateName: string; staffVisible: boolean }[]
-  >();
-  for (const a of formAttachments ?? []) {
-    if (!a.form_templates) continue;
-    const list = attachmentsByAssignment.get(a.target_id) ?? [];
-    list.push({
-      id: a.id,
-      templateId: a.form_templates.id,
-      templateName: a.form_templates.name,
-      staffVisible: a.staff_visible,
-    });
-    attachmentsByAssignment.set(a.target_id, list);
-  }
-
-  const rosterStaff: StaffOption[] = (rosterRows ?? [])
-    .filter((r) => r.event_staff?.contacts)
-    .map((r) => ({ id: r.event_staff!.id, name: r.event_staff!.contacts!.name }));
-
-  const flatAssignments = (assignmentRows ?? []).map((row) => ({
-    id: row.id,
-    parentAssignmentId: row.parent_assignment_id,
-    title: row.title,
-    description: row.description,
-    status: row.status,
-    tags: row.tags,
-    dueDate: row.due_date,
-    priority: row.priority,
-    pickupSetting: row.pickup_setting,
-    assigneeIds: row.assignment_assignees
-      .map((a) => a.event_staff?.id)
-      .filter((id): id is string => Boolean(id)),
-    assigneeNames: row.assignment_assignees
-      .map((a) => a.event_staff?.contacts?.name)
-      .filter((name): name is string => Boolean(name)),
-    attachedForms: attachmentsByAssignment.get(row.id) ?? [],
-  }));
-
-  const assignments: AssignmentData[] = buildAssignmentTree(flatAssignments);
-
   const isLocked = event.status === "completed";
+  const { assignments, rosterStaff, formTemplates, siteUrl } = await getAssignmentsBoardData(eventId);
 
   return (
     <div className={styles.page}>
-      <Link href={`/portal/admin/event-tracker/${eventId}`} className={styles.link}>
-        ← Back to {event.name}
+      <Link
+        href={`/portal/admin/event-tracker/${eventId}`}
+        className={styles.backLink}
+        aria-label={`Back to ${event.name}`}
+      >
+        ←
       </Link>
 
       <div className={styles.header}>
         <div>
           <span className={styles.eyebrow}>Admin · Assignments</span>
-          <h1 className={styles.title}>{event.name}</h1>
+          <div className={styles.titleRow}>
+            <h1 className={styles.title}>{event.name}</h1>
+            {!isLocked && (
+              <AddModalButton label="New Assignment" modalTitle="New Assignment">
+                <NewAssignmentForm eventId={eventId} rosterStaff={rosterStaff} />
+              </AddModalButton>
+            )}
+          </div>
+          <p className={styles.description}>
+            Full detail on every assignment for this event, grouped by status.
+          </p>
         </div>
       </div>
-
-      {!isLocked && (
-        <div className={styles.card}>
-          <h2 className={styles.cardTitle}>New Assignment</h2>
-          <NewAssignmentForm eventId={eventId} rosterStaff={rosterStaff} />
-        </div>
-      )}
 
       <div className={boardStyles.board}>
         {COLUMNS.map((column) => (
@@ -134,8 +77,8 @@ export default async function EventAssignmentsPage({
                   assignment={assignment}
                   rosterStaff={rosterStaff}
                   isLocked={isLocked}
-                  formTemplates={formTemplates ?? []}
-                  siteUrl={process.env.NEXT_PUBLIC_SITE_URL ?? ""}
+                  formTemplates={formTemplates}
+                  siteUrl={siteUrl}
                 />
               ))}
           </div>

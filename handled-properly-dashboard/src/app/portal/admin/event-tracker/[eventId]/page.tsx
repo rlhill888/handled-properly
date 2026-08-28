@@ -4,7 +4,9 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import MarkCompletedButton from "./MarkCompletedButton";
 import RosterManager from "./RosterManager";
 import ConversationSettingToggle from "./ConversationSettingToggle";
+import AssignmentsBoard from "./AssignmentsBoard";
 import FormAttachmentManager from "@/components/portal/FormAttachmentManager";
+import SettingsModalButton from "@/components/portal/SettingsModalButton";
 import styles from "@/styles/admin-shared.module.css";
 
 export default async function EventDetailPage({
@@ -27,20 +29,44 @@ export default async function EventDetailPage({
 
   const clientName = event.client?.company_name || event.client?.contacts?.name || "—";
 
-  const [{ data: rosterRows }, { data: allStaff }, { data: formTemplates }, { data: formAttachments }] =
-    await Promise.all([
-      supabase
-        .from("roster_entries")
-        .select("event_staff_id, event_staff(id, contacts(name, email))")
-        .eq("event_id", eventId),
-      supabase.from("event_staff").select("id, contacts(name, email)"),
-      supabase.from("form_templates").select("id, name").order("name", { ascending: true }),
-      supabase
-        .from("form_attachments")
-        .select("id, staff_visible, form_templates(id, name)")
-        .eq("target_type", "event")
-        .eq("target_id", eventId),
-    ]);
+  const [
+    { data: rosterRows },
+    { data: allStaff },
+    { data: formTemplates },
+    { data: formAttachments },
+    { data: rosterCategoryRows },
+  ] = await Promise.all([
+    supabase
+      .from("roster_entries")
+      .select("event_staff_id, event_staff(id, contacts(name, email))")
+      .eq("event_id", eventId),
+    supabase.from("event_staff").select("id, contacts(name, email)"),
+    supabase.from("form_templates").select("id, name").order("name", { ascending: true }),
+    supabase
+      .from("form_attachments")
+      .select("id, staff_visible, form_templates(id, name)")
+      .eq("target_type", "event")
+      .eq("target_id", eventId),
+    supabase
+      .from("roster_categories")
+      .select("id, name, roster_entry_categories(event_staff_id)")
+      .eq("event_id", eventId)
+      .order("name", { ascending: true }),
+  ]);
+
+  const rosterCategories = (rosterCategoryRows ?? []).map((row) => ({
+    id: row.id,
+    name: row.name,
+  }));
+
+  const categoryIdsByStaff = new Map<string, string[]>();
+  for (const row of rosterCategoryRows ?? []) {
+    for (const entry of row.roster_entry_categories) {
+      const list = categoryIdsByStaff.get(entry.event_staff_id) ?? [];
+      list.push(row.id);
+      categoryIdsByStaff.set(entry.event_staff_id, list);
+    }
+  }
 
   const rosterMembers = (rosterRows ?? [])
     .filter((row) => row.event_staff?.contacts)
@@ -48,6 +74,7 @@ export default async function EventDetailPage({
       id: row.event_staff!.id,
       name: row.event_staff!.contacts!.name,
       email: row.event_staff!.contacts!.email,
+      categoryIds: categoryIdsByStaff.get(row.event_staff!.id) ?? [],
     }));
 
   const rosterIds = new Set(rosterMembers.map((m) => m.id));
@@ -70,8 +97,8 @@ export default async function EventDetailPage({
 
   return (
     <div className={styles.page}>
-      <Link href="/portal/admin/event-tracker" className={styles.link}>
-        ← Back to Events
+      <Link href="/portal/admin/event-tracker" className={styles.backLink} aria-label="Back to Events">
+        ←
       </Link>
 
       <div className={styles.header}>
@@ -86,19 +113,43 @@ export default async function EventDetailPage({
           </div>
         </div>
         <div className={styles.actions}>
-          <Link href={`/portal/admin/event-tracker/${event.id}/assignments`} className={styles.secondaryButton}>
-            View Assignments
+          <Link
+            href={`/portal/admin/event-tracker/${event.id}/conversations`}
+            className={styles.backLink}
+            aria-label="View Conversations"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
           </Link>
-          <Link href={`/portal/admin/event-tracker/${event.id}/conversations`} className={styles.secondaryButton}>
-            View Conversations
-          </Link>
-          {event.status === "active" && <MarkCompletedButton eventId={event.id} />}
+
+          <SettingsModalButton>
+            <div className={styles.form}>
+              <ConversationSettingToggle
+                eventId={event.id}
+                initialAllowed={event.staff_can_start_conversations}
+                disabled={event.status === "completed"}
+              />
+
+              {event.status === "active" && <MarkCompletedButton eventId={event.id} />}
+            </div>
+          </SettingsModalButton>
         </div>
       </div>
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Details</h2>
-        <table className={styles.table}>
+        <table className={`${styles.table} ${styles.keyValueTable}`}>
           <tbody>
             <tr>
               <td>Client</td>
@@ -120,14 +171,9 @@ export default async function EventDetailPage({
             )}
           </tbody>
         </table>
-        <div style={{ marginTop: 16 }}>
-          <ConversationSettingToggle
-            eventId={event.id}
-            initialAllowed={event.staff_can_start_conversations}
-            disabled={event.status === "completed"}
-          />
-        </div>
       </div>
+
+      <AssignmentsBoard eventId={event.id} isLocked={event.status === "completed"} />
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Roster</h2>
@@ -135,6 +181,7 @@ export default async function EventDetailPage({
           eventId={event.id}
           rosterMembers={rosterMembers}
           availableStaff={availableStaff}
+          categories={rosterCategories}
           isLocked={event.status === "completed"}
         />
       </div>

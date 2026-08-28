@@ -18,8 +18,8 @@ export default async function AdminFormResultsPage({
 
   return (
     <div className={styles.page}>
-      <Link href="/portal/admin/form" className={styles.link}>
-        ← Back to Forms
+      <Link href="/portal/admin/form" className={styles.backLink} aria-label="Back to Forms">
+        ←
       </Link>
 
       <div className={styles.header}>

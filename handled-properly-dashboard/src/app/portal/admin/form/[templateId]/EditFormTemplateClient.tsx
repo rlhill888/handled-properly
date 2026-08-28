@@ -32,8 +32,8 @@ export default function EditFormTemplateClient({
 
   return (
     <div className={styles.page}>
-      <a href="/portal/admin/form" className={styles.back}>
-        ← Back to Forms
+      <a href="/portal/admin/form" className={styles.backLink} aria-label="Back to Forms">
+        ←
       </a>
 
       <span className={styles.eyebrow}>Admin</span>

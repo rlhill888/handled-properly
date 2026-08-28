@@ -1,9 +1,21 @@
 .board {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 16px;
   width: 100%;
-  align-items: start;
+}
+
+.detailView {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.detailHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .column {
@@ -15,6 +27,12 @@
   border-radius: 4px;
   padding: 12px;
   min-height: 120px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.columnDragOver {
+  background: #ececec;
+  border-color: #0a0a0a;
 }
 
 .columnHeader {
@@ -25,6 +43,65 @@
   color: var(--muted);
   display: flex;
   justify-content: space-between;
+}
+
+.titleCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px;
+  cursor: grab;
+  transition: border-color 0.2s ease, opacity 0.2s ease;
+  /* Pointer-driven drag needs the browser to not hijack the gesture for
+     page scrolling — without this, touch dragging never gets past the
+     first pointermove on mobile. */
+  touch-action: none;
+  user-select: none;
+}
+
+.titleCard:hover {
+  border-color: #0a0a0a;
+}
+
+.titleCard:active {
+  cursor: grabbing;
+}
+
+.titleCardDragging {
+  opacity: 0.5;
+  border-color: #0a0a0a;
+}
+
+.titleCardText {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.titleCardToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.titleCardToggle:hover {
+  background: var(--surface);
+  color: var(--foreground);
 }
 
 .card {

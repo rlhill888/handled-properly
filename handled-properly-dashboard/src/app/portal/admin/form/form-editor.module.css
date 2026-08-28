@@ -6,6 +6,12 @@
   padding: 64px 48px;
 }
 
+@media (max-width: 640px) {
+  .page {
+    padding: 32px 20px;
+  }
+}
+
 .back {
   font-size: 12px;
   font-weight: 700;
@@ -19,12 +25,43 @@
   color: var(--foreground);
 }
 
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  margin-bottom: 12px;
+  font-size: 15px;
+  color: var(--foreground);
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.backLink:hover {
+  background: var(--surface);
+  transform: translateX(-1px);
+}
+
 .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+.eyebrow::before {
+  content: "";
+  width: 20px;
+  height: 1px;
+  background: #0a0a0a;
 }
 
 .title {

@@ -19,8 +19,8 @@ export default async function EventHistoryPage() {
           <h1 className={styles.title}>Event History</h1>
           <p className={styles.description}>Completed events, locked as a record of what happened.</p>
         </div>
-        <Link href="/portal/admin/event-tracker" className={styles.secondaryButton}>
-          Back to Active Events
+        <Link href="/portal/admin/event-tracker" className={styles.backLink} aria-label="Back to Active Events">
+          ←
         </Link>
       </div>
 
@@ -31,7 +31,7 @@ export default async function EventHistoryPage() {
         {!events || events.length === 0 ? (
           <p className={styles.emptyState}>No completed events yet.</p>
         ) : (
-          <table className={styles.table}>
+          <table className={`${styles.table} ${styles.cardRows}`}>
             <thead>
               <tr>
                 <th>Name</th>
@@ -43,10 +43,16 @@ export default async function EventHistoryPage() {
             <tbody>
               {events.map((event) => (
                 <tr key={event.id}>
-                  <td>{event.name}</td>
-                  <td>{event.client?.company_name || event.client?.contacts?.name || "—"}</td>
-                  <td>{event.completed_at ? new Date(event.completed_at).toLocaleString() : "—"}</td>
-                  <td>
+                  <td data-label="Name" className={styles.cardPrimaryCell}>
+                    {event.name}
+                  </td>
+                  <td data-label="Client">
+                    {event.client?.company_name || event.client?.contacts?.name || "—"}
+                  </td>
+                  <td data-label="Completed">
+                    {event.completed_at ? new Date(event.completed_at).toLocaleString() : "—"}
+                  </td>
+                  <td className={styles.cardActionCell}>
                     <Link href={`/portal/admin/event-tracker/${event.id}`} className={styles.link}>
                       View
                     </Link>

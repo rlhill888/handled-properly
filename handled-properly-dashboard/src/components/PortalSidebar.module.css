@@ -10,14 +10,72 @@
   border-right: 1px solid var(--border);
 }
 
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .logo {
-  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logoMark {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  background: #0a0a0a;
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
 }
 
 .logoText {
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.04em;
+}
+
+.menuButton {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.menuButton span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: #0a0a0a;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease;
+}
+
+.menuButtonOpen span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.menuButtonOpen span:nth-child(2) {
+  opacity: 0;
+}
+
+.menuButtonOpen span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  flex: 1;
 }
 
 .roleLabel {
@@ -36,6 +94,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  list-style: none;
 }
 
 .navLink {
@@ -74,4 +133,203 @@
 
 .signOut:hover {
   color: var(--foreground);
+}
+
+.drawerOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(10, 10, 10, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.drawerOverlayOpen {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 201;
+  width: 82%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  padding: 24px 20px;
+  box-shadow: 12px 0 40px rgba(10, 10, 10, 0.18);
+  transform: translateX(-100%);
+  transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.drawerOpen {
+  transform: translateX(0);
+}
+
+.drawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.drawerClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--foreground);
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.drawerClose:hover {
+  background: var(--surface);
+}
+
+.drawerNav {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.drawerNavList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+}
+
+.drawerNavList li {
+  opacity: 0;
+}
+
+@keyframes drawerItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.drawerOpen .drawerNavList li {
+  animation: drawerItemIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.drawerOpen .drawerNavList li:nth-child(1) {
+  animation-delay: 0.08s;
+}
+.drawerOpen .drawerNavList li:nth-child(2) {
+  animation-delay: 0.12s;
+}
+.drawerOpen .drawerNavList li:nth-child(3) {
+  animation-delay: 0.16s;
+}
+.drawerOpen .drawerNavList li:nth-child(4) {
+  animation-delay: 0.2s;
+}
+.drawerOpen .drawerNavList li:nth-child(5) {
+  animation-delay: 0.24s;
+}
+.drawerOpen .drawerNavList li:nth-child(6) {
+  animation-delay: 0.28s;
+}
+.drawerOpen .drawerNavList li:nth-child(n + 7) {
+  animation-delay: 0.32s;
+}
+
+.drawerNavLink {
+  display: block;
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--foreground);
+  border-radius: 8px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.drawerNavLink:hover {
+  background: var(--surface);
+}
+
+.drawerNavLinkActive {
+  background: #0a0a0a;
+  color: #ffffff;
+}
+
+.drawerNavLinkActive:hover {
+  background: #0a0a0a;
+  color: #ffffff;
+}
+
+.drawerSignOut {
+  display: block;
+  margin-top: 16px;
+  padding: 16px 16px 0;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.drawerSignOut:hover {
+  color: var(--foreground);
+}
+
+@media (min-width: 900px) {
+  .drawerOverlay,
+  .drawer {
+    display: none;
+  }
+}
+
+@media (max-width: 899px) {
+  .sidebar {
+    width: 100%;
+    min-height: 0;
+    padding: 16px 20px;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    gap: 0;
+  }
+
+  .menuButton {
+    display: flex;
+  }
+
+  .panel {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menuButton span,
+  .drawer {
+    transition: none;
+  }
+
+  .drawerNavList li {
+    opacity: 1;
+  }
+
+  .drawerOpen .drawerNavList li {
+    animation: none;
+  }
 }

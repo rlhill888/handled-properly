@@ -52,97 +52,104 @@ export default function ContactRow({
   };
 
   return (
-    <>
-      <tr>
-        <td>{contact.name}</td>
-        <td>{contact.email}</td>
-        <td>{contact.phone || "—"}</td>
-        <td>
-          <div className={styles.metaRow}>
-            {contact.isClient && <span className={styles.badge}>Client</span>}
-            {contact.isStaff && <span className={styles.badge}>Staff</span>}
-            {selectedCategoryIds.map((id) => {
-              const category = allCategories.find((c) => c.id === id);
-              return category ? (
-                <span key={id} className={styles.pill}>
-                  {category.name}
-                </span>
-              ) : null;
-            })}
-          </div>
-        </td>
-        <td>
-          <button type="button" className={styles.secondaryButton} onClick={() => setExpanded((e) => !e)}>
-            {expanded ? "Close" : "Manage"}
-          </button>
-        </td>
-      </tr>
+    <div className={styles.accordionItem}>
+      <button
+        type="button"
+        className={styles.accordionHeader}
+        onClick={() => setExpanded((e) => !e)}
+        aria-expanded={expanded}
+      >
+        <span className={styles.accordionTitle}>{contact.name}</span>
+        <span
+          className={`${styles.accordionChevron} ${expanded ? styles.accordionChevronOpen : ""}`}
+          aria-hidden="true"
+        >
+          ▾
+        </span>
+      </button>
+
       {expanded && (
-        <tr>
-          <td colSpan={5}>
-            <div className={styles.form}>
-              {error && <p className={styles.error}>{error}</p>}
+        <div className={styles.accordionBody}>
+          {error && <p className={styles.error}>{error}</p>}
 
-              <div>
-                <span className={styles.label}>Categories</span>
-                <div className={styles.metaRow} style={{ marginTop: 8 }}>
-                  {allCategories.length === 0 && (
-                    <span className={styles.emptyState}>No categories yet — add one above.</span>
-                  )}
-                  {allCategories.map((category) => (
-                    <label key={category.id} className={styles.checkboxRow}>
-                      <input
-                        type="checkbox"
-                        checked={selectedCategoryIds.includes(category.id)}
-                        disabled={isPending}
-                        onChange={() => toggleCategory(category.id)}
-                      />
-                      {category.name}
-                    </label>
-                  ))}
-                </div>
-              </div>
+          <table className={`${styles.table} ${styles.keyValueTable}`}>
+            <tbody>
+              <tr>
+                <td>Email</td>
+                <td>{contact.email}</td>
+              </tr>
+              <tr>
+                <td>Phone</td>
+                <td>{contact.phone || "—"}</td>
+              </tr>
+            </tbody>
+          </table>
 
-              <div>
-                <span className={styles.label}>Event attendance</span>
-                <div className={styles.metaRow} style={{ marginTop: 8 }}>
-                  {contact.attendingEventNames.length === 0 ? (
-                    <span className={styles.emptyState}>Not tagged as an attendee anywhere yet.</span>
-                  ) : (
-                    contact.attendingEventNames.map((name) => (
-                      <span key={name} className={styles.pill}>
-                        {name}
-                      </span>
-                    ))
-                  )}
-                </div>
-                <div className={styles.formRow} style={{ marginTop: 8 }}>
-                  <select
-                    className={styles.select}
-                    value={eventId}
-                    onChange={(e) => setEventId(e.target.value)}
-                  >
-                    <option value="">Tag as attendee of…</option>
-                    {activeEvents.map((event) => (
-                      <option key={event.id} value={event.id}>
-                        {event.name}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    disabled={!eventId || isPending}
-                    onClick={handleAddAttendance}
-                  >
-                    Add
-                  </button>
-                </div>
-              </div>
+          {(contact.isClient || contact.isStaff) && (
+            <div className={styles.metaRow}>
+              {contact.isClient && <span className={styles.badge}>Client</span>}
+              {contact.isStaff && <span className={styles.badge}>Staff</span>}
             </div>
-          </td>
-        </tr>
+          )}
+
+          <div>
+            <span className={styles.label}>Categories</span>
+            <div className={styles.metaRow} style={{ marginTop: 8 }}>
+              {allCategories.length === 0 && (
+                <span className={styles.emptyState}>No categories yet — add one above.</span>
+              )}
+              {allCategories.map((category) => (
+                <label key={category.id} className={styles.checkboxRow}>
+                  <input
+                    type="checkbox"
+                    checked={selectedCategoryIds.includes(category.id)}
+                    disabled={isPending}
+                    onChange={() => toggleCategory(category.id)}
+                  />
+                  {category.name}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <span className={styles.label}>Event attendance</span>
+            <div className={styles.metaRow} style={{ marginTop: 8 }}>
+              {contact.attendingEventNames.length === 0 ? (
+                <span className={styles.emptyState}>Not tagged as an attendee anywhere yet.</span>
+              ) : (
+                contact.attendingEventNames.map((name) => (
+                  <span key={name} className={styles.pill}>
+                    {name}
+                  </span>
+                ))
+              )}
+            </div>
+            <div className={styles.formRow} style={{ marginTop: 8 }}>
+              <select
+                className={styles.select}
+                value={eventId}
+                onChange={(e) => setEventId(e.target.value)}
+              >
+                <option value="">Tag as attendee of…</option>
+                {activeEvents.map((event) => (
+                  <option key={event.id} value={event.id}>
+                    {event.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                disabled={!eventId || isPending}
+                onClick={handleAddAttendance}
+              >
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
       )}
-    </>
+    </div>
   );
 }

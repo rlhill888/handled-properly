@@ -33,11 +33,13 @@ export default function ClientRow({ client }: { client: ClientRowData }) {
   if (!editing) {
     return (
       <tr>
-        <td>{client.name}</td>
-        <td>{client.email}</td>
-        <td>{client.phone || "—"}</td>
-        <td>{client.companyName || "—"}</td>
-        <td>
+        <td data-label="Name" className={styles.cardPrimaryCell}>
+          {client.name}
+        </td>
+        <td data-label="Email">{client.email}</td>
+        <td data-label="Phone">{client.phone || "—"}</td>
+        <td data-label="Company">{client.companyName || "—"}</td>
+        <td className={styles.cardActionCell}>
           <button type="button" className={styles.secondaryButton} onClick={() => setEditing(true)}>
             Edit
           </button>

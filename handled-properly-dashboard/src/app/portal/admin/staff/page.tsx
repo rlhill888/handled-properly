@@ -1,5 +1,6 @@
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import NewStaffForm from "./NewStaffForm";
+import AddModalButton from "@/components/portal/AddModalButton";
 import styles from "@/styles/admin-shared.module.css";
 
 export default async function StaffPage() {
@@ -17,7 +18,12 @@ export default async function StaffPage() {
       <div className={styles.header}>
         <div>
           <span className={styles.eyebrow}>Admin</span>
-          <h1 className={styles.title}>Event Staff</h1>
+          <div className={styles.titleRow}>
+            <h1 className={styles.title}>Event Staff</h1>
+            <AddModalButton label="Invite Staff" modalTitle="Invite Staff">
+              <NewStaffForm />
+            </AddModalButton>
+          </div>
           <p className={styles.description}>
             Invite someone to give them portal access. They&apos;ll get an email to set their
             password before they can sign in.
@@ -28,16 +34,11 @@ export default async function StaffPage() {
       {error && <p className={styles.error}>Could not load staff: {error.message}</p>}
 
       <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Invite Staff</h2>
-        <NewStaffForm />
-      </div>
-
-      <div className={styles.card}>
         <h2 className={styles.cardTitle}>All Event Staff ({staff.length})</h2>
         {staff.length === 0 ? (
           <p className={styles.emptyState}>No staff invited yet.</p>
         ) : (
-          <table className={styles.table}>
+          <table className={`${styles.table} ${styles.cardRows}`}>
             <thead>
               <tr>
                 <th>Name</th>
@@ -49,10 +50,12 @@ export default async function StaffPage() {
             <tbody>
               {staff.map((row) => (
                 <tr key={row.id}>
-                  <td>{row.contacts!.name}</td>
-                  <td>{row.contacts!.email}</td>
-                  <td>{row.contacts!.phone || "—"}</td>
-                  <td>
+                  <td data-label="Name" className={styles.cardPrimaryCell}>
+                    {row.contacts!.name}
+                  </td>
+                  <td data-label="Email">{row.contacts!.email}</td>
+                  <td data-label="Phone">{row.contacts!.phone || "—"}</td>
+                  <td data-label="Status">
                     <span
                       className={
                         row.invite_status === "active" ? styles.badge : styles.badgeMuted

@@ -24,7 +24,7 @@ export default function SubmissionsView({ submissions }: { submissions: Submissi
           {submission.answers.length === 0 ? (
             <p className={styles.emptyState}>No answers recorded.</p>
           ) : (
-            <table className={styles.table}>
+            <table className={`${styles.table} ${styles.keyValueTable}`}>
               <tbody>
                 {submission.answers.map((answer) => (
                   <tr key={answer.fieldId}>

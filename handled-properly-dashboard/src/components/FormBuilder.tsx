@@ -238,275 +238,282 @@ export default function FormBuilder({
 
   return (
     <div className={styles.builder}>
-      <div className={styles.saveBar}>
-        {saveError && <span className={styles.saveError}>{saveError}</span>}
-        <button
-          type="button"
-          className={styles.saveButton}
-          onClick={handleSave}
-          disabled={saving}
-        >
-          {saving ? "Saving…" : saveLabel}
-        </button>
-      </div>
+      <div className={styles.designSection}>
+        <span className={styles.designSectionLabel}>Design</span>
 
-      <div className={styles.themePanel}>
-        <label className={styles.themeControlWide}>
-          Form title
-          <input
-            type="text"
-            className={styles.input}
-            placeholder="Untitled form"
-            value={formTitle}
-            onChange={(e) => setFormTitle(e.target.value)}
-          />
-        </label>
-
-        <label className={styles.themeControlWide}>
-          Form description
-          <textarea
-            className={styles.descriptionInput}
-            placeholder="Tell people what this form is for"
-            rows={2}
-            value={formDescription}
-            onChange={(e) => setFormDescription(e.target.value)}
-          />
-        </label>
-
-        <label className={styles.themeControl}>
-          Background color
-          <input
-            type="color"
-            className={styles.colorInput}
-            value={theme.backgroundColor}
-            onChange={(e) =>
-              handleUpdateTheme({ backgroundColor: e.target.value })
-            }
-          />
-        </label>
-
-        <label className={styles.themeControl}>
-          Font size ({theme.fontSize}px)
-          <input
-            type="range"
-            className={styles.rangeInput}
-            min={12}
-            max={22}
-            value={theme.fontSize}
-            onChange={(e) =>
-              handleUpdateTheme({ fontSize: Number(e.target.value) })
-            }
-          />
-        </label>
-
-        <label className={styles.themeControl}>
-          Question background color
-          <input
-            type="color"
-            className={styles.colorInput}
-            value={theme.questionBackgroundColor}
-            onChange={(e) =>
-              handleUpdateTheme({ questionBackgroundColor: e.target.value })
-            }
-          />
-        </label>
-
-        <label className={styles.themeControl}>
-          Question transparency ({Math.round(theme.cardOpacity * 100)}%)
-          <input
-            type="range"
-            className={styles.rangeInput}
-            min={0}
-            max={100}
-            value={Math.round(theme.cardOpacity * 100)}
-            onChange={(e) =>
-              handleUpdateTheme({ cardOpacity: Number(e.target.value) / 100 })
-            }
-          />
-        </label>
-
-        <div className={styles.themeControl}>
-          Background style
-          <div className={styles.radioGroup}>
-            <label className={styles.radioOption}>
+        <div className={styles.themePanel}>
+          <span className={styles.themeSectionLabel}>Content</span>
+          <div className={styles.themeGrid}>
+            <label className={styles.themeControlWide}>
+              Form title
               <input
-                type="radio"
-                name="backgroundMode"
-                checked={theme.backgroundMode === "banner"}
-                onChange={() => handleUpdateTheme({ backgroundMode: "banner" })}
+                type="text"
+                className={styles.input}
+                placeholder="Untitled form"
+                value={formTitle}
+                onChange={(e) => setFormTitle(e.target.value)}
               />
-              Banner
             </label>
-            <label className={styles.radioOption}>
-              <input
-                type="radio"
-                name="backgroundMode"
-                checked={theme.backgroundMode === "full"}
-                onChange={() => handleUpdateTheme({ backgroundMode: "full" })}
+
+            <label className={styles.themeControlWide}>
+              Form description
+              <textarea
+                className={styles.descriptionInput}
+                placeholder="Tell people what this form is for"
+                rows={2}
+                value={formDescription}
+                onChange={(e) => setFormDescription(e.target.value)}
               />
-              Full background
             </label>
           </div>
         </div>
 
-        {theme.backgroundMode === "banner" && (
-          <label className={styles.themeControl}>
-            Banner height ({theme.bannerHeight}px)
-            <input
-              type="range"
-              className={styles.rangeInput}
-              min={80}
-              max={1000}
-              value={theme.bannerHeight}
-              onChange={(e) =>
-                handleUpdateTheme({ bannerHeight: Number(e.target.value) })
-              }
-            />
-          </label>
-        )}
+        <div className={styles.themePanel}>
+          <span className={styles.themeSectionLabel}>Background</span>
+          <div className={styles.themeGrid}>
+            <label className={styles.themeControl}>
+              Background color
+              <input
+                type="color"
+                className={styles.colorInput}
+                value={theme.backgroundColor}
+                onChange={(e) =>
+                  handleUpdateTheme({ backgroundColor: e.target.value })
+                }
+              />
+            </label>
 
-        <label className={styles.themeControl}>
-          Background image
-          <span className={styles.fileButton}>
-            {theme.backgroundImage ? "Change image" : "Choose image"}
-            <input
-              type="file"
-              accept="image/*"
-              className={styles.fileInput}
-              onChange={handleBackgroundImageUpload}
-            />
-          </span>
-        </label>
+            <label className={styles.themeControl}>
+              Font size ({theme.fontSize}px)
+              <input
+                type="range"
+                className={styles.rangeInput}
+                min={12}
+                max={22}
+                value={theme.fontSize}
+                onChange={(e) =>
+                  handleUpdateTheme({ fontSize: Number(e.target.value) })
+                }
+              />
+            </label>
 
-        {theme.backgroundImage && (
-          <button
-            type="button"
-            className={styles.removeButtonInline}
-            onClick={() => handleUpdateTheme({ backgroundImage: null })}
-          >
-            Remove Image
-          </button>
-        )}
-      </div>
+            <label className={styles.themeControl}>
+              Question background color
+              <input
+                type="color"
+                className={styles.colorInput}
+                value={theme.questionBackgroundColor}
+                onChange={(e) =>
+                  handleUpdateTheme({ questionBackgroundColor: e.target.value })
+                }
+              />
+            </label>
 
-      <div className={styles.themePanel}>
-        <span className={styles.themeSectionLabel}>Title</span>
+            <label className={styles.themeControl}>
+              Question transparency ({Math.round(theme.cardOpacity * 100)}%)
+              <input
+                type="range"
+                className={styles.rangeInput}
+                min={0}
+                max={100}
+                value={Math.round(theme.cardOpacity * 100)}
+                onChange={(e) =>
+                  handleUpdateTheme({ cardOpacity: Number(e.target.value) / 100 })
+                }
+              />
+            </label>
 
-        <label className={styles.themeControl}>
-          Font
-          <select
-            className={styles.select}
-            value={theme.titleFont}
-            onChange={(e) =>
-              handleUpdateTheme({ titleFont: e.target.value as FontOption })
-            }
-          >
-            <option value="sans">Sans-serif</option>
-            <option value="serif">Serif</option>
-            <option value="mono">Monospace</option>
-          </select>
-        </label>
+            <div className={styles.themeControl}>
+              Background style
+              <div className={styles.radioGroup}>
+                <label className={styles.radioOption}>
+                  <input
+                    type="radio"
+                    name="backgroundMode"
+                    checked={theme.backgroundMode === "banner"}
+                    onChange={() => handleUpdateTheme({ backgroundMode: "banner" })}
+                  />
+                  Banner
+                </label>
+                <label className={styles.radioOption}>
+                  <input
+                    type="radio"
+                    name="backgroundMode"
+                    checked={theme.backgroundMode === "full"}
+                    onChange={() => handleUpdateTheme({ backgroundMode: "full" })}
+                  />
+                  Full background
+                </label>
+              </div>
+            </div>
 
-        <label className={styles.themeControl}>
-          Color
-          <input
-            type="color"
-            className={styles.colorInput}
-            value={theme.titleColor}
-            onChange={(e) => handleUpdateTheme({ titleColor: e.target.value })}
-          />
-        </label>
+            {theme.backgroundMode === "banner" && (
+              <label className={styles.themeControl}>
+                Banner height ({theme.bannerHeight}px)
+                <input
+                  type="range"
+                  className={styles.rangeInput}
+                  min={80}
+                  max={1000}
+                  value={theme.bannerHeight}
+                  onChange={(e) =>
+                    handleUpdateTheme({ bannerHeight: Number(e.target.value) })
+                  }
+                />
+              </label>
+            )}
 
-        <label className={styles.themeControl}>
-          Size ({theme.titleSize}px)
-          <input
-            type="range"
-            className={styles.rangeInput}
-            min={16}
-            max={500}
-            value={theme.titleSize}
-            onChange={(e) =>
-              handleUpdateTheme({ titleSize: Number(e.target.value) })
-            }
-          />
-        </label>
+            <label className={styles.themeControl}>
+              Background image
+              <span className={styles.fileButton}>
+                {theme.backgroundImage ? "Change image" : "Choose image"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className={styles.fileInput}
+                  onChange={handleBackgroundImageUpload}
+                />
+              </span>
+            </label>
 
-        <label className={styles.themeControl}>
-          Margin bottom ({theme.titleMarginBottom}px)
-          <input
-            type="range"
-            className={styles.rangeInput}
-            min={0}
-            max={100}
-            value={theme.titleMarginBottom}
-            onChange={(e) =>
-              handleUpdateTheme({ titleMarginBottom: Number(e.target.value) })
-            }
-          />
-        </label>
-      </div>
+            {theme.backgroundImage && (
+              <div className={styles.themeControl}>
+                &nbsp;
+                <button
+                  type="button"
+                  className={styles.removeButtonInline}
+                  onClick={() => handleUpdateTheme({ backgroundImage: null })}
+                >
+                  Remove Image
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
 
-      <div className={styles.themePanel}>
-        <span className={styles.themeSectionLabel}>Description</span>
+        <div className={styles.themePanelGroup}>
+          <div className={styles.themePanel}>
+            <span className={styles.themeSectionLabel}>Title</span>
+            <div className={styles.themeGrid}>
+              <label className={styles.themeControl}>
+                Font
+                <select
+                  className={styles.select}
+                  value={theme.titleFont}
+                  onChange={(e) =>
+                    handleUpdateTheme({ titleFont: e.target.value as FontOption })
+                  }
+                >
+                  <option value="sans">Sans-serif</option>
+                  <option value="serif">Serif</option>
+                  <option value="mono">Monospace</option>
+                </select>
+              </label>
 
-        <label className={styles.themeControl}>
-          Font
-          <select
-            className={styles.select}
-            value={theme.descriptionFont}
-            onChange={(e) =>
-              handleUpdateTheme({
-                descriptionFont: e.target.value as FontOption,
-              })
-            }
-          >
-            <option value="sans">Sans-serif</option>
-            <option value="serif">Serif</option>
-            <option value="mono">Monospace</option>
-          </select>
-        </label>
+              <label className={styles.themeControl}>
+                Color
+                <input
+                  type="color"
+                  className={styles.colorInput}
+                  value={theme.titleColor}
+                  onChange={(e) => handleUpdateTheme({ titleColor: e.target.value })}
+                />
+              </label>
 
-        <label className={styles.themeControl}>
-          Color
-          <input
-            type="color"
-            className={styles.colorInput}
-            value={theme.descriptionColor}
-            onChange={(e) =>
-              handleUpdateTheme({ descriptionColor: e.target.value })
-            }
-          />
-        </label>
+              <label className={styles.themeControl}>
+                Size ({theme.titleSize}px)
+                <input
+                  type="range"
+                  className={styles.rangeInput}
+                  min={16}
+                  max={500}
+                  value={theme.titleSize}
+                  onChange={(e) =>
+                    handleUpdateTheme({ titleSize: Number(e.target.value) })
+                  }
+                />
+              </label>
 
-        <label className={styles.themeControl}>
-          Size ({theme.descriptionSize}px)
-          <input
-            type="range"
-            className={styles.rangeInput}
-            min={12}
-            max={500}
-            value={theme.descriptionSize}
-            onChange={(e) =>
-              handleUpdateTheme({ descriptionSize: Number(e.target.value) })
-            }
-          />
-        </label>
+              <label className={styles.themeControl}>
+                Margin bottom ({theme.titleMarginBottom}px)
+                <input
+                  type="range"
+                  className={styles.rangeInput}
+                  min={0}
+                  max={100}
+                  value={theme.titleMarginBottom}
+                  onChange={(e) =>
+                    handleUpdateTheme({ titleMarginBottom: Number(e.target.value) })
+                  }
+                />
+              </label>
+            </div>
+          </div>
 
-        <label className={styles.themeControl}>
-          Margin bottom ({theme.descriptionMarginBottom}px)
-          <input
-            type="range"
-            className={styles.rangeInput}
-            min={0}
-            max={100}
-            value={theme.descriptionMarginBottom}
-            onChange={(e) =>
-              handleUpdateTheme({
-                descriptionMarginBottom: Number(e.target.value),
-              })
-            }
-          />
-        </label>
+          <div className={styles.themePanel}>
+            <span className={styles.themeSectionLabel}>Description</span>
+            <div className={styles.themeGrid}>
+              <label className={styles.themeControl}>
+                Font
+                <select
+                  className={styles.select}
+                  value={theme.descriptionFont}
+                  onChange={(e) =>
+                    handleUpdateTheme({
+                      descriptionFont: e.target.value as FontOption,
+                    })
+                  }
+                >
+                  <option value="sans">Sans-serif</option>
+                  <option value="serif">Serif</option>
+                  <option value="mono">Monospace</option>
+                </select>
+              </label>
+
+              <label className={styles.themeControl}>
+                Color
+                <input
+                  type="color"
+                  className={styles.colorInput}
+                  value={theme.descriptionColor}
+                  onChange={(e) =>
+                    handleUpdateTheme({ descriptionColor: e.target.value })
+                  }
+                />
+              </label>
+
+              <label className={styles.themeControl}>
+                Size ({theme.descriptionSize}px)
+                <input
+                  type="range"
+                  className={styles.rangeInput}
+                  min={12}
+                  max={500}
+                  value={theme.descriptionSize}
+                  onChange={(e) =>
+                    handleUpdateTheme({ descriptionSize: Number(e.target.value) })
+                  }
+                />
+              </label>
+
+              <label className={styles.themeControl}>
+                Margin bottom ({theme.descriptionMarginBottom}px)
+                <input
+                  type="range"
+                  className={styles.rangeInput}
+                  min={0}
+                  max={100}
+                  value={theme.descriptionMarginBottom}
+                  onChange={(e) =>
+                    handleUpdateTheme({
+                      descriptionMarginBottom: Number(e.target.value),
+                    })
+                  }
+                />
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className={styles.viewToggle} role="tablist">
@@ -635,13 +642,33 @@ export default function FormBuilder({
                 </li>
               ))}
               {fields.length === 0 && (
-                <li className={styles.empty}>No fields yet. Add one below.</li>
+                <li className={styles.emptyPreview}>
+                  <svg
+                    width="28"
+                    height="28"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    aria-hidden="true"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="3" strokeDasharray="4 3" />
+                  </svg>
+                  <span className={styles.emptyPreviewText}>
+                    The preview can&apos;t render yet
+                  </span>
+                  <span className={styles.emptyPreviewSubtext}>
+                    Add at least one field below to continue.
+                  </span>
+                </li>
               )}
             </ul>
           </div>
         </div>
       ) : (
         <div className={styles.customizeLayout}>
+          <div className={styles.customizeColumn}>
+          <span className={styles.customizeColumnLabel}>Questions</span>
           <ul className={styles.questionList}>
             {fields.map((field, index) => (
               <li
@@ -695,7 +722,10 @@ export default function FormBuilder({
               <li className={styles.empty}>No fields yet.</li>
             )}
           </ul>
+          </div>
 
+          <div className={styles.customizeColumn}>
+          <span className={styles.customizeColumnLabel}>Question Settings</span>
           <div className={styles.customizePanel}>
             {selectedField ? (
               <>
@@ -787,7 +817,10 @@ export default function FormBuilder({
             ) : (
               <p className={styles.empty}>Select a question to customize it.</p>
             )}
+          </div>
 
+          <div className={styles.addFormCard}>
+            <span className={styles.addFormLabel}>Add a Question</span>
             <form className={styles.addForm} onSubmit={handleAddField}>
               <input
                 type="text"
@@ -823,8 +856,21 @@ export default function FormBuilder({
               </button>
             </form>
           </div>
+          </div>
         </div>
       )}
+
+      <div className={styles.saveBar}>
+        {saveError && <span className={styles.saveError}>{saveError}</span>}
+        <button
+          type="button"
+          className={styles.saveButton}
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? "Saving…" : saveLabel}
+        </button>
+      </div>
     </div>
   );
 }

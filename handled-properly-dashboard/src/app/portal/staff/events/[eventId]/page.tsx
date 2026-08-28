@@ -46,8 +46,8 @@ export default async function StaffEventDetailPage({
 
   return (
     <div className={styles.page}>
-      <Link href="/portal/staff/events" className={styles.link}>
-        ← Back to My Events
+      <Link href="/portal/staff/events" className={styles.backLink} aria-label="Back to My Events">
+        ←
       </Link>
 
       <div className={styles.header}>
@@ -79,7 +79,7 @@ export default async function StaffEventDetailPage({
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Details</h2>
-        <table className={styles.table}>
+        <table className={`${styles.table} ${styles.keyValueTable}`}>
           <tbody>
             <tr>
               <td>Client</td>

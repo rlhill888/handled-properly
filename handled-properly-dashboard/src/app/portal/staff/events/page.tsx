@@ -32,7 +32,7 @@ export default async function StaffEventsPage() {
         {activeEvents.length === 0 ? (
           <p className={styles.emptyState}>You're not on the roster for any active events yet.</p>
         ) : (
-          <table className={styles.table}>
+          <table className={`${styles.table} ${styles.cardRows}`}>
             <thead>
               <tr>
                 <th>Name</th>
@@ -44,10 +44,16 @@ export default async function StaffEventsPage() {
             <tbody>
               {activeEvents.map((event) => (
                 <tr key={event.id}>
-                  <td>{event.name}</td>
-                  <td>{event.client?.company_name || event.client?.contacts?.name || "—"}</td>
-                  <td>{event.starts_at ? new Date(event.starts_at).toLocaleString() : "—"}</td>
-                  <td>
+                  <td data-label="Name" className={styles.cardPrimaryCell}>
+                    {event.name}
+                  </td>
+                  <td data-label="Client">
+                    {event.client?.company_name || event.client?.contacts?.name || "—"}
+                  </td>
+                  <td data-label="Date">
+                    {event.starts_at ? new Date(event.starts_at).toLocaleString() : "—"}
+                  </td>
+                  <td className={styles.cardActionCell}>
                     <Link href={`/portal/staff/events/${event.id}`} className={styles.link}>
                       View
                     </Link>
@@ -62,7 +68,7 @@ export default async function StaffEventsPage() {
       {completedEvents.length > 0 && (
         <div className={styles.card}>
           <h2 className={styles.cardTitle}>Completed ({completedEvents.length})</h2>
-          <table className={styles.table}>
+          <table className={`${styles.table} ${styles.cardRows}`}>
             <thead>
               <tr>
                 <th>Name</th>
@@ -73,9 +79,13 @@ export default async function StaffEventsPage() {
             <tbody>
               {completedEvents.map((event) => (
                 <tr key={event.id}>
-                  <td>{event.name}</td>
-                  <td>{event.client?.company_name || event.client?.contacts?.name || "—"}</td>
-                  <td>
+                  <td data-label="Name" className={styles.cardPrimaryCell}>
+                    {event.name}
+                  </td>
+                  <td data-label="Client">
+                    {event.client?.company_name || event.client?.contacts?.name || "—"}
+                  </td>
+                  <td className={styles.cardActionCell}>
                     <Link href={`/portal/staff/events/${event.id}`} className={styles.link}>
                       View
                     </Link>

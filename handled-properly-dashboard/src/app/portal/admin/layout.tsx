@@ -1,16 +1,8 @@
 import { redirect } from "next/navigation";
 import PortalSidebar from "@/components/PortalSidebar";
 import { getCurrentActor } from "@/lib/auth/get-current-actor";
+import { ADMIN_LINKS } from "@/lib/portal-nav";
 import styles from "../portal-shell.module.css";
-
-const ADMIN_LINKS = [
-  { label: "Clients", href: "/portal/admin/clients" },
-  { label: "Staff", href: "/portal/admin/staff" },
-  { label: "Contacts", href: "/portal/admin/contacts" },
-  { label: "Forms", href: "/portal/admin/form" },
-  { label: "Event Tracker", href: "/portal/admin/event-tracker" },
-  { label: "Mass Email Manager", href: "/portal/admin/email-manager" },
-];
 
 export default async function AdminLayout({
   children,
@@ -19,7 +11,7 @@ export default async function AdminLayout({
 }) {
   const actor = await getCurrentActor();
   if (!actor) redirect("/portal/signin");
-  if (actor.role !== "admin") redirect("/portal/staff");
+  if (actor.role !== "admin") redirect("/portal");
 
   return (
     <div className={styles.shell}>

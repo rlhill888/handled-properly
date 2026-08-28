@@ -122,6 +122,74 @@ export async function removeFromRoster(
   return {};
 }
 
+export async function createRosterCategory(
+  eventId: string,
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const actor = await getCurrentActor();
+  if (actor?.role !== "admin") return { error: "Not authorized." };
+
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return { error: "Category name is required." };
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.from("roster_categories").insert({ event_id: eventId, name });
+
+  if (error) {
+    if (error.code === "23505") return { error: "That category already exists for this event." };
+    return { error: error.message };
+  }
+
+  revalidatePath(`/portal/admin/event-tracker/${eventId}`);
+  return null;
+}
+
+export async function deleteRosterCategory(
+  eventId: string,
+  categoryId: string
+): Promise<{ error?: string }> {
+  const actor = await getCurrentActor();
+  if (actor?.role !== "admin") return { error: "Not authorized." };
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.from("roster_categories").delete().eq("id", categoryId);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/portal/admin/event-tracker/${eventId}`);
+  return {};
+}
+
+export async function setRosterEntryCategories(
+  eventId: string,
+  eventStaffId: string,
+  categoryIds: string[]
+): Promise<{ error?: string }> {
+  const actor = await getCurrentActor();
+  if (actor?.role !== "admin") return { error: "Not authorized." };
+
+  const supabase = await createSupabaseServerClient();
+
+  const { error: deleteError } = await supabase
+    .from("roster_entry_categories")
+    .delete()
+    .eq("event_staff_id", eventStaffId);
+  if (deleteError) return { error: deleteError.message };
+
+  if (categoryIds.length > 0) {
+    const { error: insertError } = await supabase.from("roster_entry_categories").insert(
+      categoryIds.map((categoryId) => ({
+        event_staff_id: eventStaffId,
+        category_id: categoryId,
+      }))
+    );
+    if (insertError) return { error: insertError.message };
+  }
+
+  revalidatePath(`/portal/admin/event-tracker/${eventId}`);
+  return {};
+}
+
 export async function setStaffCanStartConversations(
   eventId: string,
   allowed: boolean

@@ -1,11 +1,101 @@
 .page {
   flex: 1;
   display: flex;
+  min-height: 100vh;
+  background: var(--surface);
+}
+
+.brandPanel {
+  display: none;
+  position: relative;
+  flex: 1 1 45%;
+  max-width: 560px;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 40px;
+  padding: 56px;
+  background: #0a0a0a;
+  color: #ffffff;
+  overflow: hidden;
+}
+
+.brandArt {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.brandLogo {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brandLogoMark {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  background: #ffffff;
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+}
+
+.brandLogoText {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.brandContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.brandEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.brandEyebrow::before {
+  content: "";
+  width: 20px;
+  height: 1px;
+  background: #ffffff;
+}
+
+.brandHeadline {
+  font-size: clamp(30px, 3vw, 44px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  max-width: 360px;
+}
+
+.brandFootnote {
+  position: relative;
+  z-index: 1;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.formPanel {
+  flex: 1;
+  display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
   padding: 40px 24px;
-  background: var(--surface);
 }
 
 .card {
@@ -20,8 +110,19 @@
   padding: 40px 36px;
 }
 
-.logo {
+.cardLogo {
+  display: none;
+  align-items: center;
+  gap: 10px;
   align-self: flex-start;
+}
+
+.logoMark {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  background: #0a0a0a;
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
 }
 
 .logoText {
@@ -37,11 +138,21 @@
 }
 
 .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+.eyebrow::before {
+  content: "";
+  width: 20px;
+  height: 1px;
+  background: #0a0a0a;
 }
 
 .title {
@@ -134,4 +245,90 @@
   line-height: 1.5;
   color: var(--muted);
   text-align: center;
+}
+
+@media (min-width: 900px) {
+  .brandPanel {
+    display: flex;
+  }
+}
+
+@media (max-width: 899px) {
+  .cardLogo {
+    display: flex;
+  }
+
+  .formPanel {
+    position: relative;
+    background: #0a0a0a;
+    overflow: hidden;
+  }
+
+  .formPanel::before,
+  .formPanel::after {
+    content: "";
+    position: absolute;
+    inset: -20% -50%;
+    pointer-events: none;
+  }
+
+  .formPanel::before {
+    background-image: repeating-linear-gradient(
+        115deg,
+        rgba(255, 255, 255, 0.07) 0px,
+        rgba(255, 255, 255, 0.07) 1px,
+        transparent 1px,
+        transparent 90px
+      ),
+      repeating-linear-gradient(
+        65deg,
+        rgba(255, 255, 255, 0.05) 0px,
+        rgba(255, 255, 255, 0.05) 1px,
+        transparent 1px,
+        transparent 130px
+      );
+    animation: driftLines 22s linear infinite;
+  }
+
+  .formPanel::after {
+    background: radial-gradient(
+      circle at 30% 20%,
+      rgba(255, 255, 255, 0.12),
+      transparent 45%
+    );
+    animation: driftGlow 14s ease-in-out infinite;
+  }
+
+  .card {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+@keyframes driftLines {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-90px, 130px, 0);
+  }
+}
+
+@keyframes driftGlow {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translate3d(6%, 8%, 0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 899px) and (prefers-reduced-motion: reduce) {
+  .formPanel::before,
+  .formPanel::after {
+    animation: none;
+  }
 }

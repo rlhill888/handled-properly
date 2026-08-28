@@ -32,7 +32,7 @@ export default async function StaffChatPage() {
             No conversations yet. Open an event to start or join one.
           </p>
         ) : (
-          <table className={styles.table}>
+          <table className={`${styles.table} ${styles.cardRows}`}>
             <thead>
               <tr>
                 <th>Event</th>
@@ -44,15 +44,17 @@ export default async function StaffChatPage() {
             <tbody>
               {conversations.map((conversation) => (
                 <tr key={conversation.id}>
-                  <td>{conversation.event?.name ?? "—"}</td>
-                  <td>
+                  <td data-label="Event" className={styles.cardPrimaryCell}>
+                    {conversation.event?.name ?? "—"}
+                  </td>
+                  <td data-label="Participants">
                     {conversation.conversation_participants
                       .map((p) => p.event_staff?.contacts?.name)
                       .filter(Boolean)
                       .join(", ") || "—"}
                   </td>
-                  <td>{new Date(conversation.created_at).toLocaleString()}</td>
-                  <td>
+                  <td data-label="Started">{new Date(conversation.created_at).toLocaleString()}</td>
+                  <td className={styles.cardActionCell}>
                     {conversation.event && (
                       <Link
                         href={`/portal/staff/events/${conversation.event.id}/conversations/${conversation.id}`}

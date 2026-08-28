@@ -14,17 +14,23 @@ export default async function FormTemplatesPage() {
 
   return (
     <div className={styles.page}>
+      <Link href="/portal/admin/communication" className={styles.backLink} aria-label="Back to Communication">
+        ←
+      </Link>
+
       <div className={styles.header}>
         <div>
-          <span className={styles.eyebrow}>Admin</span>
-          <h1 className={styles.title}>Form Templates</h1>
+          <span className={styles.eyebrow}>Admin · Communication</span>
+          <div className={styles.titleRow}>
+            <h1 className={styles.title}>Form Templates</h1>
+            <Link href="/portal/admin/form/new" className={styles.addButton} aria-label="New Template">
+              +
+            </Link>
+          </div>
           <p className={styles.description}>
             Build reusable forms once, then attach them to events, assignments, or emails.
           </p>
         </div>
-        <Link href="/portal/admin/form/new" className={styles.primaryButton}>
-          New Template
-        </Link>
       </div>
 
       {error && <p className={styles.error}>Could not load templates: {error.message}</p>}
@@ -34,7 +40,7 @@ export default async function FormTemplatesPage() {
         {templates.length === 0 ? (
           <p className={styles.emptyState}>No form templates yet.</p>
         ) : (
-          <table className={styles.table}>
+          <table className={`${styles.table} ${styles.cardRows}`}>
             <thead>
               <tr>
                 <th>Name</th>
@@ -46,10 +52,12 @@ export default async function FormTemplatesPage() {
             <tbody>
               {templates.map((template) => (
                 <tr key={template.id}>
-                  <td>{template.name}</td>
-                  <td>{template.form_fields?.[0]?.count ?? 0}</td>
-                  <td>{new Date(template.created_at).toLocaleDateString()}</td>
-                  <td>
+                  <td data-label="Name" className={styles.cardPrimaryCell}>
+                    {template.name}
+                  </td>
+                  <td data-label="Fields">{template.form_fields?.[0]?.count ?? 0}</td>
+                  <td data-label="Created">{new Date(template.created_at).toLocaleDateString()}</td>
+                  <td className={styles.cardActionCell}>
                     <Link href={`/portal/admin/form/${template.id}`} className={styles.link}>
                       Edit
                     </Link>

@@ -91,6 +91,7 @@ export async function createAssignment(
     if (assigneeError) return { error: assigneeError.message };
   }
 
+  revalidatePath(`/portal/admin/event-tracker/${eventId}`);
   revalidatePath(`/portal/admin/event-tracker/${eventId}/assignments`);
   return null;
 }
@@ -150,8 +151,61 @@ export async function updateAssignment(
     if (assigneeError) return { error: assigneeError.message };
   }
 
+  revalidatePath(`/portal/admin/event-tracker/${eventId}`);
   revalidatePath(`/portal/admin/event-tracker/${eventId}/assignments`);
   return null;
+}
+
+export async function updateAssignmentStatus(
+  eventId: string,
+  assignmentId: string,
+  status: AssignmentStatus
+): Promise<{ error?: string }> {
+  if (!(await requireAdmin())) return { error: "Not authorized." };
+
+  const supabase = await createSupabaseServerClient();
+  const activeCheck = await assertEventActive(supabase, eventId);
+  if (activeCheck.error) return { error: activeCheck.error };
+
+  const { error } = await supabase.from("assignments").update({ status }).eq("id", assignmentId);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/portal/admin/event-tracker/${eventId}`);
+  revalidatePath(`/portal/admin/event-tracker/${eventId}/assignments`);
+  return {};
+}
+
+export async function updateAssignmentAssignees(
+  eventId: string,
+  assignmentId: string,
+  staffIds: string[]
+): Promise<{ error?: string }> {
+  if (!(await requireAdmin())) return { error: "Not authorized." };
+
+  const supabase = await createSupabaseServerClient();
+  const activeCheck = await assertEventActive(supabase, eventId);
+  if (activeCheck.error) return { error: activeCheck.error };
+
+  const { error: deleteError } = await supabase
+    .from("assignment_assignees")
+    .delete()
+    .eq("assignment_id", assignmentId);
+  if (deleteError) return { error: deleteError.message };
+
+  if (staffIds.length > 0) {
+    const { error: insertError } = await supabase.from("assignment_assignees").insert(
+      staffIds.map((eventStaffId) => ({
+        assignment_id: assignmentId,
+        event_staff_id: eventStaffId,
+        assigned_via: "admin" as const,
+      }))
+    );
+    if (insertError) return { error: insertError.message };
+  }
+
+  revalidatePath(`/portal/admin/event-tracker/${eventId}`);
+  revalidatePath(`/portal/admin/event-tracker/${eventId}/assignments`);
+  return {};
 }
 
 export async function deleteAssignment(eventId: string, assignmentId: string): Promise<{ error?: string }> {
@@ -164,6 +218,7 @@ export async function deleteAssignment(eventId: string, assignmentId: string): P
   const { error } = await supabase.from("assignments").delete().eq("id", assignmentId);
   if (error) return { error: error.message };
 
+  revalidatePath(`/portal/admin/event-tracker/${eventId}`);
   revalidatePath(`/portal/admin/event-tracker/${eventId}/assignments`);
   return {};
 }

@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import CategoryManager from "./CategoryManager";
+import NewCategoryForm from "./NewCategoryForm";
 import NewContactForm from "./NewContactForm";
-import ContactRow, { type ContactRowData } from "./ContactRow";
+import ContactsList from "./ContactsList";
+import { type ContactRowData } from "./ContactRow";
+import AddModalButton from "@/components/portal/AddModalButton";
 import styles from "@/styles/admin-shared.module.css";
 
 export default async function ContactsPage({
@@ -49,7 +52,12 @@ export default async function ContactsPage({
       <div className={styles.header}>
         <div>
           <span className={styles.eyebrow}>Admin</span>
-          <h1 className={styles.title}>Contacts</h1>
+          <div className={styles.titleRow}>
+            <h1 className={styles.title}>Contacts</h1>
+            <AddModalButton label="Add Contact" modalTitle="Add Contact">
+              <NewContactForm />
+            </AddModalButton>
+          </div>
           <p className={styles.description}>
             Every Client and Event Staff member automatically appears here. Add anyone else — and
             tag categories or event attendance — manually.
@@ -60,13 +68,15 @@ export default async function ContactsPage({
       {error && <p className={styles.error}>Could not load contacts: {error.message}</p>}
 
       <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Categories</h2>
+        <div className={styles.cardHeaderRow}>
+          <h2 className={styles.cardTitle} style={{ marginBottom: 0 }}>
+            Categories
+          </h2>
+          <AddModalButton label="Add Category" modalTitle="Add Category">
+            <NewCategoryForm />
+          </AddModalButton>
+        </div>
         <CategoryManager categories={categoryOptions} />
-      </div>
-
-      <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Add Contact</h2>
-        <NewContactForm />
       </div>
 
       <div className={styles.card}>
@@ -91,31 +101,7 @@ export default async function ContactsPage({
           </div>
         </div>
 
-        {rows.length === 0 ? (
-          <p className={styles.emptyState}>No contacts match.</p>
-        ) : (
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Tags</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((contact) => (
-                <ContactRow
-                  key={contact.id}
-                  contact={contact}
-                  allCategories={categoryOptions}
-                  activeEvents={eventOptions}
-                />
-              ))}
-            </tbody>
-          </table>
-        )}
+        <ContactsList contacts={rows} allCategories={categoryOptions} activeEvents={eventOptions} />
       </div>
     </div>
   );

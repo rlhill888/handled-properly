@@ -88,8 +88,8 @@ export default async function StaffEventAssignmentsPage({
 
   return (
     <div className={styles.page}>
-      <Link href={`/portal/staff/events/${eventId}`} className={styles.link}>
-        ← Back to {event.name}
+      <Link href={`/portal/staff/events/${eventId}`} className={styles.backLink} aria-label={`Back to ${event.name}`}>
+        ←
       </Link>
 
       <div className={styles.header}>

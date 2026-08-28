@@ -5,7 +5,7 @@ import { inviteEventStaff, type ActionState } from "./actions";
 import SubmitButton from "@/components/portal/SubmitButton";
 import styles from "@/styles/admin-shared.module.css";
 
-export default function NewStaffForm() {
+export default function NewStaffForm({ onCreated }: { onCreated?: () => void } = {}) {
   const [state, formAction] = useActionState<ActionState, FormData>(inviteEventStaff, null);
   const formRef = useRef<HTMLFormElement>(null);
   const previousState = useRef<ActionState>(null);
@@ -13,8 +13,10 @@ export default function NewStaffForm() {
   useEffect(() => {
     if (previousState.current !== null && state === null) {
       formRef.current?.reset();
+      onCreated?.();
     }
     previousState.current = state;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
   return (

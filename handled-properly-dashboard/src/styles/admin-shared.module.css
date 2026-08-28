@@ -14,11 +14,21 @@
 }
 
 .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+.eyebrow::before {
+  content: "";
+  width: 20px;
+  height: 1px;
+  background: #0a0a0a;
 }
 
 .title {
@@ -27,6 +37,34 @@
   letter-spacing: -0.01em;
   color: var(--foreground);
   margin-top: 4px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.addButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1;
+  color: #0a0a0a;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.addButton:hover {
+  opacity: 0.6;
+  transform: scale(1.1);
 }
 
 .description {
@@ -184,6 +222,98 @@
   color: #b3261e;
 }
 
+.viewToggle {
+  display: inline-flex;
+  align-self: flex-start;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.toggleButton {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: #ffffff;
+  border: none;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.toggleButton + .toggleButton {
+  border-left: 1px solid var(--border);
+}
+
+.toggleButtonActive {
+  background: #0a0a0a;
+  color: #ffffff;
+}
+
+.richBody {
+  min-height: 220px;
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #ffffff;
+  color: var(--foreground);
+  overflow-y: auto;
+}
+
+.richBody:focus {
+  outline: none;
+  border-color: #0a0a0a;
+}
+
+.richBody:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+}
+
+.richBody img {
+  max-width: 100%;
+  border-radius: 2px;
+}
+
+.previewFrame {
+  width: 100%;
+  min-height: 220px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #ffffff;
+}
+
+.composeToolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.attachButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  color: var(--foreground);
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.attachButton:hover {
+  border-color: #0a0a0a;
+  background: var(--surface);
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -221,14 +351,17 @@
 .badge {
   display: inline-flex;
   align-items: center;
+  font: inherit;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #ffffff;
   background: #0a0a0a;
+  border: none;
   padding: 4px 10px;
   border-radius: 2px;
+  cursor: pointer;
 }
 
 .badgeMuted {
@@ -241,6 +374,7 @@
 .pill {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   font-size: 11px;
   font-weight: 600;
   color: var(--foreground);
@@ -250,14 +384,289 @@
   padding: 3px 10px;
 }
 
+.pillDelete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.pillDelete:hover {
+  background: rgba(10, 10, 10, 0.1);
+  color: var(--foreground);
+}
+
+.cardHeaderRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
 .link {
   color: var(--foreground);
   font-weight: 700;
   text-decoration: underline;
 }
 
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  font-size: 15px;
+  color: var(--foreground);
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.backLink:hover {
+  background: var(--surface);
+  transform: translateX(-1px);
+}
+
 .metaRow {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.searchField {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.searchInput {
+  width: 100%;
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #ffffff;
+  color: var(--foreground);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.searchInput:focus {
+  border-color: #0a0a0a;
+}
+
+.searchInput::placeholder {
+  color: var(--muted);
+}
+
+.accordionList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.accordionItem {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.accordionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--foreground);
+  background: #ffffff;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.accordionHeader:hover {
+  background: var(--surface);
+}
+
+.accordionTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accordionChevron {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--muted);
+  transition: transform 0.2s ease;
+}
+
+.accordionChevronOpen {
+  transform: rotate(180deg);
+}
+
+.accordionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 24px 16px;
+    gap: 16px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .formRow {
+    flex-direction: column;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .cardRows {
+    display: block;
+    min-width: 0;
+  }
+
+  .cardRows thead {
+    display: none;
+  }
+
+  .cardRows tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .cardRows tr {
+    display: block;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 14px;
+  }
+
+  .cardRows td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    text-align: right;
+  }
+
+  .cardRows tr td:last-child {
+    border-bottom: none;
+  }
+
+  .cardRows td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+  }
+
+  .cardPrimaryCell {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--foreground);
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .cardRows td.cardPrimaryCell::before {
+    content: none;
+  }
+
+  .cardActionCell {
+    justify-content: flex-end;
+  }
+
+  .cardRows td.cardActionCell::before {
+    content: none;
+  }
+
+  .keyValueTable {
+    min-width: 0;
+  }
+
+  .keyValueTable td {
+    display: block;
+  }
+
+  .keyValueTable td:first-child {
+    padding-bottom: 2px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .keyValueTable tr {
+    display: block;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .keyValueTable tr:last-child {
+    border-bottom: none;
+  }
+
+  .cardHeaderRow {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+
+  .viewToggle {
+    width: 100%;
+  }
+
+  .toggleButton {
+    flex: 1;
+    text-align: center;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+  }
+
+  .actions > * {
+    flex: 1 1 auto;
+  }
+
+  .richBody,
+  .previewFrame {
+    min-height: 160px;
+  }
 }

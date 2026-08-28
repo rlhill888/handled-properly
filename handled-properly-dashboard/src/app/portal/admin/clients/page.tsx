@@ -1,6 +1,7 @@
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import ClientRow, { type ClientRowData } from "./ClientRow";
 import NewClientForm from "./NewClientForm";
+import AddModalButton from "@/components/portal/AddModalButton";
 import styles from "@/styles/admin-shared.module.css";
 
 export default async function ClientsPage() {
@@ -28,7 +29,12 @@ export default async function ClientsPage() {
       <div className={styles.header}>
         <div>
           <span className={styles.eyebrow}>Admin</span>
-          <h1 className={styles.title}>Clients</h1>
+          <div className={styles.titleRow}>
+            <h1 className={styles.title}>Clients</h1>
+            <AddModalButton label="Add Client" modalTitle="Add Client">
+              <NewClientForm />
+            </AddModalButton>
+          </div>
           <p className={styles.description}>
             People who hire Handled Properly for events. Add a client here before creating events
             for them.
@@ -39,8 +45,16 @@ export default async function ClientsPage() {
       {error && <p className={styles.error}>Could not load clients: {error.message}</p>}
 
       <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Add Client</h2>
-        <NewClientForm />
+        <div className={styles.cardHeaderRow}>
+          <h2 className={styles.cardTitle} style={{ marginBottom: 0 }}>
+            Client Applications
+          </h2>
+          <span className={styles.badgeMuted}>Coming soon</span>
+        </div>
+        <p className={styles.emptyState}>
+          No applications yet. Once the application workflow is set up, people requesting your
+          services will show up here for review before becoming Clients.
+        </p>
       </div>
 
       <div className={styles.card}>
@@ -48,7 +62,7 @@ export default async function ClientsPage() {
         {clients.length === 0 ? (
           <p className={styles.emptyState}>No clients yet.</p>
         ) : (
-          <table className={styles.table}>
+          <table className={`${styles.table} ${styles.cardRows}`}>
             <thead>
               <tr>
                 <th>Name</th>
