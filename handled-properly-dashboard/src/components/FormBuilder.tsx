@@ -6,8 +6,11 @@ import AiGeneratingOverlay from "@/components/AiGeneratingOverlay";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { generateFormWithAI, reviewFormScreenshotAction } from "@/app/portal/admin/form/ai-actions";
 import type { AiFormDesign } from "@/lib/ai-form-design";
+import { FONT_OPTIONS, DEFAULT_THEME, hexToRgba, type FormTheme, type FontOption } from "@/lib/form-theme";
 import styles from "./FormBuilder.module.css";
 import sharedStyles from "@/styles/admin-shared.module.css";
+
+export { DEFAULT_THEME, type FormTheme } from "@/lib/form-theme";
 
 const MAX_REVISION_ROUNDS = 3;
 
@@ -36,60 +39,6 @@ export type FormField = {
   backgroundColor?: string;
   options?: string[];
 };
-
-type BackgroundMode = "banner" | "full";
-
-const FONT_OPTIONS = {
-  sans: "var(--font-geist-sans), system-ui, sans-serif",
-  serif: "Georgia, 'Times New Roman', serif",
-  mono: "var(--font-geist-mono), monospace",
-} as const;
-
-type FontOption = keyof typeof FONT_OPTIONS;
-
-export type FormTheme = {
-  backgroundColor: string;
-  fontSize: number;
-  cardOpacity: number;
-  backgroundImage: string | null;
-  backgroundMode: BackgroundMode;
-  bannerHeight: number;
-  questionBackgroundColor: string;
-  titleFont: FontOption;
-  titleColor: string;
-  titleSize: number;
-  titleMarginBottom: number;
-  descriptionFont: FontOption;
-  descriptionColor: string;
-  descriptionSize: number;
-  descriptionMarginBottom: number;
-};
-
-export const DEFAULT_THEME: FormTheme = {
-  backgroundColor: "#f5f5f5",
-  fontSize: 14,
-  cardOpacity: 1,
-  backgroundImage: null,
-  backgroundMode: "banner",
-  bannerHeight: 140,
-  questionBackgroundColor: "#ffffff",
-  titleFont: "sans",
-  titleColor: "#ffffff",
-  titleSize: 24,
-  titleMarginBottom: 0,
-  descriptionFont: "sans",
-  descriptionColor: "#000000",
-  descriptionSize: 16,
-  descriptionMarginBottom: 0,
-};
-
-function hexToRgba(hex: string, alpha: number) {
-  const normalized = hex.replace("#", "");
-  const r = parseInt(normalized.slice(0, 2), 16);
-  const g = parseInt(normalized.slice(2, 4), 16);
-  const b = parseInt(normalized.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
 
 const FIELD_TYPE_LABELS: Record<FormFieldType, string> = {
   text: "Text",

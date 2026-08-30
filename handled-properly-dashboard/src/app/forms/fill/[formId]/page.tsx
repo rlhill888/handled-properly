@@ -17,6 +17,7 @@ export default async function FormFillPage({
       formId={form.id}
       name={form.name}
       description={form.description}
+      theme={form.theme}
       fields={form.fields}
     />
   );

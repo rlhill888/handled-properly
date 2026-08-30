@@ -332,37 +332,56 @@ export type Database = {
           },
         ]
       }
-      email_sends: {
+      email_send_forms: {
         Row: {
-          body_html: string
-          form_id: string | null
-          id: string
-          sent_at: string
-          subject: string
+          email_send_id: string
+          form_id: string
         }
         Insert: {
-          body_html: string
-          form_id?: string | null
-          id?: string
-          sent_at?: string
-          subject: string
+          email_send_id: string
+          form_id: string
         }
         Update: {
-          body_html?: string
-          form_id?: string | null
-          id?: string
-          sent_at?: string
-          subject?: string
+          email_send_id?: string
+          form_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "email_sends_form_id_fkey"
+            foreignKeyName: "email_send_forms_email_send_id_fkey"
+            columns: ["email_send_id"]
+            isOneToOne: false
+            referencedRelation: "email_sends"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_send_forms_form_id_fkey"
             columns: ["form_id"]
             isOneToOne: false
             referencedRelation: "forms"
             referencedColumns: ["id"]
           },
         ]
+      }
+      email_sends: {
+        Row: {
+          body_html: string
+          id: string
+          sent_at: string
+          subject: string
+        }
+        Insert: {
+          body_html: string
+          id?: string
+          sent_at?: string
+          subject: string
+        }
+        Update: {
+          body_html?: string
+          id?: string
+          sent_at?: string
+          subject?: string
+        }
+        Relationships: []
       }
       event_attendance: {
         Row: {

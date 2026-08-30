@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { DEFAULT_THEME, type FormTheme } from "@/lib/form-theme";
 
 export type FillField = {
   id: string;
@@ -8,6 +9,7 @@ export type FillField = {
   fieldType: "text" | "email" | "tel" | "number" | "date" | "textarea" | "select" | "file";
   required: boolean;
   options?: string[];
+  backgroundColor?: string;
 };
 
 export type FillForm = {
@@ -16,6 +18,7 @@ export type FillForm = {
   targetId: string | null;
   name: string;
   description: string;
+  theme: FormTheme;
   fields: FillField[];
 };
 
@@ -41,14 +44,16 @@ export async function getFillForm(formId: string): Promise<FillForm | null> {
     .eq("form_id", form.id)
     .order("position", { ascending: true });
 
-  const theme = form.theme as { description?: string } | null;
+  const themeData = (form.theme as (Partial<FormTheme> & { description?: string }) | null) ?? {};
+  const { description, ...themeRest } = themeData;
 
   return {
     id: form.id,
     targetType: form.target_type,
     targetId: form.target_id,
     name: form.name,
-    description: theme?.description ?? "",
+    description: typeof description === "string" ? description : "",
+    theme: { ...DEFAULT_THEME, ...themeRest },
     fields: (fields ?? []).map((f) => ({
       id: f.id,
       label: f.label,
@@ -56,6 +61,7 @@ export async function getFillForm(formId: string): Promise<FillForm | null> {
       fieldType: f.field_type,
       required: f.required,
       options: (f.styling as { options?: string[] } | null)?.options,
+      backgroundColor: (f.styling as { backgroundColor?: string } | null)?.backgroundColor,
     })),
   };
 }

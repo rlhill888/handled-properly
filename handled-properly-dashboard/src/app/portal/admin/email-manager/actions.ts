@@ -20,7 +20,7 @@ export async function sendMassEmail(
   const categoryIds = formData.getAll("category_ids").map(String);
   const eventId = String(formData.get("event_id") ?? "");
   const eventFilterType = String(formData.get("event_filter_type") ?? ""); // "staff" | "attendees"
-  const formId = String(formData.get("form_id") ?? "");
+  const formIds = formData.getAll("form_ids").map(String).filter(Boolean);
 
   if (!subject || !bodyHtml) return { error: "Subject and body are required." };
 
@@ -82,35 +82,47 @@ export async function sendMassEmail(
 
   if (sendError) return { error: sendError.message };
 
-  // The Form's target_id is the email_send's own id, so it can only be
-  // assigned after the email_send exists — and the fill link it produces
-  // must be folded into body_html and persisted before we send, so the
-  // stored copy matches what recipients actually received.
+  // The fill link(s) can only be built after the email_send exists (the URL
+  // is /forms/fill/<formId>, so no email_send id is actually needed for it —
+  // but the attachment rows below do need it), and must be folded into
+  // body_html and persisted before we send, so the stored copy matches what
+  // recipients actually received.
   let finalBodyHtml = bodyHtml;
-  if (formId) {
-    const { data: assigned, error: assignError } = await supabase
+  if (formIds.length > 0) {
+    const { data: attachedForms, error: formsError } = await supabase
       .from("forms")
-      .update({ target_type: "email_send", target_id: emailSend.id })
-      .eq("id", formId)
-      .is("target_type", null)
-      .select("id");
-
-    if (assignError) return { error: assignError.message };
-    if (!assigned || assigned.length === 0) return { error: "That form is already in use elsewhere." };
+      .select("id, name")
+      .in("id", formIds);
+    if (formsError) return { error: formsError.message };
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
-    const fillUrl = `${siteUrl}/forms/fill/${formId}`;
-    // AI-generated bodies embed a {{FILL_LINK}} placeholder inside their own
-    // styled button markup, since the real URL doesn't exist until this
-    // point (see the comment above). Manually-written bodies never contain
-    // the placeholder, so they fall back to the plain appended link as before.
-    finalBodyHtml = bodyHtml.includes(FILL_LINK_PLACEHOLDER)
-      ? bodyHtml.split(FILL_LINK_PLACEHOLDER).join(fillUrl)
-      : `${bodyHtml}<p><a href="${fillUrl}">Fill out this form</a></p>`;
+    const fillUrl = (formId: string) => `${siteUrl}/forms/fill/${formId}`;
+
+    // AI-generated bodies embed a single {{FILL_LINK}} placeholder inside
+    // their own styled button markup (see ai-actions.ts — it's only ever
+    // told about one form). Consume it with the first attached form's link,
+    // then append a plain link for every other attached form (i.e. all of
+    // them, if a manually-written body never had the placeholder at all).
+    let remainingIds = formIds;
+    if (bodyHtml.includes(FILL_LINK_PLACEHOLDER)) {
+      finalBodyHtml = bodyHtml.split(FILL_LINK_PLACEHOLDER).join(fillUrl(formIds[0]));
+      remainingIds = formIds.slice(1);
+    }
+    const extraLinks = remainingIds
+      .map((id) => attachedForms?.find((f) => f.id === id))
+      .filter((f): f is { id: string; name: string } => Boolean(f))
+      .map((f) => `<p><a href="${fillUrl(f.id)}">Fill out ${f.name}</a></p>`)
+      .join("");
+    finalBodyHtml += extraLinks;
+
+    const { error: attachError } = await supabase
+      .from("email_send_forms")
+      .insert(formIds.map((formId) => ({ email_send_id: emailSend.id, form_id: formId })));
+    if (attachError) return { error: attachError.message };
 
     const { error: updateError } = await supabase
       .from("email_sends")
-      .update({ body_html: finalBodyHtml, form_id: formId })
+      .update({ body_html: finalBodyHtml })
       .eq("id", emailSend.id);
     if (updateError) return { error: updateError.message };
   }

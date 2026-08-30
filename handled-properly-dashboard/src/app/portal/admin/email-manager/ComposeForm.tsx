@@ -59,7 +59,8 @@ export default function ComposeForm({
   const [eventFilterType, setEventFilterType] = useState<"staff" | "attendees">("staff");
   const [subject, setSubject] = useState("");
   const [bodyHtml, setBodyHtml] = useState("");
-  const [formId, setFormId] = useState("");
+  const [formIds, setFormIds] = useState<string[]>([]);
+  const [pendingFormId, setPendingFormId] = useState("");
   const bodyRef = useRef<HTMLDivElement>(null);
   // Opening the native file picker steals focus/selection from the body
   // before the file is even chosen, so by the time handleAttachImage runs
@@ -184,7 +185,8 @@ export default function ComposeForm({
     setAiStage("generating");
     setAiError(null);
 
-    const formName = availableForms.find((f) => f.id === formId)?.name ?? null;
+    const formName =
+      formIds.length === 1 ? availableForms.find((f) => f.id === formIds[0])?.name ?? null : null;
     const result = await generateEmailHtmlWithAI(designBrief, contentDetails, {
       subject,
       formName,
@@ -211,7 +213,8 @@ export default function ComposeForm({
     setAiStage("revising");
     setAiError(null);
 
-    const formName = availableForms.find((f) => f.id === formId)?.name ?? null;
+    const formName =
+      formIds.length === 1 ? availableForms.find((f) => f.id === formIds[0])?.name ?? null : null;
     const result = await generateEmailHtmlWithAI(
       followUpInstruction,
       "",
@@ -322,22 +325,59 @@ export default function ComposeForm({
 
       <div className={styles.field}>
         <span className={styles.label}>
-          Include a fillable form <span className={styles.optional}>(optional — a fill link is appended to the email)</span>
+          Include fillable forms <span className={styles.optional}>(optional — a fill link is appended to the email for each)</span>
         </span>
-        <SelectDropdown
-          options={[
-            { id: "", label: "No form" },
-            ...availableForms.map((form) => ({ id: form.id, label: form.name })),
-          ]}
-          value={formId}
-          onChange={setFormId}
-          placeholder="No form"
-          searchable
-          searchPlaceholder="Search forms…"
-          createLabel="New Form"
-          createHref="/portal/admin/form/new"
-        />
-        <input type="hidden" name="form_id" value={formId} />
+
+        {formIds.length > 0 && (
+          <ul className={styles.metaRow}>
+            {formIds.map((id) => {
+              const form = availableForms.find((f) => f.id === id);
+              return (
+                <li key={id} className={styles.checkboxRow}>
+                  {form?.name ?? id}
+                  <button
+                    type="button"
+                    className={styles.dangerButton}
+                    style={{ marginLeft: 8 }}
+                    onClick={() => setFormIds((current) => current.filter((formId) => formId !== id))}
+                  >
+                    Remove
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        <div className={styles.formRow}>
+          <SelectDropdown
+            options={availableForms
+              .filter((form) => !formIds.includes(form.id))
+              .map((form) => ({ id: form.id, label: form.name }))}
+            value={pendingFormId}
+            onChange={setPendingFormId}
+            placeholder="Add a form…"
+            searchable
+            searchPlaceholder="Search forms…"
+            createLabel="New Form"
+            createHref="/portal/admin/form/new"
+          />
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            disabled={!pendingFormId}
+            onClick={() => {
+              setFormIds((current) => [...current, pendingFormId]);
+              setPendingFormId("");
+            }}
+          >
+            Add
+          </button>
+        </div>
+
+        {formIds.map((id) => (
+          <input key={id} type="hidden" name="form_ids" value={id} />
+        ))}
       </div>
 
       <div className={styles.field}>
@@ -604,10 +644,11 @@ export default function ComposeForm({
                 </label>
               </div>
 
-              {formId && (
+              {formIds.length > 0 && (
                 <p className={styles.description}>
-                  A fill-out link for the attached form will be added to the design — it becomes
-                  active once you actually send the email; it won&apos;t work yet in preview.
+                  Fill-out link{formIds.length === 1 ? "" : "s"} for the attached form
+                  {formIds.length === 1 ? "" : "s"} will be added to the design — it becomes active
+                  once you actually send the email; it won&apos;t work yet in preview.
                 </p>
               )}
 
@@ -637,10 +678,10 @@ export default function ComposeForm({
                   background: "#ffffff",
                 }}
               />
-              {formId && (
+              {formIds.length > 0 && (
                 <p className={styles.description}>
-                  The form fill-out link isn&apos;t active in this preview — it becomes active
-                  once you actually send the email.
+                  The form fill-out link{formIds.length === 1 ? "" : "s"} isn&apos;t active in this
+                  preview — it becomes active once you actually send the email.
                 </p>
               )}
 

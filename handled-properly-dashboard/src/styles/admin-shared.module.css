@@ -217,6 +217,15 @@
   border-color: #0a0a0a;
 }
 
+.secondaryButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.secondaryButton:disabled:hover {
+  border-color: var(--border);
+}
+
 .dangerButton {
   composes: secondaryButton;
   color: #b3261e;
