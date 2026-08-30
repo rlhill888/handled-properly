@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -335,61 +335,34 @@ export type Database = {
       email_sends: {
         Row: {
           body_html: string
-          form_attachment_id: string | null
+          form_id: string | null
           id: string
           sent_at: string
           subject: string
         }
         Insert: {
           body_html: string
-          form_attachment_id?: string | null
+          form_id?: string | null
           id?: string
           sent_at?: string
           subject: string
         }
         Update: {
           body_html?: string
-          form_attachment_id?: string | null
+          form_id?: string | null
           id?: string
           sent_at?: string
           subject?: string
         }
         Relationships: [
           {
-            foreignKeyName: "email_sends_form_attachment_id_fkey"
-            columns: ["form_attachment_id"]
+            foreignKeyName: "email_sends_form_id_fkey"
+            columns: ["form_id"]
             isOneToOne: false
-            referencedRelation: "form_attachments"
+            referencedRelation: "forms"
             referencedColumns: ["id"]
           },
         ]
-      }
-      email_templates: {
-        Row: {
-          body_html: string
-          created_at: string
-          id: string
-          name: string
-          source: Database["public"]["Enums"]["email_template_source"]
-          subject: string
-        }
-        Insert: {
-          body_html: string
-          created_at?: string
-          id?: string
-          name: string
-          source?: Database["public"]["Enums"]["email_template_source"]
-          subject?: string
-        }
-        Update: {
-          body_html?: string
-          created_at?: string
-          id?: string
-          name?: string
-          source?: Database["public"]["Enums"]["email_template_source"]
-          subject?: string
-        }
-        Relationships: []
       }
       event_attendance: {
         Row: {
@@ -545,46 +518,11 @@ export type Database = {
           },
         ]
       }
-      form_attachments: {
-        Row: {
-          created_at: string
-          form_template_id: string
-          id: string
-          staff_visible: boolean
-          target_id: string
-          target_type: Database["public"]["Enums"]["form_attachment_target"]
-        }
-        Insert: {
-          created_at?: string
-          form_template_id: string
-          id?: string
-          staff_visible?: boolean
-          target_id: string
-          target_type: Database["public"]["Enums"]["form_attachment_target"]
-        }
-        Update: {
-          created_at?: string
-          form_template_id?: string
-          id?: string
-          staff_visible?: boolean
-          target_id?: string
-          target_type?: Database["public"]["Enums"]["form_attachment_target"]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "form_attachments_form_template_id_fkey"
-            columns: ["form_template_id"]
-            isOneToOne: false
-            referencedRelation: "form_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       form_fields: {
         Row: {
           description: string | null
           field_type: Database["public"]["Enums"]["form_field_type"]
-          form_template_id: string
+          form_id: string
           id: string
           label: string
           position: number
@@ -594,7 +532,7 @@ export type Database = {
         Insert: {
           description?: string | null
           field_type: Database["public"]["Enums"]["form_field_type"]
-          form_template_id: string
+          form_id: string
           id?: string
           label: string
           position: number
@@ -604,7 +542,7 @@ export type Database = {
         Update: {
           description?: string | null
           field_type?: Database["public"]["Enums"]["form_field_type"]
-          form_template_id?: string
+          form_id?: string
           id?: string
           label?: string
           position?: number
@@ -613,31 +551,40 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "form_fields_form_template_id_fkey"
-            columns: ["form_template_id"]
+            foreignKeyName: "form_fields_form_id_fkey"
+            columns: ["form_id"]
             isOneToOne: false
-            referencedRelation: "form_templates"
+            referencedRelation: "forms"
             referencedColumns: ["id"]
           },
         ]
       }
-      form_templates: {
+      forms: {
         Row: {
           created_at: string
           id: string
           name: string
+          staff_visible: boolean
+          target_id: string | null
+          target_type: Database["public"]["Enums"]["form_target_type"] | null
           theme: Json
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          staff_visible?: boolean
+          target_id?: string | null
+          target_type?: Database["public"]["Enums"]["form_target_type"] | null
           theme?: Json
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          staff_visible?: boolean
+          target_id?: string | null
+          target_type?: Database["public"]["Enums"]["form_target_type"] | null
           theme?: Json
         }
         Relationships: []
@@ -825,19 +772,19 @@ export type Database = {
       submissions: {
         Row: {
           contact_id: string | null
-          form_attachment_id: string
+          form_id: string
           id: string
           submitted_at: string
         }
         Insert: {
           contact_id?: string | null
-          form_attachment_id: string
+          form_id: string
           id?: string
           submitted_at?: string
         }
         Update: {
           contact_id?: string | null
-          form_attachment_id?: string
+          form_id?: string
           id?: string
           submitted_at?: string
         }
@@ -850,10 +797,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "submissions_form_attachment_id_fkey"
-            columns: ["form_attachment_id"]
+            foreignKeyName: "submissions_form_id_fkey"
+            columns: ["form_id"]
             isOneToOne: false
-            referencedRelation: "form_attachments"
+            referencedRelation: "forms"
             referencedColumns: ["id"]
           },
         ]
@@ -864,8 +811,8 @@ export type Database = {
     }
     Functions: {
       activate_own_staff_account: { Args: never; Returns: undefined }
-      can_staff_view_form_attachment: {
-        Args: { target_attachment_id: string }
+      can_staff_view_form: {
+        Args: { target_form_id: string }
         Returns: boolean
       }
       create_conversation: {
@@ -901,9 +848,7 @@ export type Database = {
       assignment_priority: "low" | "medium" | "high"
       assignment_status: "ready" | "in_progress" | "blocked" | "done"
       attendance_source: "manual" | "form_submission"
-      email_template_source: "manual" | "ai_draft"
       event_status: "active" | "completed"
-      form_attachment_target: "event" | "assignment" | "email_send"
       form_field_type:
         | "text"
         | "email"
@@ -913,6 +858,7 @@ export type Database = {
         | "textarea"
         | "select"
         | "file"
+      form_target_type: "event" | "assignment" | "email_send"
       pickup_setting: "admin_only" | "open_pickup"
       staff_invite_status: "invited" | "active" | "revoked"
     }
@@ -1046,9 +992,7 @@ export const Constants = {
       assignment_priority: ["low", "medium", "high"],
       assignment_status: ["ready", "in_progress", "blocked", "done"],
       attendance_source: ["manual", "form_submission"],
-      email_template_source: ["manual", "ai_draft"],
       event_status: ["active", "completed"],
-      form_attachment_target: ["event", "assignment", "email_send"],
       form_field_type: [
         "text",
         "email",
@@ -1059,6 +1003,7 @@ export const Constants = {
         "select",
         "file",
       ],
+      form_target_type: ["event", "assignment", "email_send"],
       pickup_setting: ["admin_only", "open_pickup"],
       staff_invite_status: ["invited", "active", "revoked"],
     },

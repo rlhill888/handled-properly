@@ -17,7 +17,7 @@ export type StaffAssignmentData = {
   pickupSetting: "admin_only" | "open_pickup";
   assigneeIds: string[];
   assigneeNames: string[];
-  visibleForms: { id: string; templateName: string }[];
+  visibleForms: { id: string; name: string }[];
   children: StaffAssignmentData[];
 };
 
@@ -101,7 +101,7 @@ export default function StaffAssignmentCard({
         <div className={styles.metaRow}>
           {assignment.visibleForms.map((form) => (
             <Link key={form.id} href={`/portal/staff/form-results/${form.id}`} className={styles.pill}>
-              {form.templateName} — View results
+              {form.name} — View results
             </Link>
           ))}
         </div>

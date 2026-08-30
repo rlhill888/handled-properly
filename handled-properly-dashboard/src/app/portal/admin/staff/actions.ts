@@ -5,6 +5,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentActor } from "@/lib/auth/get-current-actor";
 import { findOrCreateContact } from "@/lib/data/contacts";
+import { sendEmail } from "@/lib/ses";
 
 export type ActionState = { error: string } | null;
 
@@ -37,14 +38,19 @@ export async function inviteEventStaff(
   if (existingStaff) return { error: "This person is already Event Staff." };
 
   // Inviting requires the Auth Admin API, which only the service-role
-  // client can call — the invite itself creates the auth.users row, so we
-  // get a real auth_user_id back immediately rather than waiting for the
-  // invite to be accepted.
+  // client can call. We use generateLink (not inviteUserByEmail) because
+  // generateLink creates the auth.users row and hands back the same
+  // GoTrue verify link Supabase would otherwise email itself, but does
+  // NOT send any email — we deliver that link ourselves via SES so all
+  // outbound mail goes through one provider.
   const adminClient = createAdminClient();
-  const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
+  const { data: invited, error: inviteError } = await adminClient.auth.admin.generateLink({
+    type: "invite",
     email,
-    { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm?next=/portal/set-password` }
-  );
+    options: {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm?next=/portal/set-password`,
+    },
+  });
 
   if (inviteError) return { error: inviteError.message };
 
@@ -55,6 +61,20 @@ export async function inviteEventStaff(
   });
 
   if (staffError) return { error: staffError.message };
+
+  try {
+    await sendEmail({
+      to: email,
+      subject: "You've been invited to Handled Properly",
+      bodyHtml: `
+        <p>Hi ${name},</p>
+        <p>You've been invited to join Handled Properly as Event Staff.</p>
+        <p><a href="${invited.properties.action_link}">Accept your invite and set a password</a></p>
+      `,
+    });
+  } catch (err) {
+    return { error: `Staff record created, but the invite email failed to send: ${err instanceof Error ? err.message : String(err)}` };
+  }
 
   revalidatePath("/portal/admin/staff");
   return null;

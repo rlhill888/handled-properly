@@ -2,81 +2,76 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import {
-  attachFormTemplate,
-  setAttachmentStaffVisible,
-  removeFormAttachment,
-} from "@/lib/actions/form-attachments";
+import { assignFormToTarget, setFormStaffVisible } from "@/lib/actions/forms";
+import { deleteForm } from "@/app/portal/admin/form/actions";
 import SelectDropdown from "./SelectDropdown";
 import styles from "@/styles/admin-shared.module.css";
 
-export type FormAttachmentTargetType = "event" | "assignment" | "email_send";
+export type FormTargetType = "event" | "assignment" | "email_send";
 
-export type AttachedForm = {
+export type ScopedForm = {
   id: string;
-  templateId: string;
-  templateName: string;
+  name: string;
   staffVisible: boolean;
 };
 
-export default function FormAttachmentManager({
+export default function FormsPanel({
   targetType,
   targetId,
   basePath,
-  availableTemplates,
-  attached,
+  availableForms,
+  forms,
   siteUrl,
   showStaffToggle = true,
 }: {
-  targetType: FormAttachmentTargetType;
+  targetType: FormTargetType;
   targetId: string;
   basePath: string;
-  availableTemplates: { id: string; name: string }[];
-  attached: AttachedForm[];
+  availableForms: { id: string; name: string }[];
+  forms: ScopedForm[];
   siteUrl: string;
   showStaffToggle?: boolean;
 }) {
-  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [selectedFormId, setSelectedFormId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const attachedTemplateIds = new Set(attached.map((a) => a.templateId));
-  const attachableTemplates = availableTemplates.filter((t) => !attachedTemplateIds.has(t.id));
-
-  const handleAttach = () => {
-    if (!selectedTemplateId) return;
+  const handleAssign = () => {
+    if (!selectedFormId) return;
     setError(null);
     startTransition(async () => {
-      const result = await attachFormTemplate(targetType, targetId, selectedTemplateId, basePath);
+      const result = await assignFormToTarget(selectedFormId, targetType, targetId, basePath);
       if (result?.error) setError(result.error);
-      else setSelectedTemplateId("");
+      else setSelectedFormId("");
     });
   };
 
-  const handleToggle = (attachmentId: string, next: boolean) => {
+  const handleToggle = (formId: string, next: boolean) => {
     startTransition(() => {
-      setAttachmentStaffVisible(attachmentId, next, basePath);
+      setFormStaffVisible(formId, next, basePath);
     });
   };
 
-  const handleRemove = (attachmentId: string) => {
-    if (!confirm("Remove this form attachment?")) return;
+  const handleRemove = (formId: string) => {
+    if (!confirm("Delete this form? Its submissions will be lost too.")) return;
     startTransition(() => {
-      removeFormAttachment(attachmentId, basePath);
+      deleteForm(formId, basePath);
     });
   };
+
+  const newFormHref = `/portal/admin/form/new?targetType=${targetType}&targetId=${targetId}&basePath=${encodeURIComponent(basePath)}`;
 
   return (
     <div className={styles.form}>
       {error && <p className={styles.error}>{error}</p>}
 
-      {attached.length === 0 ? (
-        <p className={styles.emptyState}>No forms attached yet.</p>
+      {forms.length === 0 ? (
+        <p className={styles.emptyState}>No forms yet.</p>
       ) : (
         <table className={`${styles.table} ${styles.cardRows}`}>
           <thead>
             <tr>
-              <th>Template</th>
+              <th>Name</th>
               <th>Fill link</th>
               {showStaffToggle && <th>Staff visible</th>}
               <th>Results</th>
@@ -84,13 +79,13 @@ export default function FormAttachmentManager({
             </tr>
           </thead>
           <tbody>
-            {attached.map((a) => (
-              <tr key={a.id}>
-                <td data-label="Template" className={styles.cardPrimaryCell}>
-                  {a.templateName}
+            {forms.map((f) => (
+              <tr key={f.id}>
+                <td data-label="Name" className={styles.cardPrimaryCell}>
+                  {f.name}
                 </td>
                 <td data-label="Fill link">
-                  <code style={{ fontSize: 12, wordBreak: "break-all" }}>{`${siteUrl}/forms/fill/${a.id}`}</code>
+                  <code style={{ fontSize: 12, wordBreak: "break-all" }}>{`${siteUrl}/forms/fill/${f.id}`}</code>
                 </td>
                 {showStaffToggle && (
                   <td data-label="Staff visible">
@@ -100,16 +95,16 @@ export default function FormAttachmentManager({
                         revalidation lands), then self-corrects to the real
                         value by remounting if the key changes. */}
                     <input
-                      key={`${a.id}-${a.staffVisible}`}
+                      key={`${f.id}-${f.staffVisible}`}
                       type="checkbox"
-                      defaultChecked={a.staffVisible}
+                      defaultChecked={f.staffVisible}
                       disabled={isPending}
-                      onChange={(e) => handleToggle(a.id, e.target.checked)}
+                      onChange={(e) => handleToggle(f.id, e.target.checked)}
                     />
                   </td>
                 )}
                 <td data-label="Results">
-                  <Link href={`/portal/admin/form/results/${a.id}`} className={styles.link}>
+                  <Link href={`/portal/admin/form/results/${f.id}`} className={styles.link}>
                     View results
                   </Link>
                 </td>
@@ -118,9 +113,9 @@ export default function FormAttachmentManager({
                     type="button"
                     className={styles.dangerButton}
                     disabled={isPending}
-                    onClick={() => handleRemove(a.id)}
+                    onClick={() => handleRemove(f.id)}
                   >
-                    Remove
+                    Delete
                   </button>
                 </td>
               </tr>
@@ -131,20 +126,20 @@ export default function FormAttachmentManager({
 
       <div className={styles.formRow}>
         <SelectDropdown
-          options={attachableTemplates.map((t) => ({ id: t.id, label: t.name }))}
-          value={selectedTemplateId}
-          onChange={setSelectedTemplateId}
-          placeholder="Attach a form template…"
-          createLabel="New Form Template"
-          createHref="/portal/admin/form/new"
+          options={availableForms.map((f) => ({ id: f.id, label: f.name }))}
+          value={selectedFormId}
+          onChange={setSelectedFormId}
+          placeholder="Use an existing unassigned form…"
+          createLabel="New Form"
+          createHref={newFormHref}
         />
         <button
           type="button"
           className={styles.secondaryButton}
-          disabled={!selectedTemplateId || isPending}
-          onClick={handleAttach}
+          disabled={!selectedFormId || isPending}
+          onClick={handleAssign}
         >
-          Attach
+          Use
         </button>
       </div>
     </div>

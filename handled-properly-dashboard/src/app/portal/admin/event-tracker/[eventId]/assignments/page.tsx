@@ -32,7 +32,7 @@ export default async function EventAssignmentsDetailPage({
   if (!event) notFound();
 
   const isLocked = event.status === "completed";
-  const { assignments, rosterStaff, formTemplates, siteUrl } = await getAssignmentsBoardData(eventId);
+  const { assignments, rosterStaff, availableForms, siteUrl } = await getAssignmentsBoardData(eventId);
 
   return (
     <div className={styles.page}>
@@ -77,7 +77,7 @@ export default async function EventAssignmentsDetailPage({
                   assignment={assignment}
                   rosterStaff={rosterStaff}
                   isLocked={isLocked}
-                  formTemplates={formTemplates}
+                  availableForms={availableForms}
                   siteUrl={siteUrl}
                 />
               ))}

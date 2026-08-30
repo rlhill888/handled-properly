@@ -44,7 +44,7 @@ export default function PortalSidebar({
 
         <button
           type="button"
-          className={`${styles.menuButton} ${menuOpen ? styles.menuButtonOpen : ""}`}
+          className={styles.menuButton}
           aria-label="Open menu"
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen(true)}

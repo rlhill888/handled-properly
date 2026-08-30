@@ -1,24 +1,37 @@
 "use client";
 
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import FormBuilder from "@/components/FormBuilder";
-import { createFormTemplate } from "../actions";
+import { createForm, type FormTarget } from "../actions";
 import styles from "../form-editor.module.css";
 
-export default function NewFormTemplatePage() {
+export default function NewFormPage() {
+  const searchParams = useSearchParams();
+  const targetType = searchParams.get("targetType") as FormTarget["targetType"] | null;
+  const targetId = searchParams.get("targetId");
+  const basePath = searchParams.get("basePath");
+  const target: FormTarget | undefined =
+    targetType && targetId && basePath ? { targetType, targetId, basePath } : undefined;
+
   return (
     <div className={styles.page}>
-      <a href="/portal/admin/form" className={styles.backLink} aria-label="Back to Forms">
+      <Link href={target?.basePath ?? "/portal/admin/form"} className={styles.backLink} aria-label="Back">
         ←
-      </a>
+      </Link>
 
       <span className={styles.eyebrow}>Admin</span>
-      <h1 className={styles.title}>New Form Template</h1>
+      <h1 className={styles.title}>New Form</h1>
       <p className={styles.description}>
         Give it a title, add fields, then save.
       </p>
 
       <div className={styles.builderWrapper}>
-        <FormBuilder initialFields={[]} onSave={createFormTemplate} saveLabel="Create Template" />
+        <FormBuilder
+          initialFields={[]}
+          onSave={(data) => createForm(data, target)}
+          saveLabel="Create Form"
+        />
       </div>
     </div>
   );

@@ -108,13 +108,13 @@ export default function AssignmentDetailView({
         )}
       </div>
 
-      {assignment.attachedForms.length > 0 && (
+      {assignment.forms.length > 0 && (
         <div>
           <span className={styles.label}>Forms</span>
           <div className={styles.metaRow} style={{ marginTop: 8 }}>
-            {assignment.attachedForms.map((form) => (
+            {assignment.forms.map((form) => (
               <span key={form.id} className={styles.pill}>
-                {form.templateName}
+                {form.name}
               </span>
             ))}
           </div>

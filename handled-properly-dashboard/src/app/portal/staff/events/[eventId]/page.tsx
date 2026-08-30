@@ -3,22 +3,20 @@ import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import styles from "@/styles/admin-shared.module.css";
 
-// RLS (staff_select_visible_form_attachments -> can_staff_view_form_attachment)
-// only ever returns rows this staff member is entitled to see: staff_visible
-// attachments on an Event they're rostered on. No app-level filtering needed.
+// RLS (staff_select_visible_forms -> can_staff_view_form) only ever returns
+// rows this staff member is entitled to see: staff_visible Forms on an
+// Event they're rostered on. No app-level filtering needed.
 async function getVisibleEventForms(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   eventId: string
 ) {
   const { data } = await supabase
-    .from("form_attachments")
-    .select("id, form_templates(name)")
+    .from("forms")
+    .select("id, name")
     .eq("target_type", "event")
     .eq("target_id", eventId);
 
-  return (data ?? [])
-    .filter((a) => a.form_templates)
-    .map((a) => ({ id: a.id, templateName: a.form_templates!.name }));
+  return (data ?? []).map((f) => ({ id: f.id, name: f.name }));
 }
 
 export default async function StaffEventDetailPage({
@@ -113,7 +111,7 @@ export default async function StaffEventDetailPage({
                 href={`/portal/staff/form-results/${form.id}`}
                 className={styles.pill}
               >
-                {form.templateName} — View results
+                {form.name} — View results
               </Link>
             ))}
           </div>

@@ -1,31 +1,37 @@
 import { notFound } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { DEFAULT_THEME, type FormField, type FormFieldType } from "@/components/FormBuilder";
-import EditFormTemplateClient from "./EditFormTemplateClient";
+import EditFormClient from "./EditFormClient";
 
-export default async function EditFormTemplatePage({
+const TARGET_LABEL = {
+  event: "Event",
+  assignment: "Assignment",
+  email_send: "Email Send",
+} as const;
+
+export default async function EditFormPage({
   params,
 }: {
-  params: Promise<{ templateId: string }>;
+  params: Promise<{ formId: string }>;
 }) {
-  const { templateId } = await params;
+  const { formId } = await params;
   const supabase = await createSupabaseServerClient();
 
-  const { data: template } = await supabase
-    .from("form_templates")
-    .select("id, name, theme")
-    .eq("id", templateId)
+  const { data: form } = await supabase
+    .from("forms")
+    .select("id, name, theme, target_type")
+    .eq("id", formId)
     .maybeSingle();
 
-  if (!template) notFound();
+  if (!form) notFound();
 
   const { data: fieldRows } = await supabase
     .from("form_fields")
     .select("id, label, description, field_type, required, styling, position")
-    .eq("form_template_id", templateId)
+    .eq("form_id", formId)
     .order("position", { ascending: true });
 
-  const themeData = (template.theme as Record<string, unknown>) ?? {};
+  const themeData = (form.theme as Record<string, unknown>) ?? {};
   const { description, ...themeRest } = themeData;
 
   const fields: FormField[] = (fieldRows ?? []).map((row) => ({
@@ -35,15 +41,18 @@ export default async function EditFormTemplatePage({
     type: row.field_type as FormFieldType,
     required: row.required,
     backgroundColor: (row.styling as { backgroundColor?: string } | null)?.backgroundColor,
+    options: (row.styling as { options?: string[] } | null)?.options,
   }));
 
   return (
-    <EditFormTemplateClient
-      templateId={template.id}
-      initialTitle={template.name}
+    <EditFormClient
+      formId={form.id}
+      initialTitle={form.name}
       initialDescription={typeof description === "string" ? description : ""}
       initialTheme={{ ...DEFAULT_THEME, ...themeRest }}
       initialFields={fields}
+      fillUrl={`${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/forms/fill/${form.id}`}
+      scopeLabel={form.target_type ? TARGET_LABEL[form.target_type] : "Standalone"}
     />
   );
 }

@@ -22,25 +22,25 @@ export type SubmissionView = {
 
 // Shared by the admin and staff results routes: pass in whichever
 // per-session client belongs to the caller and RLS does the authorization
-// (admin_all vs staff_select_visible_submissions/can_staff_view_form_attachment)
-// — this function makes no role decisions of its own. Signed URLs for
-// file-type answers are minted with the service-role client, but only for
-// file_refs that already survived the caller's RLS-scoped query above, so
-// that step never re-decides who's allowed to see what.
-export async function getAttachmentSubmissions(
+// (admin_all vs staff_select_visible_submissions/can_staff_view_form) — this
+// function makes no role decisions of its own. Signed URLs for file-type
+// answers are minted with the service-role client, but only for file_refs
+// that already survived the caller's RLS-scoped query above, so that step
+// never re-decides who's allowed to see what.
+export async function getFormSubmissions(
   supabase: Client,
-  attachmentId: string
-): Promise<{ templateName: string; submissions: SubmissionView[] } | null> {
-  const { data: attachment } = await supabase
-    .from("form_attachments")
-    .select("id, form_templates(id, name, form_fields(id, label, position))")
-    .eq("id", attachmentId)
+  formId: string
+): Promise<{ formName: string; submissions: SubmissionView[] } | null> {
+  const { data: form } = await supabase
+    .from("forms")
+    .select("id, name, form_fields(id, label, position)")
+    .eq("id", formId)
     .maybeSingle();
 
-  if (!attachment || !attachment.form_templates) return null;
+  if (!form) return null;
 
   const fieldLabelById = new Map(
-    (attachment.form_templates.form_fields ?? [])
+    (form.form_fields ?? [])
       .slice()
       .sort((a, b) => a.position - b.position)
       .map((f) => [f.id, f.label])
@@ -51,7 +51,7 @@ export async function getAttachmentSubmissions(
     .select(
       "id, submitted_at, contacts(name, email), submission_answers(id, form_field_id, value, file_ref)"
     )
-    .eq("form_attachment_id", attachmentId)
+    .eq("form_id", formId)
     .order("submitted_at", { ascending: false });
 
   const adminClient = createAdminClient();
@@ -83,5 +83,5 @@ export async function getAttachmentSubmissions(
     });
   }
 
-  return { templateName: attachment.form_templates.name, submissions: submissionViews };
+  return { formName: form.name, submissions: submissionViews };
 }

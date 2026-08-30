@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentActor } from "@/lib/auth/get-current-actor";
 import { sendEmail } from "@/lib/ses";
+import { FILL_LINK_PLACEHOLDER } from "@/lib/ai-email-html";
 
 export type ActionState = { error: string } | { success: string } | null;
 
@@ -19,7 +20,7 @@ export async function sendMassEmail(
   const categoryIds = formData.getAll("category_ids").map(String);
   const eventId = String(formData.get("event_id") ?? "");
   const eventFilterType = String(formData.get("event_filter_type") ?? ""); // "staff" | "attendees"
-  const formTemplateId = String(formData.get("form_template_id") ?? "");
+  const formId = String(formData.get("form_id") ?? "");
 
   if (!subject || !bodyHtml) return { error: "Subject and body are required." };
 
@@ -81,32 +82,35 @@ export async function sendMassEmail(
 
   if (sendError) return { error: sendError.message };
 
-  // The attachment's target_id is the email_send's own id, so the
-  // attachment row can only be created after the email_send exists —
-  // and the fill link it produces must be folded into body_html and
-  // persisted before we send, so the stored copy matches what recipients
-  // actually received.
+  // The Form's target_id is the email_send's own id, so it can only be
+  // assigned after the email_send exists — and the fill link it produces
+  // must be folded into body_html and persisted before we send, so the
+  // stored copy matches what recipients actually received.
   let finalBodyHtml = bodyHtml;
-  if (formTemplateId) {
-    const { data: attachment, error: attachmentError } = await supabase
-      .from("form_attachments")
-      .insert({
-        form_template_id: formTemplateId,
-        target_type: "email_send",
-        target_id: emailSend.id,
-        staff_visible: false,
-      })
-      .select("id")
-      .single();
+  if (formId) {
+    const { data: assigned, error: assignError } = await supabase
+      .from("forms")
+      .update({ target_type: "email_send", target_id: emailSend.id })
+      .eq("id", formId)
+      .is("target_type", null)
+      .select("id");
 
-    if (attachmentError) return { error: attachmentError.message };
+    if (assignError) return { error: assignError.message };
+    if (!assigned || assigned.length === 0) return { error: "That form is already in use elsewhere." };
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
-    finalBodyHtml = `${bodyHtml}<p><a href="${siteUrl}/forms/fill/${attachment.id}">Fill out this form</a></p>`;
+    const fillUrl = `${siteUrl}/forms/fill/${formId}`;
+    // AI-generated bodies embed a {{FILL_LINK}} placeholder inside their own
+    // styled button markup, since the real URL doesn't exist until this
+    // point (see the comment above). Manually-written bodies never contain
+    // the placeholder, so they fall back to the plain appended link as before.
+    finalBodyHtml = bodyHtml.includes(FILL_LINK_PLACEHOLDER)
+      ? bodyHtml.split(FILL_LINK_PLACEHOLDER).join(fillUrl)
+      : `${bodyHtml}<p><a href="${fillUrl}">Fill out this form</a></p>`;
 
     const { error: updateError } = await supabase
       .from("email_sends")
-      .update({ body_html: finalBodyHtml, form_attachment_id: attachment.id })
+      .update({ body_html: finalBodyHtml, form_id: formId })
       .eq("id", emailSend.id);
     if (updateError) return { error: updateError.message };
   }

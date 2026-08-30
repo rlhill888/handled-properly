@@ -62,22 +62,11 @@ export default async function ClientsPage() {
         {clients.length === 0 ? (
           <p className={styles.emptyState}>No clients yet.</p>
         ) : (
-          <table className={`${styles.table} ${styles.cardRows}`}>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Company</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {clients.map((client) => (
-                <ClientRow key={client.clientId} client={client} />
-              ))}
-            </tbody>
-          </table>
+          <div className={styles.accordionList}>
+            {clients.map((client) => (
+              <ClientRow key={client.clientId} client={client} />
+            ))}
+          </div>
         )}
       </div>
     </div>

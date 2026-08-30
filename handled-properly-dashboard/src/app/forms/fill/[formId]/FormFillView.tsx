@@ -13,14 +13,16 @@ function FieldInput({ field }: { field: FillField }) {
   }
 
   if (field.fieldType === "select") {
-    // No configurable options exist on a Form Field yet (a pre-existing gap
-    // in Form Templates, not introduced here) — render the same empty
-    // dropdown the admin builder's own preview shows.
     return (
       <select id={name} name={name} required={field.required} className={styles.select} defaultValue="">
         <option value="" disabled>
           Select an option…
         </option>
+        {(field.options ?? []).map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
       </select>
     );
   }
@@ -44,17 +46,17 @@ function FieldInput({ field }: { field: FillField }) {
 }
 
 export default function FormFillView({
-  attachmentId,
-  templateName,
-  templateDescription,
+  formId,
+  name,
+  description,
   fields,
 }: {
-  attachmentId: string;
-  templateName: string;
-  templateDescription: string;
+  formId: string;
+  name: string;
+  description: string;
   fields: FillField[];
 }) {
-  const boundSubmit = submitForm.bind(null, attachmentId);
+  const boundSubmit = submitForm.bind(null, formId);
   const [state, formAction, isPending] = useActionState<ActionState, FormData>(boundSubmit, null);
 
   if (state && "success" in state) {
@@ -73,8 +75,8 @@ export default function FormFillView({
   return (
     <div className={styles.page}>
       <div className={styles.card}>
-        <h1 className={styles.title}>{templateName}</h1>
-        {templateDescription && <p className={styles.description}>{templateDescription}</p>}
+        <h1 className={styles.title}>{name}</h1>
+        {description && <p className={styles.description}>{description}</p>}
 
         <form action={formAction} className={styles.form}>
           {state && "error" in state && <p className={styles.error}>{state.error}</p>}

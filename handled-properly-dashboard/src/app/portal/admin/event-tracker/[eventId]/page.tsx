@@ -5,7 +5,7 @@ import MarkCompletedButton from "./MarkCompletedButton";
 import RosterManager from "./RosterManager";
 import ConversationSettingToggle from "./ConversationSettingToggle";
 import AssignmentsBoard from "./AssignmentsBoard";
-import FormAttachmentManager from "@/components/portal/FormAttachmentManager";
+import FormsPanel from "@/components/portal/FormsPanel";
 import SettingsModalButton from "@/components/portal/SettingsModalButton";
 import styles from "@/styles/admin-shared.module.css";
 
@@ -32,8 +32,8 @@ export default async function EventDetailPage({
   const [
     { data: rosterRows },
     { data: allStaff },
-    { data: formTemplates },
-    { data: formAttachments },
+    { data: availableForms },
+    { data: eventForms },
     { data: rosterCategoryRows },
   ] = await Promise.all([
     supabase
@@ -41,10 +41,10 @@ export default async function EventDetailPage({
       .select("event_staff_id, event_staff(id, contacts(name, email))")
       .eq("event_id", eventId),
     supabase.from("event_staff").select("id, contacts(name, email)"),
-    supabase.from("form_templates").select("id, name").order("name", { ascending: true }),
+    supabase.from("forms").select("id, name").is("target_type", null).order("name", { ascending: true }),
     supabase
-      .from("form_attachments")
-      .select("id, staff_visible, form_templates(id, name)")
+      .from("forms")
+      .select("id, name, staff_visible")
       .eq("target_type", "event")
       .eq("target_id", eventId),
     supabase
@@ -86,14 +86,11 @@ export default async function EventDetailPage({
       email: staff.contacts!.email,
     }));
 
-  const attachedForms = (formAttachments ?? [])
-    .filter((a) => a.form_templates)
-    .map((a) => ({
-      id: a.id,
-      templateId: a.form_templates!.id,
-      templateName: a.form_templates!.name,
-      staffVisible: a.staff_visible,
-    }));
+  const scopedForms = (eventForms ?? []).map((f) => ({
+    id: f.id,
+    name: f.name,
+    staffVisible: f.staff_visible,
+  }));
 
   return (
     <div className={styles.page}>
@@ -188,12 +185,12 @@ export default async function EventDetailPage({
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Forms</h2>
-        <FormAttachmentManager
+        <FormsPanel
           targetType="event"
           targetId={event.id}
           basePath={`/portal/admin/event-tracker/${event.id}`}
-          availableTemplates={formTemplates ?? []}
-          attached={attachedForms}
+          availableForms={availableForms ?? []}
+          forms={scopedForms}
           siteUrl={process.env.NEXT_PUBLIC_SITE_URL ?? ""}
         />
       </div>

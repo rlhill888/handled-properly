@@ -222,36 +222,6 @@
   color: #b3261e;
 }
 
-.viewToggle {
-  display: inline-flex;
-  align-self: flex-start;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.toggleButton {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
-  background: #ffffff;
-  border: none;
-  padding: 8px 14px;
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
-}
-
-.toggleButton + .toggleButton {
-  border-left: 1px solid var(--border);
-}
-
-.toggleButtonActive {
-  background: #0a0a0a;
-  color: #ffffff;
-}
-
 .richBody {
   min-height: 220px;
   font-size: 14px;
@@ -279,19 +249,19 @@
   border-radius: 2px;
 }
 
-.previewFrame {
-  width: 100%;
-  min-height: 220px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: #ffffff;
-}
-
 .composeToolbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
   margin-top: 12px;
+}
+
+.sendButton {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
 }
 
 .attachButton {

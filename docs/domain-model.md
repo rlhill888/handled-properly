@@ -56,28 +56,22 @@ Explicit participants drawn from the Event's Roster. The Admin is not stored her
 ### Message
 - `id`, `conversation_id` → Conversation, `sender` → EventStaff or Admin (polymorphic), `body`, `created_at`
 
-### EmailTemplate
-- `id`, `name`, `body_html`, `source` (`manual` | `ai_draft`), `created_at`
-
 ### EmailSend
-- `id`, `subject`, `body_html`, `form_attachment_id` → FormAttachment (nullable), `sent_at`
+- `id`, `subject`, `body_html`, `form_id` → Form (nullable), `sent_at`
 
 ### EmailRecipient (join)
 Snapshot of who a given send actually went to (filters are evaluated at send time, not stored as a live query).
 - `email_send_id` → EmailSend, `contact_id` → Contact
 
-### FormTemplate
-- `id`, `name`, `theme` (json), `created_at`
+### Form
+Not a reusable template — each Form belongs to at most one target and is never shared across several; reuse means creating another Form. See [`0008-forms-are-not-reusable-templates`](./adr/0008-forms-are-not-reusable-templates.md) (supersedes [`0006-per-attachment-form-visibility`](./adr/0006-per-attachment-form-visibility.md)).
+- `id`, `name`, `theme` (json), `target_type` (`event` | `assignment` | `email_send`, nullable — null means standalone/unassigned), `target_id` (nullable), `staff_visible` (bool), `created_at`
 
 ### FormField
-- `id`, `form_template_id` → FormTemplate, `order`, `label`, `description`, `type` (`text` | `email` | `tel` | `number` | `date` | `textarea` | `select` | `file`), `required` (bool), `styling` (json)
-
-### FormAttachment
-Per-attachment visibility, not per-template — see [`0006-per-attachment-form-visibility`](./adr/0006-per-attachment-form-visibility.md).
-- `id`, `form_template_id` → FormTemplate, `target_type` (`event` | `assignment` | `email_send`), `target_id`, `staff_visible` (bool)
+- `id`, `form_id` → Form, `order`, `label`, `description`, `type` (`text` | `email` | `tel` | `number` | `date` | `textarea` | `select` | `file`), `required` (bool), `styling` (json)
 
 ### Submission
-- `id`, `form_attachment_id` → FormAttachment, `contact_id` → Contact (created/matched by email if new), `submitted_at`
+- `id`, `form_id` → Form, `contact_id` → Contact (created/matched by email if new), `submitted_at`
 
 ### SubmissionAnswer
 - `id`, `submission_id` → Submission, `form_field_id` → FormField, `value`, `file_ref` (nullable — Supabase Storage path)
@@ -105,14 +99,13 @@ Assignment       * ── *    EventStaff          (via AssignmentAssignee — s
 Conversation     * ── *    EventStaff          (via ConversationParticipant — subset of that Event's Roster)
 Conversation     1 ── *    Message
 
-FormTemplate     1 ── *    FormField
-FormTemplate     1 ── *    FormAttachment
-FormAttachment   1 ── *    Submission          (target: Event | Assignment | EmailSend)
+Form             1 ── *    FormField
+Form             1 ── *    Submission          (target: Event | Assignment | EmailSend, nullable)
 Submission       1 ── *    SubmissionAnswer
 Submission       * ── 1    Contact
 
 EmailSend        * ── *    Contact             (via EmailRecipient, snapshot at send time)
-EmailSend        0/1 ── 1  FormAttachment
+EmailSend        0/1 ── 1  Form
 ```
 
 ## Notes on borderline modeling choices

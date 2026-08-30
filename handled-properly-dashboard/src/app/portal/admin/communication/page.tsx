@@ -6,11 +6,11 @@ export default async function CommunicationHubPage() {
   const supabase = await createSupabaseServerClient();
 
   const [
-    { data: templates, error: templatesError },
+    { data: formRows, error: formsError },
     { data: sends, error: sendsError },
   ] = await Promise.all([
     supabase
-      .from("form_templates")
+      .from("forms")
       .select("id, name, created_at, form_fields(count)")
       .order("created_at", { ascending: false }),
     supabase
@@ -20,7 +20,7 @@ export default async function CommunicationHubPage() {
       .limit(20),
   ]);
 
-  const formTemplates = templates ?? [];
+  const forms = formRows ?? [];
   const emailSends = sends ?? [];
 
   return (
@@ -40,17 +40,17 @@ export default async function CommunicationHubPage() {
           <h2 className={styles.cardTitle} style={{ marginBottom: 0 }}>
             Forms
           </h2>
-          <Link href="/portal/admin/form/new" className={styles.addButton} aria-label="New Template">
+          <Link href="/portal/admin/form/new" className={styles.addButton} aria-label="New Form">
             +
           </Link>
         </div>
 
-        {templatesError && (
-          <p className={styles.error}>Could not load templates: {templatesError.message}</p>
+        {formsError && (
+          <p className={styles.error}>Could not load forms: {formsError.message}</p>
         )}
 
-        {formTemplates.length === 0 ? (
-          <p className={styles.emptyState}>No form templates yet.</p>
+        {forms.length === 0 ? (
+          <p className={styles.emptyState}>No forms yet.</p>
         ) : (
           <table className={`${styles.table} ${styles.cardRows}`}>
             <thead>
@@ -62,15 +62,15 @@ export default async function CommunicationHubPage() {
               </tr>
             </thead>
             <tbody>
-              {formTemplates.map((template) => (
-                <tr key={template.id}>
+              {forms.map((form) => (
+                <tr key={form.id}>
                   <td data-label="Name" className={styles.cardPrimaryCell}>
-                    {template.name}
+                    {form.name}
                   </td>
-                  <td data-label="Fields">{template.form_fields?.[0]?.count ?? 0}</td>
-                  <td data-label="Created">{new Date(template.created_at).toLocaleDateString()}</td>
+                  <td data-label="Fields">{form.form_fields?.[0]?.count ?? 0}</td>
+                  <td data-label="Created">{new Date(form.created_at).toLocaleDateString()}</td>
                   <td className={styles.cardActionCell}>
-                    <Link href={`/portal/admin/form/${template.id}`} className={styles.link}>
+                    <Link href={`/portal/admin/form/${form.id}`} className={styles.link}>
                       Edit
                     </Link>
                   </td>

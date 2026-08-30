@@ -1,7 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import Modal from "@/components/portal/Modal";
+import AiGeneratingOverlay from "@/components/AiGeneratingOverlay";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
+import { generateFormWithAI, reviewFormScreenshotAction } from "@/app/portal/admin/form/ai-actions";
+import type { AiFormDesign } from "@/lib/ai-form-design";
 import styles from "./FormBuilder.module.css";
+import sharedStyles from "@/styles/admin-shared.module.css";
+
+const MAX_REVISION_ROUNDS = 3;
+
+function waitForPaint(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
 
 export type FormFieldType =
   | "text"
@@ -20,6 +34,7 @@ export type FormField = {
   type: FormFieldType;
   required: boolean;
   backgroundColor?: string;
+  options?: string[];
 };
 
 type BackgroundMode = "banner" | "full";
@@ -98,6 +113,11 @@ function FieldPreview({ field }: { field: FormField }) {
         <option value="" disabled>
           Select an option…
         </option>
+        {(field.options ?? []).map((option, index) => (
+          <option key={index} value={option}>
+            {option}
+          </option>
+        ))}
       </select>
     );
   }
@@ -152,10 +172,24 @@ export default function FormBuilder({
   const [newLabel, setNewLabel] = useState("");
   const [newType, setNewType] = useState<FormFieldType>("text");
   const [newRequired, setNewRequired] = useState(false);
+  const [newOptions, setNewOptions] = useState<string[]>([""]);
+  const [addFieldError, setAddFieldError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiStage, setAiStage] = useState<"idle" | "generating" | "reviewing" | "revising">(
+    "idle",
+  );
+  const [aiRound, setAiRound] = useState(0);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const aiRegionRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(aiOpen, aiRegionRef);
+
   const selectedField = fields.find((field) => field.id === selectedId) ?? null;
+  const isFormEmpty = fields.length === 0 && !formTitle.trim() && !formDescription.trim();
 
   const handleMoveField = (id: string, direction: -1 | 1) => {
     setFields((current) => {
@@ -175,6 +209,13 @@ export default function FormBuilder({
       setSaveError("Give the form a title before saving.");
       return;
     }
+    const invalidSelect = fields.find(
+      (field) => field.type === "select" && !(field.options ?? []).some((option) => option.trim()),
+    );
+    if (invalidSelect) {
+      setSaveError(`Add at least one option for "${invalidSelect.label || "Untitled question"}".`);
+      return;
+    }
     setSaving(true);
     setSaveError(null);
     const result = await onSave({
@@ -191,6 +232,13 @@ export default function FormBuilder({
     e.preventDefault();
     if (!newLabel.trim()) return;
 
+    const trimmedOptions = newOptions.map((option) => option.trim()).filter(Boolean);
+    if (newType === "select" && trimmedOptions.length === 0) {
+      setAddFieldError("Add at least one option for this dropdown.");
+      return;
+    }
+    setAddFieldError(null);
+
     const id = crypto.randomUUID();
     setFields((current) => [
       ...current,
@@ -199,12 +247,41 @@ export default function FormBuilder({
         label: newLabel.trim(),
         type: newType,
         required: newRequired,
+        ...(newType === "select" ? { options: trimmedOptions } : {}),
       },
     ]);
     setNewLabel("");
     setNewType("text");
     setNewRequired(false);
+    setNewOptions([""]);
     setSelectedId(id);
+  };
+
+  const handleAddNewOption = () => setNewOptions((current) => [...current, ""]);
+
+  const handleRemoveNewOption = (index: number) =>
+    setNewOptions((current) => current.filter((_, i) => i !== index));
+
+  const handleNewOptionChange = (index: number, value: string) =>
+    setNewOptions((current) => current.map((option, i) => (i === index ? value : option)));
+
+  const handleAddSelectedFieldOption = () => {
+    if (!selectedField) return;
+    handleUpdateSelectedField({ options: [...(selectedField.options ?? []), ""] });
+  };
+
+  const handleRemoveSelectedFieldOption = (index: number) => {
+    if (!selectedField) return;
+    handleUpdateSelectedField({
+      options: (selectedField.options ?? []).filter((_, i) => i !== index),
+    });
+  };
+
+  const handleSelectedFieldOptionChange = (index: number, value: string) => {
+    if (!selectedField) return;
+    const options = selectedField.options?.length ? [...selectedField.options] : [""];
+    options[index] = value;
+    handleUpdateSelectedField({ options });
   };
 
   const handleRemoveField = (id: string) => {
@@ -236,10 +313,131 @@ export default function FormBuilder({
     reader.readAsDataURL(file);
   };
 
+  const applyAiDesign = (design: AiFormDesign) => {
+    setFormTitle(design.title);
+    setFormDescription(design.description);
+    // backgroundImage is only ever set by the server (a verified web-search
+    // result) right after the initial generation — the model itself never
+    // sets it. wantsBannerImage===false is an explicit AI decision (e.g. a
+    // revision round dropping an image that hurt readability) and clears it;
+    // otherwise whatever was already there (a manual upload, or an image
+    // carried forward from an earlier round) is preserved unchanged.
+    const { wantsBannerImage, backgroundImage: aiBackgroundImage, ...themeRest } = design.theme;
+    setTheme((current) => ({
+      ...current,
+      ...themeRest,
+      backgroundImage:
+        aiBackgroundImage !== undefined
+          ? aiBackgroundImage
+          : wantsBannerImage === false
+            ? null
+            : current.backgroundImage,
+    }));
+    setFields((current) => {
+      // When editing an existing form, keep a field's original id if a
+      // returned field has the same label — otherwise an unrelated field-id
+      // swap on an unchanged question would sever its link to any answers
+      // already submitted for it (see the id-stability comment in actions.ts).
+      // A field is only matched once, so duplicate labels don't collide.
+      const idByLabel = new Map(
+        current.map((field) => [field.label.trim().toLowerCase(), field.id]),
+      );
+      return design.fields.map((field) => {
+        const key = field.label.trim().toLowerCase();
+        const reusedId = idByLabel.get(key);
+        if (reusedId) idByLabel.delete(key);
+        return { ...field, id: reusedId ?? crypto.randomUUID() };
+      });
+    });
+    setSelectedId(null);
+    setViewMode("preview"); // must be mounted to be screenshotted
+  };
+
+  const captureScreenshot = async (): Promise<string | null> => {
+    if (!previewRef.current) return null;
+    const { default: html2canvas } = await import("html2canvas");
+    const canvas = await html2canvas(previewRef.current, {
+      backgroundColor: null,
+      useCORS: true,
+      scale: 1,
+    });
+    return canvas.toDataURL("image/jpeg", 0.85).split(",")[1] ?? null;
+  };
+
+  const handleGenerateWithAI = async () => {
+    setAiError(null);
+    setAiRound(0);
+    setAiStage("generating");
+
+    const priorDesign: FormBuilderSaveData | null = isFormEmpty
+      ? null
+      : { title: formTitle, description: formDescription, theme, fields };
+
+    const genResult = await generateFormWithAI(aiPrompt, priorDesign);
+    if ("error" in genResult) {
+      setAiError(genResult.error);
+      setAiStage("idle");
+      return;
+    }
+
+    applyAiDesign(genResult);
+    await waitForPaint();
+
+    let currentDesign: AiFormDesign = genResult;
+
+    for (let round = 0; round < MAX_REVISION_ROUNDS; round++) {
+      setAiStage("reviewing");
+      const screenshot = await captureScreenshot();
+      if (!screenshot) {
+        setAiError("Couldn't capture a preview of the form to review.");
+        setAiStage("idle");
+        return;
+      }
+
+      const reviewResult = await reviewFormScreenshotAction(aiPrompt, screenshot, currentDesign);
+      if ("error" in reviewResult) {
+        setAiError(reviewResult.error);
+        setAiStage("idle");
+        return;
+      }
+
+      if (reviewResult.approved) break;
+
+      currentDesign = reviewResult.revisedDesign;
+      setAiStage("revising");
+      applyAiDesign(currentDesign);
+      await waitForPaint();
+      setAiRound(round + 1);
+    }
+
+    setAiStage("idle");
+    setAiOpen(false);
+    setAiPrompt("");
+  };
+
   return (
     <div className={styles.builder}>
       <div className={styles.designSection}>
-        <span className={styles.designSectionLabel}>Design</span>
+        <div className={styles.designSectionHeader}>
+          <span className={styles.designSectionLabel}>Design</span>
+          <button
+            type="button"
+            className={styles.aiEditButton}
+            aria-label={isFormEmpty ? "Generate with AI" : "Edit with AI"}
+            title={isFormEmpty ? "Generate with AI" : "Edit with AI"}
+            onClick={() => setAiOpen(true)}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M12 2.5a1 1 0 0 1 .967.744l.902 3.386a4.5 4.5 0 0 0 3.18 3.18l3.387.903a1 1 0 0 1 0 1.933l-3.386.902a4.5 4.5 0 0 0-3.18 3.18l-.903 3.387a1 1 0 0 1-1.933 0l-.902-3.386a4.5 4.5 0 0 0-3.18-3.18l-3.387-.903a1 1 0 0 1 0-1.933l3.386-.902a4.5 4.5 0 0 0 3.18-3.18l.903-3.387A1 1 0 0 1 12 2.5Z" />
+            </svg>
+          </button>
+        </div>
 
         <div className={styles.themePanel}>
           <span className={styles.themeSectionLabel}>Content</span>
@@ -539,6 +737,7 @@ export default function FormBuilder({
 
       {viewMode === "preview" ? (
         <div
+          ref={previewRef}
           className={styles.previewSurface}
           style={{
             fontSize: `${theme.fontSize}px`,
@@ -773,6 +972,45 @@ export default function FormBuilder({
                   </select>
                 </label>
 
+                {selectedField.type === "select" && (
+                  <label className={styles.panelFieldLabel}>
+                    Options
+                    <div className={styles.optionsEditor}>
+                      {(selectedField.options?.length ? selectedField.options : [""]).map(
+                        (option, index) => (
+                          <div key={index} className={styles.optionRow}>
+                            <input
+                              type="text"
+                              className={styles.input}
+                              placeholder={`Option ${index + 1}`}
+                              value={option}
+                              onChange={(e) =>
+                                handleSelectedFieldOptionChange(index, e.target.value)
+                              }
+                            />
+                            <button
+                              type="button"
+                              className={styles.removeButtonIcon}
+                              onClick={() => handleRemoveSelectedFieldOption(index)}
+                              disabled={(selectedField.options?.length ?? 1) <= 1}
+                              aria-label={`Remove option ${index + 1}`}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ),
+                      )}
+                      <button
+                        type="button"
+                        className={styles.removeButtonInline}
+                        onClick={handleAddSelectedFieldOption}
+                      >
+                        Add Option
+                      </button>
+                    </div>
+                  </label>
+                )}
+
                 <label className={styles.requiredLabel}>
                   <input
                     type="checkbox"
@@ -851,6 +1089,40 @@ export default function FormBuilder({
                 Required
               </label>
 
+              {newType === "select" && (
+                <div className={styles.optionsEditor}>
+                  {newOptions.map((option, index) => (
+                    <div key={index} className={styles.optionRow}>
+                      <input
+                        type="text"
+                        className={styles.input}
+                        placeholder={`Option ${index + 1}`}
+                        value={option}
+                        onChange={(e) => handleNewOptionChange(index, e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className={styles.removeButtonIcon}
+                        onClick={() => handleRemoveNewOption(index)}
+                        disabled={newOptions.length === 1}
+                        aria-label={`Remove option ${index + 1}`}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    className={styles.removeButtonInline}
+                    onClick={handleAddNewOption}
+                  >
+                    Add Option
+                  </button>
+                </div>
+              )}
+
+              {addFieldError && <span className={styles.optionsError}>{addFieldError}</span>}
+
               <button type="submit" className={styles.addButton}>
                 Add Question
               </button>
@@ -870,6 +1142,60 @@ export default function FormBuilder({
         >
           {saving ? "Saving…" : saveLabel}
         </button>
+      </div>
+
+      <div ref={aiRegionRef} tabIndex={-1}>
+        <Modal
+          open={aiOpen}
+          onClose={() => aiStage === "idle" && setAiOpen(false)}
+          title={isFormEmpty ? "Generate with AI" : "Edit with AI"}
+        >
+          <div className={sharedStyles.form}>
+            <div className={sharedStyles.field}>
+              <label className={sharedStyles.label} htmlFor="ai_form_prompt">
+                {isFormEmpty ? "Describe the form you want" : "Describe what you'd like to change"}
+              </label>
+              <textarea
+                id="ai_form_prompt"
+                className={sharedStyles.textarea}
+                rows={4}
+                placeholder={
+                  isFormEmpty
+                    ? "A volunteer sign-up form with a warm, friendly look — ask for name, email, phone, and t-shirt size"
+                    : "Add a phone number field, and make the title bigger"
+                }
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                disabled={aiStage !== "idle"}
+              />
+            </div>
+            {aiError && <p className={sharedStyles.error}>{aiError}</p>}
+            <div className={sharedStyles.actions}>
+              <button
+                type="button"
+                className={sharedStyles.primaryButton}
+                disabled={aiStage !== "idle" || !aiPrompt.trim()}
+                onClick={handleGenerateWithAI}
+              >
+                {aiStage === "idle" ? (isFormEmpty ? "Generate" : "Apply Changes") : "Working…"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+
+        {aiStage !== "idle" && (
+          <AiGeneratingOverlay
+            message={
+              aiStage === "generating"
+                ? isFormEmpty
+                  ? "Designing your form…"
+                  : "Updating your form…"
+                : aiStage === "reviewing"
+                  ? "Checking how it looks…"
+                  : `Refining the design… (round ${aiRound} of ${MAX_REVISION_ROUNDS})`
+            }
+          />
+        )}
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { updateAssignment, deleteAssignment, type ActionState } from "./actions";
 import SubmitButton from "@/components/portal/SubmitButton";
 import NewAssignmentForm, { type StaffOption } from "./NewAssignmentForm";
-import FormAttachmentManager, { type AttachedForm } from "@/components/portal/FormAttachmentManager";
+import FormsPanel, { type ScopedForm } from "@/components/portal/FormsPanel";
 import styles from "@/styles/admin-shared.module.css";
 import cardStyles from "@/styles/assignments-board.module.css";
 
@@ -19,7 +19,7 @@ export type AssignmentData = {
   pickupSetting: "admin_only" | "open_pickup";
   assigneeIds: string[];
   assigneeNames: string[];
-  attachedForms: AttachedForm[];
+  forms: ScopedForm[];
   children: AssignmentData[];
 };
 
@@ -28,14 +28,14 @@ export default function AssignmentCard({
   assignment,
   rosterStaff,
   isLocked,
-  formTemplates,
+  availableForms,
   siteUrl,
 }: {
   eventId: string;
   assignment: AssignmentData;
   rosterStaff: StaffOption[];
   isLocked: boolean;
-  formTemplates: { id: string; name: string }[];
+  availableForms: { id: string; name: string }[];
   siteUrl: string;
 }) {
   const [editing, setEditing] = useState(false);
@@ -64,12 +64,12 @@ export default function AssignmentCard({
   const formsSection = (
     <div className={cardStyles.subSection}>
       <span className={cardStyles.subToggle}>Forms</span>
-      <FormAttachmentManager
+      <FormsPanel
         targetType="assignment"
         targetId={assignment.id}
         basePath={`/portal/admin/event-tracker/${eventId}/assignments`}
-        availableTemplates={formTemplates}
-        attached={assignment.attachedForms}
+        availableForms={availableForms}
+        forms={assignment.forms}
         siteUrl={siteUrl}
       />
     </div>
@@ -98,7 +98,7 @@ export default function AssignmentCard({
                   assignment={child}
                   rosterStaff={rosterStaff}
                   isLocked={isLocked}
-                  formTemplates={formTemplates}
+                  availableForms={availableForms}
                   siteUrl={siteUrl}
                 />
               ))}

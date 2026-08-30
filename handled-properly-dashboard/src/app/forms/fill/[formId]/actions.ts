@@ -2,23 +2,23 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { findOrCreateContact } from "@/lib/data/contacts";
-import { getFillAttachment } from "./data";
+import { getFillForm } from "./data";
 
 export type ActionState = { error: string } | { success: true } | null;
 
 export async function submitForm(
-  attachmentId: string,
+  formId: string,
   _prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const attachment = await getFillAttachment(attachmentId);
-  if (!attachment) return { error: "This form is no longer available." };
+  const form = await getFillForm(formId);
+  if (!form) return { error: "This form is no longer available." };
 
   const submitterName = String(formData.get("submitter_name") ?? "").trim();
   const submitterEmail = String(formData.get("submitter_email") ?? "").trim();
   if (!submitterName || !submitterEmail) return { error: "Your name and email are required." };
 
-  for (const field of attachment.fields) {
+  for (const field of form.fields) {
     if (!field.required) continue;
     if (field.fieldType === "file") {
       const file = formData.get(`field_${field.id}`);
@@ -39,22 +39,23 @@ export async function submitForm(
 
   const { data: submission, error: submissionError } = await supabase
     .from("submissions")
-    .insert({ form_attachment_id: attachment.id, contact_id: contactResult.id })
+    .insert({ form_id: form.id, contact_id: contactResult.id })
     .select("id")
     .single();
   if (submissionError) return { error: submissionError.message };
 
-  // A submission through an Event's or Assignment's Form Attachment implies
-  // attendance at the underlying Event; an Email-send attachment has no
-  // Event to attend, so it only gets the Contact match/creation above.
+  // A submission through a Form scoped to an Event or Assignment implies
+  // attendance at the underlying Event; a Form scoped to an Email Send (or
+  // a standalone Form) has no Event to attend, so it only gets the Contact
+  // match/creation above.
   let eventId: string | null = null;
-  if (attachment.targetType === "event") {
-    eventId = attachment.targetId;
-  } else if (attachment.targetType === "assignment") {
+  if (form.targetType === "event") {
+    eventId = form.targetId;
+  } else if (form.targetType === "assignment" && form.targetId) {
     const { data: assignment } = await supabase
       .from("assignments")
       .select("event_id")
-      .eq("id", attachment.targetId)
+      .eq("id", form.targetId)
       .maybeSingle();
     eventId = assignment?.event_id ?? null;
   }
@@ -76,11 +77,11 @@ export async function submitForm(
     file_ref: string | null;
   }[] = [];
 
-  for (const field of attachment.fields) {
+  for (const field of form.fields) {
     if (field.fieldType === "file") {
       const file = formData.get(`field_${field.id}`);
       if (file instanceof File && file.size > 0) {
-        const path = `${attachment.id}/${submission.id}/${field.id}-${file.name}`;
+        const path = `${form.id}/${submission.id}/${field.id}-${file.name}`;
         const { error: uploadError } = await supabase.storage
           .from("form-submissions")
           .upload(path, file, { contentType: file.type || undefined });

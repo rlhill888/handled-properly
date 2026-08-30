@@ -54,6 +54,12 @@
   gap: 16px;
 }
 
+.designSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .designSectionLabel {
   font-size: 11px;
   font-weight: 700;
@@ -70,6 +76,26 @@
   margin-right: 10px;
   background: #0a0a0a;
   vertical-align: middle;
+}
+
+.aiEditButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.aiEditButton:hover {
+  color: #0a0a0a;
+  background: #f5f5f5;
 }
 
 .themePanelGroup {
@@ -648,4 +674,42 @@
 
 .addButton:hover {
   opacity: 0.85;
+}
+
+.optionsEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-basis: 100%;
+}
+
+.optionRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.optionsError {
+  flex-basis: 100%;
+  font-size: 12px;
+  font-weight: 600;
+  color: #c0392b;
+}
+
+@media (max-width: 640px) {
+  /* The Customize tab's two side-by-side columns (Questions /
+     Question Settings) starve each column below .input's 200px floor,
+     pushing labels and option rows off the right edge of the screen. */
+  .customizeLayout {
+    flex-direction: column;
+  }
+
+  .input {
+    min-width: 0;
+  }
+
+  .optionRow .input {
+    width: 0; /* let flex-basis/flex-grow (not content) drive the width */
+  }
 }
