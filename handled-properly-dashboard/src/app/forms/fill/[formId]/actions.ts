@@ -2,6 +2,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { findOrCreateContact } from "@/lib/data/contacts";
+import { sanitizeStorageFilename } from "@/lib/storage-filename";
 import { getFillForm } from "./data";
 
 export type ActionState = { error: string } | { success: true } | null;
@@ -81,7 +82,7 @@ export async function submitForm(
     if (field.fieldType === "file") {
       const file = formData.get(`field_${field.id}`);
       if (file instanceof File && file.size > 0) {
-        const path = `${form.id}/${submission.id}/${field.id}-${file.name}`;
+        const path = `${form.id}/${submission.id}/${field.id}-${sanitizeStorageFilename(file.name)}`;
         const { error: uploadError } = await supabase.storage
           .from("form-submissions")
           .upload(path, file, { contentType: file.type || undefined });

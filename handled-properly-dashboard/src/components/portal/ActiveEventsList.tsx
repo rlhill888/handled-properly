@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getEventHeaderImageUrl } from "@/lib/data/event-header-image";
 import styles from "@/styles/admin-shared.module.css";
 
 export default async function ActiveEventsList() {
@@ -7,7 +8,9 @@ export default async function ActiveEventsList() {
 
   const { data: events, error } = await supabase
     .from("events")
-    .select("id, name, starts_at, location, status, client:clients(company_name,contacts(name))")
+    .select(
+      "id, name, starts_at, location, status, header_image_path, client:clients(company_name,contacts(name))"
+    )
     .eq("status", "active")
     .order("created_at", { ascending: false });
 
@@ -19,38 +22,31 @@ export default async function ActiveEventsList() {
     return <p className={styles.emptyState}>No active events yet.</p>;
   }
 
+  const headerImageUrls = await Promise.all(
+    events.map((event) => getEventHeaderImageUrl(event.header_image_path))
+  );
+
   return (
-    <table className={`${styles.table} ${styles.cardRows}`}>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Client</th>
-          <th>Date</th>
-          <th>Location</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {events.map((event) => (
-          <tr key={event.id}>
-            <td data-label="Name" className={styles.cardPrimaryCell}>
-              {event.name}
-            </td>
-            <td data-label="Client">
+    <div className={styles.eventCardGrid}>
+      {events.map((event, i) => (
+        <Link key={event.id} href={`/portal/admin/event-tracker/${event.id}`} className={styles.eventCard}>
+          {headerImageUrls[i] ? (
+            <img src={headerImageUrls[i]!} alt="" className={styles.eventCardImage} />
+          ) : (
+            <div className={styles.eventCardImagePlaceholder}>No header image</div>
+          )}
+          <div className={styles.eventCardBody}>
+            <span className={styles.eventCardTitle}>{event.name}</span>
+            <span className={styles.eventCardMeta}>
               {event.client?.company_name || event.client?.contacts?.name || "—"}
-            </td>
-            <td data-label="Date">
+            </span>
+            <span className={styles.eventCardMeta}>
               {event.starts_at ? new Date(event.starts_at).toLocaleString() : "—"}
-            </td>
-            <td data-label="Location">{event.location || "—"}</td>
-            <td className={styles.cardActionCell}>
-              <Link href={`/portal/admin/event-tracker/${event.id}`} className={styles.link}>
-                View
-              </Link>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+            </span>
+            <span className={styles.eventCardMeta}>{event.location || "—"}</span>
+          </div>
+        </Link>
+      ))}
+    </div>
   );
 }

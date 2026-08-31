@@ -14,7 +14,6 @@ export default function EditFormClient({
   initialTheme,
   initialFields,
   fillUrl,
-  scopeLabel,
 }: {
   formId: string;
   initialTitle: string;
@@ -22,7 +21,6 @@ export default function EditFormClient({
   initialTheme: FormTheme;
   initialFields: FormField[];
   fillUrl: string;
-  scopeLabel: string;
 }) {
   const router = useRouter();
 
@@ -48,22 +46,26 @@ export default function EditFormClient({
         Changes save when you click Save — nothing persists until then.
       </p>
 
-      <div className={sharedStyles.metaRow}>
-        <span className={sharedStyles.badgeMuted}>{scopeLabel}</span>
-        <Link href={`/portal/admin/form/results/${formId}`} className={sharedStyles.link}>
-          View results
-        </Link>
-      </div>
+      <div className={`${sharedStyles.card} ${styles.metaCard}`}>
+        <div className={sharedStyles.metaRow}>
+          <Link href={`/portal/admin/form/results/${formId}`} className={sharedStyles.secondaryButton}>
+            View results
+          </Link>
+        </div>
 
-      <div>
-        <span className={styles.description}>Fill link</span>
-        <br />
-        <code style={{ fontSize: 12, wordBreak: "break-all" }}>{fillUrl}</code>
-      </div>
+        <div className={sharedStyles.field}>
+          <span className={sharedStyles.label}>Fill link</span>
+          <a href={fillUrl} target="_blank" rel="noreferrer" className={styles.fillLink}>
+            {fillUrl}
+          </a>
+        </div>
 
-      <button type="button" className={styles.back} onClick={handleDelete}>
-        Delete this form
-      </button>
+        <div className={sharedStyles.actions}>
+          <button type="button" className={sharedStyles.dangerButton} onClick={handleDelete}>
+            Delete this form
+          </button>
+        </div>
+      </div>
 
       <div className={styles.builderWrapper}>
         <FormBuilder

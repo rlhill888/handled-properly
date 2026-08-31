@@ -29,6 +29,16 @@ function caretRangeFromPoint(x: number, y: number): Range | null {
   return range;
 }
 
+// The Subject input is plain text, not HTML like the Body editor already
+// produces — needs escaping before being spliced into a {{SUBJECT}} slot.
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 type UploadedPhoto = { dataUrl: string; name: string };
 
 type Category = { id: string; name: string };
@@ -72,17 +82,23 @@ export default function ComposeForm({
 
   const [aiHtmlOpen, setAiHtmlOpen] = useState(false);
   const [designBrief, setDesignBrief] = useState("");
-  const [contentDetails, setContentDetails] = useState("");
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
   const [aiStage, setAiStage] = useState<"idle" | "generating" | "revising">("idle");
   const [aiError, setAiError] = useState<string | null>(null);
-  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  // The AI's styled template, photos already baked in but {{BODY_CONTENT}}/
+  // {{SUBJECT}} still literal tokens — not yet committed to appliedTemplate.
+  const [pendingTemplate, setPendingTemplate] = useState<string | null>(null);
   // The AI's own last output, with {{PHOTO_n}}/{{FILL_LINK}} placeholders
   // still literally present — used as context for follow-up revisions, so
-  // the (potentially huge) base64 photo data embedded in previewHtml is
+  // the (potentially huge) base64 photo data embedded in pendingTemplate is
   // never sent back to the model.
   const [lastGeneratedHtml, setLastGeneratedHtml] = useState<string | null>(null);
   const [followUpInstruction, setFollowUpInstruction] = useState("");
+  // The committed styled template (photos baked in, {{BODY_CONTENT}}/
+  // {{SUBJECT}} still literal) — Body/Subject keep being edited normally
+  // after this is set, and finalBodyHtml below re-splices them into it live,
+  // with no further AI involvement.
+  const [appliedTemplate, setAppliedTemplate] = useState<string | null>(null);
   const aiRegionRef = useRef<HTMLDivElement>(null);
   useFocusTrap(aiHtmlOpen, aiRegionRef);
 
@@ -90,6 +106,19 @@ export default function ComposeForm({
     if (!bodyRef.current) return;
     setBodyHtml(bodyRef.current.innerHTML);
   };
+
+  // Splices the admin's live Subject/Body text into a template's
+  // {{SUBJECT}}/{{BODY_CONTENT}} tokens — the same plain-substitution
+  // mechanism resolvePhotoPlaceholders already uses for {{PHOTO_n}}, so
+  // editing Subject/Body after AI styling is applied needs no AI call.
+  const resolveContentPlaceholders = (html: string) =>
+    html.split("{{BODY_CONTENT}}").join(bodyHtml).split("{{SUBJECT}}").join(escapeHtml(subject));
+
+  const finalBodyHtml = useMemo(
+    () => (appliedTemplate ? resolveContentPlaceholders(appliedTemplate) : bodyHtml),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [appliedTemplate, bodyHtml, subject]
+  );
 
   // Drop lands wherever the pointer was, not wherever the caret last was —
   // so a dropped image needs its own Range from the drop point, applied
@@ -187,7 +216,7 @@ export default function ComposeForm({
 
     const formName =
       formIds.length === 1 ? availableForms.find((f) => f.id === formIds[0])?.name ?? null : null;
-    const result = await generateEmailHtmlWithAI(designBrief, contentDetails, {
+    const result = await generateEmailHtmlWithAI(designBrief, bodyHtml, {
       subject,
       formName,
       photoCount: photos.length,
@@ -200,12 +229,10 @@ export default function ComposeForm({
     }
 
     // Show a preview before committing — an AI pass over a rich, table-based
-    // design can miss the brief, and contentEditable is a poor place to
-    // judge the real result (bounded height, editable, no isolation from
-    // the admin UI's own styles) as well as a risky place to land it
-    // unreviewed (typing/selecting inside complex markup can mangle it).
+    // design can miss the brief, and the raw template's placeholder tokens
+    // aren't meant for direct viewing.
     setLastGeneratedHtml(result.bodyHtml);
-    setPreviewHtml(resolvePhotoPlaceholders(result.bodyHtml));
+    setPendingTemplate(resolvePhotoPlaceholders(result.bodyHtml));
   };
 
   const handleApplyFollowUp = async () => {
@@ -229,27 +256,45 @@ export default function ComposeForm({
     }
 
     setLastGeneratedHtml(result.bodyHtml);
-    setPreviewHtml(resolvePhotoPlaceholders(result.bodyHtml));
+    setPendingTemplate(resolvePhotoPlaceholders(result.bodyHtml));
     setFollowUpInstruction("");
   };
 
   const handleUsePreview = () => {
-    if (previewHtml === null) return;
-    setBodyHtml(previewHtml);
-    if (bodyRef.current) bodyRef.current.innerHTML = previewHtml;
+    if (pendingTemplate === null) return;
+    // Body/Subject are left completely untouched — they stay the admin's
+    // own editable source of truth; finalBodyHtml re-splices them into this
+    // template live from now on, with no further AI round trip needed.
+    setAppliedTemplate(pendingTemplate);
     setAiHtmlOpen(false);
-    setPreviewHtml(null);
+    setPendingTemplate(null);
     setLastGeneratedHtml(null);
     setDesignBrief("");
-    setContentDetails("");
     setFollowUpInstruction("");
     setPhotos([]);
   };
 
   const handleDiscardPreview = () => {
-    setPreviewHtml(null);
+    setPendingTemplate(null);
     setLastGeneratedHtml(null);
     setFollowUpInstruction("");
+  };
+
+  const handleRemoveStyling = () => {
+    if (!confirm("Remove the applied styling? The email will send as plain Body content.")) return;
+    setAppliedTemplate(null);
+  };
+
+  // Reopening after a design is already applied jumps straight into the
+  // preview/follow-up view (seeded with the live design as context) instead
+  // of the blank brief form — so pressing the AI button again means "edit
+  // what's already there," not "start over from scratch."
+  const handleOpenAiModal = () => {
+    if (appliedTemplate && pendingTemplate === null) {
+      setPendingTemplate(appliedTemplate);
+      setLastGeneratedHtml(appliedTemplate);
+    }
+    setAiHtmlOpen(true);
   };
 
   const filteredCategories = useMemo(() => {
@@ -320,8 +365,41 @@ export default function ComposeForm({
           data-placeholder="Write your email…"
         />
 
-        <input type="hidden" name="body_html" value={bodyHtml} />
+        <input type="hidden" name="body_html" value={finalBodyHtml} />
       </div>
+
+      {appliedTemplate && (
+        <div className={styles.field}>
+          <div className={styles.cardHeaderRow}>
+            <span className={styles.label} style={{ marginBottom: 0 }}>
+              Styled preview
+            </span>
+            <button type="button" className={styles.secondaryButton} onClick={handleRemoveStyling}>
+              Remove styling
+            </button>
+          </div>
+          <p className={styles.description}>
+            Keep editing Subject/Body above — the preview updates instantly, no AI involved.
+          </p>
+          <iframe
+            title="Styled email preview"
+            srcDoc={finalBodyHtml}
+            style={{
+              width: "100%",
+              height: "60vh",
+              border: "1px solid var(--border)",
+              borderRadius: 4,
+              background: "#ffffff",
+            }}
+          />
+          {formIds.length > 0 && (
+            <p className={styles.description}>
+              The form fill-out link{formIds.length === 1 ? "" : "s"} isn&apos;t active in this
+              preview — it becomes active once you actually send the email.
+            </p>
+          )}
+        </div>
+      )}
 
       <div className={styles.field}>
         <span className={styles.label}>
@@ -408,9 +486,9 @@ export default function ComposeForm({
           <button
             type="button"
             className={styles.attachButton}
-            aria-label="Generate HTML with AI"
-            title="Generate HTML with AI"
-            onClick={() => setAiHtmlOpen(true)}
+            aria-label={appliedTemplate ? "Edit HTML with AI" : "Generate HTML with AI"}
+            title={appliedTemplate ? "Edit HTML with AI" : "Generate HTML with AI"}
+            onClick={handleOpenAiModal}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M12 2.5a1 1 0 0 1 .967.744l.902 3.386a4.5 4.5 0 0 0 3.18 3.18l3.387.903a1 1 0 0 1 0 1.933l-3.386.902a4.5 4.5 0 0 0-3.18 3.18l-.903 3.387a1 1 0 0 1-1.933 0l-.902-3.386a4.5 4.5 0 0 0-3.18-3.18l-3.387-.903a1 1 0 0 1 0-1.933l3.386-.902a4.5 4.5 0 0 0 3.18-3.18l.903-3.387A1 1 0 0 1 12 2.5Z" />
@@ -546,14 +624,19 @@ export default function ComposeForm({
           onClose={() => {
             if (aiStage !== "idle") return;
             setAiHtmlOpen(false);
-            setPreviewHtml(null);
+            setPendingTemplate(null);
             setLastGeneratedHtml(null);
             setFollowUpInstruction("");
           }}
-          title={previewHtml === null ? "Generate HTML with AI" : "Preview"}
+          title={pendingTemplate === null ? "Generate HTML with AI" : "Preview"}
         >
-          {previewHtml === null ? (
+          {pendingTemplate === null ? (
             <div className={styles.form}>
+              <p className={styles.description}>
+                Your current Subject and Body will be included exactly as written — this just
+                describes how you&apos;d like it to look.
+              </p>
+
               <div className={styles.field}>
                 <label className={styles.label} htmlFor="ai_design_brief">
                   What should the email look like?
@@ -569,21 +652,7 @@ export default function ComposeForm({
                 />
               </div>
 
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="ai_content_details">
-                  Anything else you&apos;d like to add?
-                  <span className={styles.optional}> (optional)</span>
-                </label>
-                <textarea
-                  id="ai_content_details"
-                  className={styles.textarea}
-                  rows={3}
-                  placeholder="Event is Thursday Sept 17, 6–9:30pm at The Foundry downtown. Mention limited seats."
-                  value={contentDetails}
-                  onChange={(e) => setContentDetails(e.target.value)}
-                  disabled={aiStage !== "idle"}
-                />
-              </div>
+              {!bodyHtml.trim() && <p className={styles.error}>Write your email body first.</p>}
 
               <div className={styles.field}>
                 <span className={styles.label}>
@@ -658,7 +727,7 @@ export default function ComposeForm({
                 <button
                   type="button"
                   className={styles.primaryButton}
-                  disabled={aiStage !== "idle" || !designBrief.trim()}
+                  disabled={aiStage !== "idle" || !designBrief.trim() || !bodyHtml.trim()}
                   onClick={handleGenerateEmailHtml}
                 >
                   {aiStage === "idle" ? "Generate" : "Working…"}
@@ -669,7 +738,7 @@ export default function ComposeForm({
             <div className={styles.form}>
               <iframe
                 title="Generated email preview"
-                srcDoc={previewHtml}
+                srcDoc={resolveContentPlaceholders(pendingTemplate)}
                 style={{
                   width: "100%",
                   height: "60vh",

@@ -60,8 +60,16 @@
 }
 
 .titleCardDragging {
-  opacity: 0.5;
+  position: relative;
+  z-index: 20;
+  opacity: 0.95;
   border-color: #0a0a0a;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  /* Nothing underneath should react to the ghost card passing over it —
+     column hit-testing during drag uses getBoundingClientRect, not
+     elementFromPoint, so this only matters for not stealing hover/click. */
+  pointer-events: none;
+  will-change: transform;
 }
 
 .titleCardBlocked {

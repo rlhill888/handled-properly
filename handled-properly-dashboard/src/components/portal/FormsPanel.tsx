@@ -129,7 +129,7 @@ export default function FormsPanel({
           options={availableForms.map((f) => ({ id: f.id, label: f.name }))}
           value={selectedFormId}
           onChange={setSelectedFormId}
-          placeholder="Use an existing unassigned form…"
+          placeholder="Use an existing unassociated form…"
           createLabel="New Form"
           createHref={newFormHref}
         />

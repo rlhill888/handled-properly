@@ -7,11 +7,9 @@ import styles from "@/styles/admin-shared.module.css";
 export default function ContactsList({
   contacts,
   allCategories,
-  activeEvents,
 }: {
   contacts: ContactRowData[];
   allCategories: { id: string; name: string }[];
-  activeEvents: { id: string; name: string }[];
 }) {
   const [query, setQuery] = useState("");
 
@@ -42,12 +40,7 @@ export default function ContactsList({
       ) : (
         <div className={styles.accordionList}>
           {filtered.map((contact) => (
-            <ContactRow
-              key={contact.id}
-              contact={contact}
-              allCategories={allCategories}
-              activeEvents={activeEvents}
-            />
+            <ContactRow key={contact.id} contact={contact} allCategories={allCategories} />
           ))}
         </div>
       )}

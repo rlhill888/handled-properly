@@ -20,6 +20,14 @@ export type SubmissionView = {
   answers: SubmissionAnswerView[];
 };
 
+// One column per form field, in the same order as the form itself — the
+// spreadsheet-style results table renders one of these per header cell.
+// Built from the *current* form_fields, then extended with any fieldId an
+// answer references that's no longer part of the form (a field deleted
+// after some submissions came in), so historical answers still get a column
+// instead of silently vanishing from the table/CSV export.
+export type SubmissionColumn = { fieldId: string; label: string };
+
 // Shared by the admin and staff results routes: pass in whichever
 // per-session client belongs to the caller and RLS does the authorization
 // (admin_all vs staff_select_visible_submissions/can_staff_view_form) — this
@@ -30,7 +38,7 @@ export type SubmissionView = {
 export async function getFormSubmissions(
   supabase: Client,
   formId: string
-): Promise<{ formName: string; submissions: SubmissionView[] } | null> {
+): Promise<{ formName: string; columns: SubmissionColumn[]; submissions: SubmissionView[] } | null> {
   const { data: form } = await supabase
     .from("forms")
     .select("id, name, form_fields(id, label, position)")
@@ -83,5 +91,19 @@ export async function getFormSubmissions(
     });
   }
 
-  return { formName: form.name, submissions: submissionViews };
+  const columns: SubmissionColumn[] = [...fieldLabelById].map(([fieldId, label]) => ({
+    fieldId,
+    label,
+  }));
+  const knownFieldIds = new Set(columns.map((c) => c.fieldId));
+  for (const submission of submissionViews) {
+    for (const answer of submission.answers) {
+      if (!knownFieldIds.has(answer.fieldId)) {
+        knownFieldIds.add(answer.fieldId);
+        columns.push({ fieldId: answer.fieldId, label: answer.label });
+      }
+    }
+  }
+
+  return { formName: form.name, columns, submissions: submissionViews };
 }

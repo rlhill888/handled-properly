@@ -3,7 +3,10 @@
 import { useEffect, useId, useRef, useState } from "react";
 import styles from "./SelectDropdown.module.css";
 
-export type SelectDropdownOption = { id: string; label: string };
+// searchText is extra text matched by the search box but never displayed —
+// e.g. a staff member's roster tags, so "Catering" finds them by skill even
+// though their label is just their name.
+export type SelectDropdownOption = { id: string; label: string; searchText?: string };
 
 export default function SelectDropdown({
   options,
@@ -64,7 +67,10 @@ export default function SelectDropdown({
   const query = search.trim().toLowerCase();
   const visibleOptions =
     searchable && query
-      ? options.filter((o) => o.label.toLowerCase().includes(query))
+      ? options.filter(
+          (o) =>
+            o.label.toLowerCase().includes(query) || o.searchText?.toLowerCase().includes(query)
+        )
       : options;
 
   return (

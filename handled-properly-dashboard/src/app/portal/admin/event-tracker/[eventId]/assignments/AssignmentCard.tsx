@@ -396,10 +396,14 @@ export default function AssignmentCard({
           <MultiSelectField
             name="assignee_ids"
             label="Assignees"
-            options={rosterStaff.map((staff) => ({ id: staff.id, label: staff.name }))}
+            options={rosterStaff.map((staff) => ({
+              id: staff.id,
+              label: staff.name,
+              searchText: [...staff.categoryNames, ...staff.globalTagNames].join(" "),
+            }))}
             initialSelectedIds={assignment.assigneeIds}
             placeholder="Add an assignee…"
-            searchPlaceholder="Search staff…"
+            searchPlaceholder="Search staff or tag…"
           />
         )}
 

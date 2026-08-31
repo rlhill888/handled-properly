@@ -1,3 +1,5 @@
+import { CHAT_ENABLED } from "./feature-flags";
+
 export type PortalNavLink = {
   label: string;
   href: string;
@@ -13,5 +15,5 @@ export const ADMIN_LINKS: PortalNavLink[] = [
 
 export const STAFF_LINKS: PortalNavLink[] = [
   { label: "Events", href: "/portal/staff/events" },
-  { label: "Chat", href: "/portal/staff/chat" },
+  ...(CHAT_ENABLED ? [{ label: "Chat", href: "/portal/staff/chat" }] : []),
 ];

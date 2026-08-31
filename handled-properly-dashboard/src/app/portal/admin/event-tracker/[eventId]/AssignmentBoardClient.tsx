@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useRef, useState, useTransition } from "react";
+import { useCallback, useOptimistic, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { updateAssignmentStatus } from "./assignments/actions";
 import AssignmentCard, { type AssignmentData } from "./assignments/AssignmentCard";
 import type { StaffOption } from "./assignments/NewAssignmentForm";
@@ -46,10 +47,23 @@ export default function AssignmentBoardClient({
   siteUrl: string;
   isLocked: boolean;
 }) {
+  const router = useRouter();
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<AssignmentData["status"] | null>(null);
   const [openAssignmentId, setOpenAssignmentId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+  // Drops need to show the card in its new column right away — the write +
+  // revalidatePath/router.refresh() round trip is slow enough that without
+  // this, the card visibly snaps back to its old column and then jumps to
+  // the new one once the server data catches up. React automatically
+  // reconciles this back to the real `assignments` prop once the transition
+  // below (which stays pending through the router.refresh()) settles.
+  const [optimisticAssignments, setOptimisticStatus] = useOptimistic(
+    assignments,
+    (state, update: { id: string; status: AssignmentData["status"] }) =>
+      state.map((a) => (a.id === update.id ? { ...a, status: update.status } : a))
+  );
 
   const columnRefs = useRef(new Map<string, HTMLDivElement>());
   const pointerState = useRef<{
@@ -84,14 +98,20 @@ export default function AssignmentBoardClient({
   const commitDrop = (id: string, status: AssignmentData["status"]) => {
     const assignment = assignments.find((a) => a.id === id);
     if (!assignment || assignment.status === status) return;
-    startTransition(() => {
-      updateAssignmentStatus(eventId, id, status);
+    startTransition(async () => {
+      setOptimisticStatus({ id, status });
+      const result = await updateAssignmentStatus(eventId, id, status);
+      if (result?.error) alert(result.error);
+      // Keeps this transition (and so the optimistic status above) pending
+      // until the refreshed server data actually lands, instead of reverting
+      // to the stale pre-drop status the instant the write finishes.
+      router.refresh();
     });
   };
 
   const handlePointerDown = (assignmentId: string) => (e: React.PointerEvent<HTMLDivElement>) => {
     if (isLocked) return;
-    const assignment = assignments.find((a) => a.id === assignmentId);
+    const assignment = optimisticAssignments.find((a) => a.id === assignmentId);
     if (assignment && isBlocked(assignment)) return;
     if (e.pointerType === "mouse" && e.button !== 0) return;
     pointerState.current = {
@@ -107,9 +127,10 @@ export default function AssignmentBoardClient({
     const state = pointerState.current;
     if (!state || state.pointerId !== e.pointerId) return;
 
+    const dx = e.clientX - state.startX;
+    const dy = e.clientY - state.startY;
+
     if (!state.dragging) {
-      const dx = e.clientX - state.startX;
-      const dy = e.clientY - state.startY;
       if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
       state.dragging = true;
       setDraggingId(state.assignmentId);
@@ -117,6 +138,10 @@ export default function AssignmentBoardClient({
     }
 
     e.preventDefault();
+    // Moves the card by the same amount the pointer has moved, so it tracks
+    // the cursor/finger 1:1 (preserving the original grab offset) instead of
+    // just changing opacity to hint that something is happening.
+    setDragOffset({ x: dx, y: dy });
     setDragOverStatus(statusAtPoint(e.clientX, e.clientY));
   };
 
@@ -130,6 +155,7 @@ export default function AssignmentBoardClient({
       if (status) commitDrop(state.assignmentId, status);
     }
     setDraggingId(null);
+    setDragOffset(null);
     setDragOverStatus(null);
   };
 
@@ -149,10 +175,10 @@ export default function AssignmentBoardClient({
           >
             <div className={boardStyles.columnHeader}>
               <span>{column.label}</span>
-              <span>{assignments.filter((a) => a.status === column.status).length}</span>
+              <span>{optimisticAssignments.filter((a) => a.status === column.status).length}</span>
             </div>
 
-            {assignments
+            {optimisticAssignments
               .filter((a) => a.status === column.status)
               .map((assignment) => (
                 <div
@@ -160,6 +186,11 @@ export default function AssignmentBoardClient({
                   className={`${boardStyles.titleCard} ${
                     draggingId === assignment.id ? boardStyles.titleCardDragging : ""
                   } ${isBlocked(assignment) ? boardStyles.titleCardBlocked : ""}`}
+                  style={
+                    draggingId === assignment.id && dragOffset
+                      ? { transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)` }
+                      : undefined
+                  }
                   onPointerDown={handlePointerDown(assignment.id)}
                   onPointerMove={handlePointerMove}
                   onPointerUp={endDrag}

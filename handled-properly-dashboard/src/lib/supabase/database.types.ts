@@ -599,6 +599,7 @@ export type Database = {
           id: string
           invite_status: Database["public"]["Enums"]["staff_invite_status"]
           invited_at: string
+          notes: string | null
         }
         Insert: {
           auth_user_id?: string | null
@@ -606,6 +607,7 @@ export type Database = {
           id?: string
           invite_status?: Database["public"]["Enums"]["staff_invite_status"]
           invited_at?: string
+          notes?: string | null
         }
         Update: {
           auth_user_id?: string | null
@@ -613,6 +615,7 @@ export type Database = {
           id?: string
           invite_status?: Database["public"]["Enums"]["staff_invite_status"]
           invited_at?: string
+          notes?: string | null
         }
         Relationships: [
           {
@@ -629,6 +632,7 @@ export type Database = {
           client_id: string
           completed_at: string | null
           created_at: string
+          header_image_path: string | null
           id: string
           location: string | null
           name: string
@@ -641,6 +645,7 @@ export type Database = {
           client_id: string
           completed_at?: string | null
           created_at?: string
+          header_image_path?: string | null
           id?: string
           location?: string | null
           name: string
@@ -653,6 +658,7 @@ export type Database = {
           client_id?: string
           completed_at?: string | null
           created_at?: string
+          header_image_path?: string | null
           id?: string
           location?: string | null
           name?: string

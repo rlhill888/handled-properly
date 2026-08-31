@@ -3,12 +3,6 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { DEFAULT_THEME, type FormField, type FormFieldType } from "@/components/FormBuilder";
 import EditFormClient from "./EditFormClient";
 
-const TARGET_LABEL = {
-  event: "Event",
-  assignment: "Assignment",
-  email_send: "Email Send",
-} as const;
-
 export default async function EditFormPage({
   params,
 }: {
@@ -19,7 +13,7 @@ export default async function EditFormPage({
 
   const { data: form } = await supabase
     .from("forms")
-    .select("id, name, theme, target_type")
+    .select("id, name, theme")
     .eq("id", formId)
     .maybeSingle();
 
@@ -52,7 +46,6 @@ export default async function EditFormPage({
       initialTheme={{ ...DEFAULT_THEME, ...themeRest }}
       initialFields={fields}
       fillUrl={`${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/forms/fill/${form.id}`}
-      scopeLabel={form.target_type ? TARGET_LABEL[form.target_type] : "Standalone"}
     />
   );
 }

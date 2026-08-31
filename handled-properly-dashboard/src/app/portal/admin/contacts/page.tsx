@@ -16,7 +16,7 @@ export default async function ContactsPage({
   const { category: categoryFilter } = await searchParams;
   const supabase = await createSupabaseServerClient();
 
-  const [{ data: contacts, error }, { data: categories }, { data: events }] = await Promise.all([
+  const [{ data: contacts, error }, { data: categories }] = await Promise.all([
     supabase
       .from("contacts")
       .select(
@@ -24,11 +24,9 @@ export default async function ContactsPage({
       )
       .order("name", { ascending: true }),
     supabase.from("categories").select("id, name").order("name", { ascending: true }),
-    supabase.from("events").select("id, name").eq("status", "active").order("name", { ascending: true }),
   ]);
 
   const categoryOptions = categories ?? [];
-  const eventOptions = events ?? [];
 
   let rows: ContactRowData[] = (contacts ?? []).map((row) => ({
     id: row.id,
@@ -101,7 +99,7 @@ export default async function ContactsPage({
           </div>
         </div>
 
-        <ContactsList contacts={rows} allCategories={categoryOptions} activeEvents={eventOptions} />
+        <ContactsList contacts={rows} allCategories={categoryOptions} />
       </div>
     </div>
   );

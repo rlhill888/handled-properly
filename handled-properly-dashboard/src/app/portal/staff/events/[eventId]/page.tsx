@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import EventHeaderImage from "@/components/portal/EventHeaderImage";
+import { getEventHeaderImageDataUrl } from "@/lib/data/event-header-image";
+import { CHAT_ENABLED } from "@/lib/feature-flags";
 import styles from "@/styles/admin-shared.module.css";
 
 // RLS (staff_select_visible_forms -> can_staff_view_form) only ever returns
@@ -32,7 +35,7 @@ export default async function StaffEventDetailPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, name, starts_at, location, status, completed_at, client:clients(company_name,contacts(name)), series:event_series(label)"
+      "id, name, starts_at, location, status, completed_at, header_image_path, client:clients(company_name,contacts(name)), series:event_series(label)"
     )
     .eq("id", eventId)
     .maybeSingle();
@@ -41,12 +44,15 @@ export default async function StaffEventDetailPage({
 
   const clientName = event.client?.company_name || event.client?.contacts?.name || "—";
   const visibleForms = await getVisibleEventForms(supabase, event.id);
+  const headerImageUrl = await getEventHeaderImageDataUrl(event.header_image_path);
 
   return (
     <div className={styles.page}>
       <Link href="/portal/staff/events" className={styles.backLink} aria-label="Back to My Events">
         ←
       </Link>
+
+      <EventHeaderImage eventName={event.name} imageUrl={headerImageUrl} />
 
       <div className={styles.header}>
         <div>
@@ -66,12 +72,14 @@ export default async function StaffEventDetailPage({
           >
             View Assignments
           </Link>
-          <Link
-            href={`/portal/staff/events/${event.id}/conversations`}
-            className={styles.secondaryButton}
-          >
-            View Conversations
-          </Link>
+          {CHAT_ENABLED && (
+            <Link
+              href={`/portal/staff/events/${event.id}/conversations`}
+              className={styles.secondaryButton}
+            >
+              View Conversations
+            </Link>
+          )}
         </div>
       </div>
 

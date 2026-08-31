@@ -79,3 +79,25 @@ export async function inviteEventStaff(
   revalidatePath("/portal/admin/staff");
   return null;
 }
+
+// Free-text notes on a staff member. "Tags" (see StaffList) are read-only —
+// derived from roster_categories this person has ever been assigned across
+// any event's roster, not a separately managed field, so there's no
+// create/set action for them here.
+export async function updateStaffNotes(
+  eventStaffId: string,
+  notes: string
+): Promise<{ error?: string }> {
+  const actor = await getCurrentActor();
+  if (actor?.role !== "admin") return { error: "Not authorized." };
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from("event_staff")
+    .update({ notes: notes.trim() || null })
+    .eq("id", eventStaffId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/portal/admin/staff");
+  return {};
+}

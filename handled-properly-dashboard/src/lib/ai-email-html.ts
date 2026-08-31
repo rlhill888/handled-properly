@@ -5,6 +5,13 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 const client = new Anthropic();
 
 export const FILL_LINK_PLACEHOLDER = "{{FILL_LINK}}";
+// The admin's own verbatim Subject/Body text — the model designs a styled
+// container and places these tokens literally where the content belongs,
+// exactly like {{PHOTO_n}}/{{FILL_LINK}} below. It never invents the actual
+// wording; the client splices the real text in afterward via plain string
+// substitution (see resolveContentPlaceholders in ComposeForm.tsx).
+export const BODY_CONTENT_PLACEHOLDER = "{{BODY_CONTENT}}";
+export const SUBJECT_PLACEHOLDER = "{{SUBJECT}}";
 
 const EmailHtmlSchema = z.object({
   bodyHtml: z.string(),
@@ -42,8 +49,24 @@ ONE prominent call-to-action styled as a button with href="${FILL_LINK_PLACEHOLD
 naturally for the content (e.g. "Fill Out the Form", "RSVP Now", "Register").`
     : `No form is attached — do not reference ${FILL_LINK_PLACEHOLDER} at all.`;
 
-  const subjectContext = context.subject
-    ? `\nThe email's subject line (for tone/topic context only — don't repeat it verbatim as a heading unless it genuinely fits): "${context.subject}"`
+  const contentGuidance = `You do NOT write the actual message wording yourself — it's
+supplied verbatim by the admin and must appear completely unedited (no
+rewriting, no summarizing, no fixing grammar/tone). Instead:
+- Design a styled container for it (typography, spacing, background, max
+  line-width) and place the literal token ${BODY_CONTENT_PLACEHOLDER} exactly
+  once, wrapped in that container, wherever the message content belongs. The
+  admin's content is itself HTML (it may already contain <p>, <b>, <img>,
+  etc.) — don't wrap individual lines yourself, just provide the surrounding
+  styled box and drop the token inside it.
+- You may optionally give the email a prominent heading near the top using
+  the literal token ${SUBJECT_PLACEHOLDER} in place of the subject text — use
+  it at most once, and never type out the subject's actual words yourself.
+  Skip it entirely if a heading doesn't suit the design.`;
+
+  const revisionTokenReminder = isRevision
+    ? `\nThe current HTML above still contains ${BODY_CONTENT_PLACEHOLDER}${
+        context.subject ? ` and possibly ${SUBJECT_PLACEHOLDER}` : ""
+      } as literal, unresolved tokens (along with any {{PHOTO_n}}/${FILL_LINK_PLACEHOLDER} tokens) — keep them exactly as literal tokens in your revised output, don't resolve or remove them.`
     : "";
 
   return `You write the HTML body for a marketing-style email, for an
@@ -53,6 +76,7 @@ generous spacing, a clear visual hierarchy — like a professional event invite
 or product-launch email, not a plain letter with a couple of styled tags.
 
 ${modeGuidance}
+${revisionTokenReminder}
 
 This HTML is sent as a raw email body via Amazon SES with NO further
 wrapping, so it must follow real email-client constraints (Outlook, Gmail,
@@ -79,14 +103,15 @@ Apple Mail all render HTML email very differently from a browser):
 ${photoGuidance}
 
 ${formGuidance}
-${subjectContext}
+
+${contentGuidance}
 
 Produce the complete HTML fragment as "bodyHtml".`;
 }
 
 export async function generateEmailHtml(
   designBrief: string,
-  contentDetails: string,
+  bodyContent: string,
   context: { subject?: string; formName?: string | null; photoCount: number },
   currentHtml?: string | null,
 ): Promise<string> {
@@ -94,7 +119,8 @@ export async function generateEmailHtml(
     ? `Current HTML:\n${currentHtml}\n\nInstruction: ${designBrief}`
     : [
         `What the email should look like: ${designBrief}`,
-        contentDetails.trim() ? `Additional content to include: ${contentDetails}` : null,
+        context.subject ? `Subject (place via ${SUBJECT_PLACEHOLDER} if it fits): ${context.subject}` : null,
+        `The verbatim message content — place exactly as-is via ${BODY_CONTENT_PLACEHOLDER}, do not rewrite or summarize it:\n${bodyContent}`,
       ]
         .filter(Boolean)
         .join("\n\n");

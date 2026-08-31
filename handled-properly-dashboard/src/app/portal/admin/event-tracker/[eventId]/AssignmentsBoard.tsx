@@ -30,7 +30,7 @@ export default async function AssignmentsBoard({
           href={`/portal/admin/event-tracker/${eventId}/assignments`}
           className={styles.secondaryButton}
         >
-          View Details
+          Edit all Assignments
         </Link>
       </div>
 

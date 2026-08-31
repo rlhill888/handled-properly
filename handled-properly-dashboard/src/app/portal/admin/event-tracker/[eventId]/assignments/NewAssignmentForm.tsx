@@ -6,7 +6,12 @@ import SubmitButton from "@/components/portal/SubmitButton";
 import MultiSelectField from "@/components/portal/MultiSelectField";
 import styles from "@/styles/admin-shared.module.css";
 
-export type StaffOption = { id: string; name: string };
+export type StaffOption = {
+  id: string;
+  name: string;
+  categoryNames: string[];
+  globalTagNames: string[];
+};
 
 export default function NewAssignmentForm({
   eventId,
@@ -109,9 +114,13 @@ export default function NewAssignmentForm({
           name="assignee_ids"
           label="Assignees"
           helperText="(optional)"
-          options={rosterStaff.map((staff) => ({ id: staff.id, label: staff.name }))}
+          options={rosterStaff.map((staff) => ({
+            id: staff.id,
+            label: staff.name,
+            searchText: [...staff.categoryNames, ...staff.globalTagNames].join(" "),
+          }))}
           placeholder="Add an assignee…"
-          searchPlaceholder="Search staff…"
+          searchPlaceholder="Search staff or tag…"
         />
       )}
 

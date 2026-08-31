@@ -15,7 +15,7 @@ import NewStaffForm from "@/app/portal/admin/staff/NewStaffForm";
 import { useRouter } from "next/navigation";
 import styles from "@/styles/admin-shared.module.css";
 
-export type StaffOption = { id: string; name: string; email: string };
+export type StaffOption = { id: string; name: string; email: string; tagNames: string[] };
 export type RosterCategoryOption = { id: string; name: string };
 export type RosterMemberData = StaffOption & { categoryIds: string[] };
 
@@ -198,10 +198,13 @@ export default function RosterManager({
             options={availableStaff.map((staff) => ({
               id: staff.id,
               label: `${staff.name} (${staff.email})`,
+              searchText: staff.tagNames.join(" "),
             }))}
             value={selectedStaffId}
             onChange={setSelectedStaffId}
             placeholder="Add staff to roster…"
+            searchable
+            searchPlaceholder="Search staff or tag…"
             createLabel="Invite New Staff"
             onCreate={() => setInviteOpen(true)}
           />

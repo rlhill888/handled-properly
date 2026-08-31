@@ -37,7 +37,11 @@ export default async function StaffFormResultsPage({
         </div>
       </div>
 
-      <SubmissionsView submissions={result.submissions} />
+      <SubmissionsView
+        formName={result.formName}
+        columns={result.columns}
+        submissions={result.submissions}
+      />
     </div>
   );
 }

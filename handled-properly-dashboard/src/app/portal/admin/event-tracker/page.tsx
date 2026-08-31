@@ -44,10 +44,8 @@ export default async function EventTrackerPage() {
         </Link>
       </div>
 
-      <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Active Events</h2>
-        <ActiveEventsList />
-      </div>
+      <h2 className={styles.cardTitle}>Active Events</h2>
+      <ActiveEventsList />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import NewConversationForm from "@/components/portal/NewConversationForm";
+import { CHAT_ENABLED } from "@/lib/feature-flags";
 import styles from "@/styles/admin-shared.module.css";
 
 export default async function StaffEventConversationsPage({
@@ -9,6 +10,8 @@ export default async function StaffEventConversationsPage({
 }: {
   params: Promise<{ eventId: string }>;
 }) {
+  if (!CHAT_ENABLED) notFound();
+
   const { eventId } = await params;
   const supabase = await createSupabaseServerClient();
 

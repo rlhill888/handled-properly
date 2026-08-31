@@ -4,11 +4,13 @@ import { useState } from "react";
 import SelectDropdown, { type SelectDropdownOption } from "./SelectDropdown";
 import styles from "@/styles/admin-shared.module.css";
 
-// A searchable "add one at a time" multi-select — same SelectDropdown +
-// pending-value + Add-button pattern used for Forms in ComposeForm.tsx,
-// generalized so it can also submit as plain repeated-name form fields
-// (FormData.getAll(name)), which is what the plain <form action={...}>
-// server actions here already expect from what used to be checkboxes.
+// A searchable multi-select — same SelectDropdown pattern used for Forms in
+// ComposeForm.tsx, generalized so it can also submit as plain repeated-name
+// form fields (FormData.getAll(name)), which is what the plain
+// <form action={...}> server actions here already expect from what used to
+// be checkboxes. Picking an option adds it immediately (no separate Add
+// step) — the dropdown always shows `placeholder` rather than a pending
+// selection, since there's nothing left pending once picked.
 export default function MultiSelectField({
   name,
   label,
@@ -27,14 +29,12 @@ export default function MultiSelectField({
   searchPlaceholder?: string;
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>(initialSelectedIds);
-  const [pendingId, setPendingId] = useState("");
 
   const remove = (id: string) => setSelectedIds((current) => current.filter((i) => i !== id));
 
-  const add = () => {
-    if (!pendingId || selectedIds.includes(pendingId)) return;
-    setSelectedIds((current) => [...current, pendingId]);
-    setPendingId("");
+  const add = (id: string) => {
+    if (selectedIds.includes(id)) return;
+    setSelectedIds((current) => [...current, id]);
   };
 
   return (
@@ -65,19 +65,14 @@ export default function MultiSelectField({
         </div>
       )}
 
-      <div className={styles.formRow}>
-        <SelectDropdown
-          options={options.filter((o) => !selectedIds.includes(o.id))}
-          value={pendingId}
-          onChange={setPendingId}
-          placeholder={placeholder}
-          searchable
-          searchPlaceholder={searchPlaceholder}
-        />
-        <button type="button" className={styles.secondaryButton} disabled={!pendingId} onClick={add}>
-          Add
-        </button>
-      </div>
+      <SelectDropdown
+        options={options.filter((o) => !selectedIds.includes(o.id))}
+        value=""
+        onChange={add}
+        placeholder={placeholder}
+        searchable
+        searchPlaceholder={searchPlaceholder}
+      />
     </div>
   );
 }

@@ -1,8 +1,12 @@
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { CHAT_ENABLED } from "@/lib/feature-flags";
 import styles from "@/styles/admin-shared.module.css";
 
 export default async function StaffChatPage() {
+  if (!CHAT_ENABLED) notFound();
+
   const supabase = await createSupabaseServerClient();
 
   // RLS (staff_select_own_conversations) already scopes this to
