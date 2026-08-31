@@ -3,7 +3,12 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { getEventHeaderImageUrl } from "@/lib/data/event-header-image";
 import styles from "@/styles/admin-shared.module.css";
 
-export default async function ActiveEventsList() {
+// Shared by the admin (Active Events on /portal/admin/event-tracker and the
+// /portal root dashboard) and staff (/portal root dashboard) views — the
+// query itself is role-agnostic; RLS (admin_all vs staff_select_rostered_events)
+// is what actually scopes an event-staff session down to only their own
+// rostered active events. Only the link destination differs per role.
+export default async function ActiveEventsList({ linkBase }: { linkBase: string }) {
   const supabase = await createSupabaseServerClient();
 
   const { data: events, error } = await supabase
@@ -29,7 +34,7 @@ export default async function ActiveEventsList() {
   return (
     <div className={styles.eventCardGrid}>
       {events.map((event, i) => (
-        <Link key={event.id} href={`/portal/admin/event-tracker/${event.id}`} className={styles.eventCard}>
+        <Link key={event.id} href={`${linkBase}/${event.id}`} className={styles.eventCard}>
           {headerImageUrls[i] ? (
             <img src={headerImageUrls[i]!} alt="" className={styles.eventCardImage} />
           ) : (

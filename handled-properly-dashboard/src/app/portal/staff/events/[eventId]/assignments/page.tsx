@@ -2,19 +2,12 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentActor } from "@/lib/auth/get-current-actor";
-import StaffAssignmentCard, { type StaffAssignmentData } from "./StaffAssignmentCard";
+import { type StaffAssignmentData } from "./StaffAssignmentCard";
+import StaffAssignmentBoardClient from "./StaffAssignmentBoardClient";
 import { buildAssignmentTree } from "@/lib/data/assignment-tree";
 import { getCommentsByAssignment } from "@/lib/data/assignment-comments";
 import { getAssignmentDependencies } from "@/lib/data/assignment-dependencies";
 import styles from "@/styles/admin-shared.module.css";
-import boardStyles from "@/styles/assignments-board.module.css";
-
-const COLUMNS: { status: StaffAssignmentData["status"]; label: string }[] = [
-  { status: "ready", label: "Ready to Work" },
-  { status: "in_progress", label: "In Progress" },
-  { status: "blocked", label: "Blocked" },
-  { status: "done", label: "Done" },
-];
 
 export default async function StaffEventAssignmentsPage({
   params,
@@ -109,32 +102,18 @@ export default async function StaffEventAssignmentsPage({
           <span className={styles.eyebrow}>Event Staff · Assignments</span>
           <h1 className={styles.title}>{event.name}</h1>
           <p className={styles.description}>
-            You see every assignment for this event, including ones not assigned to you.
+            You see every assignment for this event, including ones not assigned to you. Drag your
+            own assignments between columns to update their status, or tap ▾ for full details.
           </p>
         </div>
       </div>
 
-      <div className={boardStyles.board}>
-        {COLUMNS.map((column) => (
-          <div key={column.status} className={boardStyles.column}>
-            <div className={boardStyles.columnHeader}>
-              <span>{column.label}</span>
-              <span>{assignments.filter((a) => a.status === column.status).length}</span>
-            </div>
-            {assignments
-              .filter((a) => a.status === column.status)
-              .map((assignment) => (
-                <StaffAssignmentCard
-                  key={assignment.id}
-                  eventId={eventId}
-                  assignment={assignment}
-                  currentStaffId={currentStaffId}
-                  isLocked={isLocked}
-                />
-              ))}
-          </div>
-        ))}
-      </div>
+      <StaffAssignmentBoardClient
+        eventId={eventId}
+        assignments={assignments}
+        currentStaffId={currentStaffId}
+        isLocked={isLocked}
+      />
     </div>
   );
 }

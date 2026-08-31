@@ -5,6 +5,7 @@ import Link from "next/link";
 import { staffSetStatus, staffPickupAssignment } from "./actions";
 import CommentsSection from "@/components/portal/CommentsSection";
 import LockIcon from "@/components/portal/LockIcon";
+import SelectDropdown from "@/components/portal/SelectDropdown";
 import type { CommentData } from "@/lib/actions/assignment-comments";
 import type { DependencyRef } from "@/lib/data/assignment-dependencies";
 import styles from "@/styles/admin-shared.module.css";
@@ -48,7 +49,6 @@ export default function StaffAssignmentCard({
 }) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [subtasksExpanded, setSubtasksExpanded] = useState(true);
 
   const doneCount = assignment.subtasks.filter((c) => c.status === "done").length;
   const hasSubtasks = assignment.subtasks.length > 0;
@@ -144,22 +144,22 @@ export default function StaffAssignmentCard({
 
       {!isLocked && (
         <div className={cardStyles.cardActions}>
-          <select
-            className={styles.select}
+          <SelectDropdown
+            options={STATUS_OPTIONS.filter(
+              // A blocked-by-dependency option is hidden rather than shown
+              // disabled (SelectDropdown has no per-option disabled state) —
+              // except the assignment's own current status, which must stay
+              // selectable so the trigger still shows it rather than falling
+              // back to the placeholder.
+              (opt) =>
+                opt.value === assignment.status ||
+                !(hasUnmetDependencies && (opt.value === "in_progress" || opt.value === "done"))
+            ).map((opt) => ({ id: opt.value, label: opt.label }))}
             value={assignment.status}
+            onChange={(value) => handleStatusChange(value as StaffAssignmentData["status"])}
+            placeholder="Set status…"
             disabled={isPending}
-            onChange={(e) => handleStatusChange(e.target.value as StaffAssignmentData["status"])}
-          >
-            {STATUS_OPTIONS.map((opt) => (
-              <option
-                key={opt.value}
-                value={opt.value}
-                disabled={hasUnmetDependencies && (opt.value === "in_progress" || opt.value === "done")}
-              >
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          />
           {canPickUp && (
             <button
               type="button"
@@ -175,30 +175,84 @@ export default function StaffAssignmentCard({
 
       {hasSubtasks && (
         <div className={cardStyles.subSection}>
-          <button
-            type="button"
-            className={cardStyles.subToggle}
-            onClick={() => setSubtasksExpanded((e) => !e)}
-          >
-            {subtasksExpanded ? "▾" : "▸"} Subtasks ({doneCount}/{assignment.subtasks.length} done)
-          </button>
-          {subtasksExpanded && (
-            <div className={cardStyles.subList}>
-              {assignment.subtasks.map((child) => (
-                <StaffAssignmentCard
-                  key={child.id}
-                  eventId={eventId}
-                  assignment={child}
-                  currentStaffId={currentStaffId}
-                  isLocked={isLocked}
-                />
-              ))}
-            </div>
-          )}
+          <span className={cardStyles.subToggle}>
+            Subtasks ({doneCount}/{assignment.subtasks.length} done)
+          </span>
+          <div className={cardStyles.subList}>
+            {assignment.subtasks.map((child) => (
+              <StaffSubtaskAccordion
+                key={child.id}
+                eventId={eventId}
+                assignment={child}
+                currentStaffId={currentStaffId}
+                isLocked={isLocked}
+              />
+            ))}
+          </div>
         </div>
       )}
 
       <CommentsSection assignmentId={assignment.id} initialComments={assignment.comments} />
+    </div>
+  );
+}
+
+// A collapsed row for one Subtask (title + priority, expanding in place into
+// the full StaffAssignmentCard) — same per-item accordion pattern already
+// used for Subtasks on the admin AssignmentCard, instead of one toggle for
+// the whole Subtasks section.
+function StaffSubtaskAccordion({
+  eventId,
+  assignment,
+  currentStaffId,
+  isLocked,
+}: {
+  eventId: string;
+  assignment: StaffAssignmentData;
+  currentStaffId: string | null;
+  isLocked: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const isBlocked = assignment.dependsOn.some((dep) => dep.status !== "done");
+
+  if (expanded) {
+    return (
+      <div>
+        <button type="button" className={cardStyles.subToggle} onClick={() => setExpanded(false)}>
+          ▾ Collapse
+        </button>
+        <StaffAssignmentCard
+          eventId={eventId}
+          assignment={assignment}
+          currentStaffId={currentStaffId}
+          isLocked={isLocked}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className={cardStyles.subAccordionHeader}>
+      <button
+        type="button"
+        className={cardStyles.subAccordionTitleButton}
+        onClick={() => setExpanded(true)}
+      >
+        <span className={cardStyles.cardTitle}>
+          {isBlocked && (
+            <span className={cardStyles.titleCardBlockedIcon} aria-label="Blocked">
+              <LockIcon size={12} />
+            </span>
+          )}{" "}
+          {assignment.title}
+        </span>
+        <span className={`${cardStyles.priority} ${cardStyles[`priority_${assignment.priority}`]}`}>
+          {assignment.priority}
+        </span>
+        <span className={cardStyles.subAccordionChevron} aria-hidden>
+          ▸
+        </span>
+      </button>
     </div>
   );
 }

@@ -45,7 +45,7 @@ export default async function EventTrackerPage() {
       </div>
 
       <h2 className={styles.cardTitle}>Active Events</h2>
-      <ActiveEventsList />
+      <ActiveEventsList linkBase="/portal/admin/event-tracker" />
     </div>
   );
 }

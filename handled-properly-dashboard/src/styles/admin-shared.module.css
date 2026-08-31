@@ -394,6 +394,51 @@
   color: var(--muted);
 }
 
+.assignmentCardRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.assignmentCompactCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s ease;
+}
+
+.assignmentCompactCard:hover {
+  border-color: #0a0a0a;
+}
+
+.assignmentCompactCardBlocked {
+  opacity: 0.6;
+}
+
+.assignmentCompactHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.assignmentCompactTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.assignmentCompactMeta {
+  font-size: 11px;
+  color: var(--muted);
+}
+
 .emptyState {
   font-size: 13px;
   color: var(--muted);

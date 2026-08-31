@@ -77,6 +77,23 @@
   cursor: not-allowed;
 }
 
+/* Staff board only — every assignment on the event is shown for context,
+   but only ones assigned to the viewer can be dragged; this keeps a
+   non-draggable card from inviting a grab gesture that won't do anything. */
+.titleCardStatic {
+  cursor: default;
+}
+
+.titleCardStatic:active {
+  cursor: default;
+}
+
+/* A persistent "this one's yours" cue — grab-cursor only shows on hover,
+   this stays visible at a glance among everyone else's assignments. */
+.titleCardMine {
+  border-left: 3px solid #0a0a0a;
+}
+
 .titleCardText {
   display: inline-flex;
   align-items: center;
