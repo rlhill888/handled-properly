@@ -12,7 +12,8 @@ export default async function AssignmentsBoard({
   eventId: string;
   isLocked: boolean;
 }) {
-  const { assignments, rosterStaff } = await getAssignmentsBoardData(eventId);
+  const { assignments, rosterStaff, allAssignments, availableForms, siteUrl } =
+    await getAssignmentsBoardData(eventId);
 
   return (
     <div className={styles.card}>
@@ -22,7 +23,7 @@ export default async function AssignmentsBoard({
         </h2>
         {!isLocked && (
           <AddModalButton label="New Assignment" modalTitle="New Assignment">
-            <NewAssignmentForm eventId={eventId} rosterStaff={rosterStaff} />
+            <NewAssignmentForm eventId={eventId} rosterStaff={rosterStaff} existingAssignments={allAssignments} />
           </AddModalButton>
         )}
         <Link
@@ -37,6 +38,9 @@ export default async function AssignmentsBoard({
         eventId={eventId}
         assignments={assignments}
         rosterStaff={rosterStaff}
+        existingAssignments={allAssignments}
+        availableForms={availableForms}
+        siteUrl={siteUrl}
         isLocked={isLocked}
       />
     </div>

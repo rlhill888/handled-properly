@@ -65,6 +65,88 @@ export type Database = {
           },
         ]
       }
+      assignment_comments: {
+        Row: {
+          assignment_id: string
+          author_admin_id: string | null
+          author_event_staff_id: string | null
+          body: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          assignment_id: string
+          author_admin_id?: string | null
+          author_event_staff_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          assignment_id?: string
+          author_admin_id?: string | null
+          author_event_staff_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_comments_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignment_comments_author_admin_id_fkey"
+            columns: ["author_admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignment_comments_author_event_staff_id_fkey"
+            columns: ["author_event_staff_id"]
+            isOneToOne: false
+            referencedRelation: "event_staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assignment_dependencies: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          depends_on_assignment_id: string
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          depends_on_assignment_id: string
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          depends_on_assignment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_dependencies_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignment_dependencies_depends_on_assignment_id_fkey"
+            columns: ["depends_on_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assignments: {
         Row: {
           created_at: string
@@ -139,6 +221,65 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      client_applications: {
+        Row: {
+          ai_summary: string | null
+          budget: string | null
+          company_name: string | null
+          contact_id: string | null
+          email: string
+          event_date: string | null
+          guest_count: number | null
+          id: string
+          location: string | null
+          message: string
+          name: string
+          phone: string | null
+          status: Database["public"]["Enums"]["client_application_status"]
+          submitted_at: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          budget?: string | null
+          company_name?: string | null
+          contact_id?: string | null
+          email: string
+          event_date?: string | null
+          guest_count?: number | null
+          id?: string
+          location?: string | null
+          message: string
+          name: string
+          phone?: string | null
+          status?: Database["public"]["Enums"]["client_application_status"]
+          submitted_at?: string
+        }
+        Update: {
+          ai_summary?: string | null
+          budget?: string | null
+          company_name?: string | null
+          contact_id?: string | null
+          email?: string
+          event_date?: string | null
+          guest_count?: number | null
+          id?: string
+          location?: string | null
+          message?: string
+          name?: string
+          phone?: string | null
+          status?: Database["public"]["Enums"]["client_application_status"]
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_applications_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       clients: {
         Row: {
@@ -867,6 +1008,7 @@ export type Database = {
       assignment_priority: "low" | "medium" | "high"
       assignment_status: "ready" | "in_progress" | "blocked" | "done"
       attendance_source: "manual" | "form_submission"
+      client_application_status: "pending" | "converted" | "declined"
       event_status: "active" | "completed"
       form_field_type:
         | "text"
@@ -1011,6 +1153,7 @@ export const Constants = {
       assignment_priority: ["low", "medium", "high"],
       assignment_status: ["ready", "in_progress", "blocked", "done"],
       attendance_source: ["manual", "form_submission"],
+      client_application_status: ["pending", "converted", "declined"],
       event_status: ["active", "completed"],
       form_field_type: [
         "text",

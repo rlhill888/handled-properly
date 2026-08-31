@@ -1,10 +1,16 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
-import { updateAssignment, deleteAssignment, type ActionState } from "./actions";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { updateAssignment, updateAssignmentStatus, deleteAssignment, type ActionState } from "./actions";
 import SubmitButton from "@/components/portal/SubmitButton";
 import NewAssignmentForm, { type StaffOption } from "./NewAssignmentForm";
 import FormsPanel, { type ScopedForm } from "@/components/portal/FormsPanel";
+import CommentsSection from "@/components/portal/CommentsSection";
+import MultiSelectField from "@/components/portal/MultiSelectField";
+import LockIcon from "@/components/portal/LockIcon";
+import type { CommentData } from "@/lib/actions/assignment-comments";
+import type { DependencyRef } from "@/lib/data/assignment-dependencies";
 import styles from "@/styles/admin-shared.module.css";
 import cardStyles from "@/styles/assignments-board.module.css";
 
@@ -20,27 +26,42 @@ export type AssignmentData = {
   assigneeIds: string[];
   assigneeNames: string[];
   forms: ScopedForm[];
-  children: AssignmentData[];
+  comments: CommentData[];
+  dependsOn: DependencyRef[];
+  blocks: DependencyRef[];
+  subtasks: AssignmentData[];
 };
 
 export default function AssignmentCard({
   eventId,
   assignment,
   rosterStaff,
+  existingAssignments,
   isLocked,
   availableForms,
   siteUrl,
+  allowSubtasks = true,
+  isSubtask = false,
 }: {
   eventId: string;
   assignment: AssignmentData;
   rosterStaff: StaffOption[];
+  existingAssignments: { id: string; title: string }[];
   isLocked: boolean;
   availableForms: { id: string; name: string }[];
   siteUrl: string;
+  // A Subtask cannot itself have Subtasks (enforced server-side by the
+  // assignments_no_nested_subtasks trigger) — false on the recursive
+  // self-render below so a Subtask's own card never offers "+ Add Subtask".
+  allowSubtasks?: boolean;
+  // Only Subtasks get the quick complete-checkbox in the header — a
+  // top-level Assignment's status is a bigger decision (affects the board
+  // column it lives in) made via the Status field in the edit form instead.
+  isSubtask?: boolean;
 }) {
+  const router = useRouter();
   const [editing, setEditing] = useState(false);
-  const [childrenExpanded, setChildrenExpanded] = useState(true);
-  const [addingSubAssignment, setAddingSubAssignment] = useState(false);
+  const [addingSubtask, setAddingSubtask] = useState(false);
   const boundUpdate = updateAssignment.bind(null, eventId, assignment.id);
   const [state, formAction, isPending] = useActionState<ActionState, FormData>(boundUpdate, null);
   const wasPending = useRef(false);
@@ -48,9 +69,14 @@ export default function AssignmentCard({
   useEffect(() => {
     if (wasPending.current && !isPending && state === null) {
       setEditing(false);
+      // revalidatePath alone doesn't reliably refresh this route's data on
+      // this Next.js version (see AGENTS.md) — without this, dependency
+      // changes (add/remove in the "Depends on" field) silently don't show
+      // up until a full page reload, even though the write succeeded.
+      router.refresh();
     }
     wasPending.current = isPending;
-  }, [isPending, state]);
+  }, [isPending, state, router]);
 
   const handleDelete = async () => {
     if (!confirm(`Delete "${assignment.title}"?`)) return;
@@ -58,8 +84,26 @@ export default function AssignmentCard({
     if (result?.error) alert(result.error);
   };
 
-  const doneCount = assignment.children.filter((c) => c.status === "done").length;
-  const hasChildren = assignment.children.length > 0;
+  const [isTogglingComplete, startToggleComplete] = useTransition();
+  const [completeError, setCompleteError] = useState<string | null>(null);
+
+  // A plain checkbox toggle, distinct from the Status dropdown in the edit
+  // form — this only ever moves between "done" and "ready" (unchecking a
+  // completed item resets it to Ready to Work, not back to whatever
+  // in-progress/blocked state it might have had before). Uses the same
+  // updateAssignmentStatus the drag-and-drop board already calls, so it's
+  // unaffected by the dependency gate the same way admin drags already are.
+  const handleToggleComplete = () => {
+    const nextStatus = assignment.status === "done" ? "ready" : "done";
+    setCompleteError(null);
+    startToggleComplete(async () => {
+      const result = await updateAssignmentStatus(eventId, assignment.id, nextStatus);
+      if (result?.error) setCompleteError(result.error);
+    });
+  };
+
+  const doneCount = assignment.subtasks.filter((c) => c.status === "done").length;
+  const hasSubtasks = assignment.subtasks.length > 0;
 
   const formsSection = (
     <div className={cardStyles.subSection}>
@@ -75,28 +119,24 @@ export default function AssignmentCard({
     </div>
   );
 
-  const subAssignmentsSection = (
+  const subtasksSection = (
     <>
-      {(hasChildren || !isLocked) && (
+      {allowSubtasks && (hasSubtasks || !isLocked) && (
         <div className={cardStyles.subSection}>
-          {hasChildren && (
-            <button
-              type="button"
-              className={cardStyles.subToggle}
-              onClick={() => setChildrenExpanded((e) => !e)}
-            >
-              {childrenExpanded ? "▾" : "▸"} Sub-assignments ({doneCount}/{assignment.children.length}{" "}
-              done)
-            </button>
+          {hasSubtasks && (
+            <span className={cardStyles.subToggle}>
+              Subtasks ({doneCount}/{assignment.subtasks.length} done)
+            </span>
           )}
-          {hasChildren && childrenExpanded && (
+          {hasSubtasks && (
             <div className={cardStyles.subList}>
-              {assignment.children.map((child) => (
-                <AssignmentCard
+              {assignment.subtasks.map((child) => (
+                <SubtaskAccordion
                   key={child.id}
                   eventId={eventId}
                   assignment={child}
                   rosterStaff={rosterStaff}
+                  existingAssignments={existingAssignments}
                   isLocked={isLocked}
                   availableForms={availableForms}
                   siteUrl={siteUrl}
@@ -104,28 +144,29 @@ export default function AssignmentCard({
               ))}
             </div>
           )}
-          {!isLocked && !addingSubAssignment && (
+          {!isLocked && !addingSubtask && (
             <button
               type="button"
               className={styles.secondaryButton}
-              onClick={() => setAddingSubAssignment(true)}
+              onClick={() => setAddingSubtask(true)}
             >
-              + Add Sub-assignment
+              + Add Subtask
             </button>
           )}
-          {!isLocked && addingSubAssignment && (
+          {!isLocked && addingSubtask && (
             <div className={cardStyles.subList}>
               <NewAssignmentForm
                 eventId={eventId}
                 rosterStaff={rosterStaff}
+                existingAssignments={existingAssignments}
                 parentAssignmentId={assignment.id}
-                submitLabel="Add Sub-assignment"
-                onCreated={() => setAddingSubAssignment(false)}
+                submitLabel="Add Subtask"
+                onCreated={() => setAddingSubtask(false)}
               />
               <button
                 type="button"
                 className={styles.secondaryButton}
-                onClick={() => setAddingSubAssignment(false)}
+                onClick={() => setAddingSubtask(false)}
               >
                 Cancel
               </button>
@@ -136,16 +177,90 @@ export default function AssignmentCard({
     </>
   );
 
+  const commentsSection = (
+    <CommentsSection assignmentId={assignment.id} initialComments={assignment.comments} />
+  );
+
+  const dependenciesDisplay = (assignment.dependsOn.length > 0 || assignment.blocks.length > 0) && (
+    <div className={cardStyles.subSection}>
+      {assignment.dependsOn.length > 0 && (
+        <div>
+          <span className={styles.label} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+            {assignment.dependsOn.some((dep) => dep.status !== "done") && (
+              <span style={{ color: "#b91c1c", display: "inline-flex" }}>
+                <LockIcon size={11} />
+              </span>
+            )}
+            Waiting on
+          </span>
+          <div className={styles.metaRow} style={{ marginTop: 6 }}>
+            {assignment.dependsOn.map((dep) => (
+              <span
+                key={dep.id}
+                className={dep.status === "done" ? cardStyles.depDone : cardStyles.depPending}
+              >
+                {dep.title}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      {assignment.blocks.length > 0 && (
+        <div>
+          <span className={styles.label}>Blocking</span>
+          <div className={styles.metaRow} style={{ marginTop: 6 }}>
+            {assignment.blocks.map((b) => (
+              <span key={b.id} className={cardStyles.depBlocking}>
+                {b.title}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   if (!editing) {
     return (
       <div className={cardStyles.card}>
         <div className={cardStyles.cardHeader}>
-          <span className={cardStyles.cardTitle}>{assignment.title}</span>
+          {isSubtask ? (
+            <label className={cardStyles.completeToggle}>
+              <input
+                type="checkbox"
+                checked={assignment.status === "done"}
+                disabled={isLocked || isTogglingComplete}
+                onChange={handleToggleComplete}
+                aria-label={
+                  assignment.status === "done"
+                    ? `Mark "${assignment.title}" incomplete`
+                    : `Mark "${assignment.title}" complete`
+                }
+              />
+              <span
+                className={`${cardStyles.cardTitle} ${
+                  assignment.status === "done" ? cardStyles.cardTitleDone : ""
+                }`}
+              >
+                {assignment.title}
+              </span>
+            </label>
+          ) : (
+            <span
+              className={`${cardStyles.cardTitle} ${
+                assignment.status === "done" ? cardStyles.cardTitleDone : ""
+              }`}
+            >
+              {assignment.title}
+            </span>
+          )}
           <span className={`${cardStyles.priority} ${cardStyles[`priority_${assignment.priority}`]}`}>
             {assignment.priority}
           </span>
         </div>
+        {completeError && <p className={styles.error}>{completeError}</p>}
         {assignment.description && <p className={cardStyles.cardDescription}>{assignment.description}</p>}
+
         {assignment.tags.length > 0 && (
           <div className={styles.metaRow}>
             {assignment.tags.map((tag) => (
@@ -155,19 +270,31 @@ export default function AssignmentCard({
             ))}
           </div>
         )}
-        <div className={cardStyles.cardMeta}>
-          {assignment.dueDate && <span>Due {new Date(assignment.dueDate).toLocaleDateString()}</span>}
-          <span>{assignment.pickupSetting === "open_pickup" ? "Open pickup" : "Admin-assigned"}</span>
+
+        <span className={cardStyles.cardMeta}>
+          {[
+            assignment.dueDate && `Due ${new Date(assignment.dueDate).toLocaleDateString()}`,
+            assignment.pickupSetting === "open_pickup" ? "Open pickup" : "Assigned",
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </span>
+
+        <div className={cardStyles.assigneesBlock}>
+          <span className={cardStyles.metaLabel}>Assigned to</span>
+          {assignment.assigneeNames.length > 0 ? (
+            <div className={styles.metaRow}>
+              {assignment.assigneeNames.map((name) => (
+                <span key={name} className={styles.badgeMuted}>
+                  {name}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className={cardStyles.cardMeta}>No one yet</span>
+          )}
         </div>
-        {assignment.assigneeNames.length > 0 && (
-          <div className={styles.metaRow}>
-            {assignment.assigneeNames.map((name) => (
-              <span key={name} className={styles.badgeMuted}>
-                {name}
-              </span>
-            ))}
-          </div>
-        )}
+
         {!isLocked && (
           <div className={cardStyles.cardActions}>
             <button type="button" className={styles.secondaryButton} onClick={() => setEditing(true)}>
@@ -178,8 +305,10 @@ export default function AssignmentCard({
             </button>
           </div>
         )}
+        {dependenciesDisplay}
         {formsSection}
-        {subAssignmentsSection}
+        {subtasksSection}
+        {commentsSection}
       </div>
     );
   }
@@ -264,22 +393,28 @@ export default function AssignmentCard({
         </div>
 
         {rosterStaff.length > 0 && (
-          <div className={styles.field}>
-            <span className={styles.label}>Assignees</span>
-            <div className={styles.metaRow}>
-              {rosterStaff.map((staff) => (
-                <label key={staff.id} className={styles.checkboxRow}>
-                  <input
-                    type="checkbox"
-                    name="assignee_ids"
-                    value={staff.id}
-                    defaultChecked={assignment.assigneeIds.includes(staff.id)}
-                  />
-                  {staff.name}
-                </label>
-              ))}
-            </div>
-          </div>
+          <MultiSelectField
+            name="assignee_ids"
+            label="Assignees"
+            options={rosterStaff.map((staff) => ({ id: staff.id, label: staff.name }))}
+            initialSelectedIds={assignment.assigneeIds}
+            placeholder="Add an assignee…"
+            searchPlaceholder="Search staff…"
+          />
+        )}
+
+        {existingAssignments.filter((a) => a.id !== assignment.id).length > 0 && (
+          <MultiSelectField
+            name="depends_on_ids"
+            label="Depends on"
+            helperText="(must be Done before this can start)"
+            options={existingAssignments
+              .filter((a) => a.id !== assignment.id)
+              .map((a) => ({ id: a.id, label: a.title }))}
+            initialSelectedIds={assignment.dependsOn.map((dep) => dep.id)}
+            placeholder="Add a dependency…"
+            searchPlaceholder="Search assignments…"
+          />
         )}
 
         <div className={styles.actions}>
@@ -289,8 +424,103 @@ export default function AssignmentCard({
           </button>
         </div>
       </form>
+      {dependenciesDisplay}
       {formsSection}
-      {subAssignmentsSection}
+      {subtasksSection}
+      {commentsSection}
+    </div>
+  );
+}
+
+// A collapsed row for one Subtask (checkbox + title + priority), expanding
+// in place into its full AssignmentCard — as opposed to the old design
+// where the whole Subtasks section collapsed/expanded together as one unit.
+function SubtaskAccordion({
+  eventId,
+  assignment,
+  rosterStaff,
+  existingAssignments,
+  isLocked,
+  availableForms,
+  siteUrl,
+}: {
+  eventId: string;
+  assignment: AssignmentData;
+  rosterStaff: StaffOption[];
+  existingAssignments: { id: string; title: string }[];
+  isLocked: boolean;
+  availableForms: { id: string; name: string }[];
+  siteUrl: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [isToggling, startToggle] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  const handleToggleComplete = () => {
+    const nextStatus = assignment.status === "done" ? "ready" : "done";
+    setError(null);
+    startToggle(async () => {
+      const result = await updateAssignmentStatus(eventId, assignment.id, nextStatus);
+      if (result?.error) setError(result.error);
+    });
+  };
+
+  if (expanded) {
+    return (
+      <div>
+        <button type="button" className={cardStyles.subToggle} onClick={() => setExpanded(false)}>
+          ▾ Collapse
+        </button>
+        <AssignmentCard
+          eventId={eventId}
+          assignment={assignment}
+          rosterStaff={rosterStaff}
+          existingAssignments={existingAssignments}
+          isLocked={isLocked}
+          availableForms={availableForms}
+          siteUrl={siteUrl}
+          allowSubtasks={false}
+          isSubtask
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className={cardStyles.subAccordionHeader}>
+      <label className={cardStyles.completeToggle}>
+        <input
+          type="checkbox"
+          checked={assignment.status === "done"}
+          disabled={isLocked || isToggling}
+          onChange={handleToggleComplete}
+          aria-label={
+            assignment.status === "done"
+              ? `Mark "${assignment.title}" incomplete`
+              : `Mark "${assignment.title}" complete`
+          }
+        />
+      </label>
+      <button
+        type="button"
+        className={cardStyles.subAccordionTitleButton}
+        onClick={() => setExpanded(true)}
+      >
+        <span
+          className={`${cardStyles.cardTitle} ${
+            assignment.status === "done" ? cardStyles.cardTitleDone : ""
+          }`}
+        >
+          {assignment.title}
+        </span>
+        <span className={`${cardStyles.priority} ${cardStyles[`priority_${assignment.priority}`]}`}>
+          {assignment.priority}
+        </span>
+        <span className={cardStyles.subAccordionChevron} aria-hidden>
+          ▸
+        </span>
+      </button>
+      {error && <p className={styles.error}>{error}</p>}
     </div>
   );
 }

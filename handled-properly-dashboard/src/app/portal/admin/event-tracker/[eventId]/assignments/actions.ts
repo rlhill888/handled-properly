@@ -41,6 +41,36 @@ function parseTags(raw: string): string[] {
     .filter(Boolean);
 }
 
+// Replaces an assignment's full set of dependencies with `dependsOnIds`.
+// Self-dependency is filtered defensively (the picker never offers the
+// assignment itself, but this stays correct if that ever changes). Direct
+// two-way cycles (and longer ones) aren't checked — a known, accepted scope
+// limit, not an oversight.
+async function syncAssignmentDependencies(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  assignmentId: string,
+  dependsOnIds: string[]
+): Promise<{ error?: string }> {
+  const { error: deleteError } = await supabase
+    .from("assignment_dependencies")
+    .delete()
+    .eq("assignment_id", assignmentId);
+  if (deleteError) return { error: deleteError.message };
+
+  const filtered = dependsOnIds.filter((id) => id !== assignmentId);
+  if (filtered.length > 0) {
+    const { error: insertError } = await supabase.from("assignment_dependencies").insert(
+      filtered.map((dependsOnId) => ({
+        assignment_id: assignmentId,
+        depends_on_assignment_id: dependsOnId,
+      }))
+    );
+    if (insertError) return { error: insertError.message };
+  }
+
+  return {};
+}
+
 export async function createAssignment(
   eventId: string,
   parentAssignmentId: string | null,
@@ -56,6 +86,7 @@ export async function createAssignment(
   const priority = String(formData.get("priority") ?? "medium") as AssignmentPriority;
   const pickupSetting = String(formData.get("pickup_setting") ?? "admin_only") as PickupSetting;
   const assigneeIds = formData.getAll("assignee_ids").map(String);
+  const dependsOnIds = formData.getAll("depends_on_ids").map(String);
 
   if (!title) return { error: "Title is required." };
 
@@ -91,6 +122,9 @@ export async function createAssignment(
     if (assigneeError) return { error: assigneeError.message };
   }
 
+  const dependenciesResult = await syncAssignmentDependencies(supabase, assignment.id, dependsOnIds);
+  if (dependenciesResult.error) return { error: dependenciesResult.error };
+
   revalidatePath(`/portal/admin/event-tracker/${eventId}`);
   revalidatePath(`/portal/admin/event-tracker/${eventId}/assignments`);
   return null;
@@ -112,6 +146,7 @@ export async function updateAssignment(
   const status = String(formData.get("status") ?? "ready") as AssignmentStatus;
   const pickupSetting = String(formData.get("pickup_setting") ?? "admin_only") as PickupSetting;
   const assigneeIds = formData.getAll("assignee_ids").map(String);
+  const dependsOnIds = formData.getAll("depends_on_ids").map(String);
 
   if (!title) return { error: "Title is required." };
 
@@ -150,6 +185,9 @@ export async function updateAssignment(
     );
     if (assigneeError) return { error: assigneeError.message };
   }
+
+  const dependenciesResult = await syncAssignmentDependencies(supabase, assignmentId, dependsOnIds);
+  if (dependenciesResult.error) return { error: dependenciesResult.error };
 
   revalidatePath(`/portal/admin/event-tracker/${eventId}`);
   revalidatePath(`/portal/admin/event-tracker/${eventId}/assignments`);

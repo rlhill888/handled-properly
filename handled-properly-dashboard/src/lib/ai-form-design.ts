@@ -31,6 +31,11 @@ const AiFormFieldSchema = z.object({
 // assigns it, post-hoc, from a verified web-search result.
 const AiFormThemeSchema = z.object({
   backgroundColor: z.string(),
+  pageBackgroundColor: z.string(),
+  pageBackgroundType: z.enum(["solid", "gradient"]),
+  pageBackgroundGradientColor: z.string(),
+  pageBackgroundGradientAngle: z.number().min(0).max(360),
+  pageBackgroundAnimation: z.enum(["none", "gradientShift", "drift", "pulse"]),
   fontSize: z.number().min(12).max(22),
   cardOpacity: z.number().min(0).max(1),
   backgroundMode: z.enum(["banner", "full"]),
@@ -44,6 +49,9 @@ const AiFormThemeSchema = z.object({
   descriptionColor: z.string(),
   descriptionSize: z.number().min(12).max(500),
   descriptionMarginBottom: z.number().min(0).max(100),
+  submitButtonFont: z.enum(["sans", "serif", "mono"]),
+  submitButtonBackgroundColor: z.string(),
+  submitButtonStyle: z.enum(["solid", "outline"]),
   wantsBannerImage: z.boolean().optional(),
   backgroundImage: z.string().optional(),
 });
@@ -105,6 +113,24 @@ Theme guidance:
   unless the brief explicitly asks for something dramatic.
 - bannerHeight: 80-1000 (px), only relevant when backgroundMode is "banner"
 - cardOpacity: 0-1 (question card background opacity)
+- pageBackgroundColor: the full-bleed background behind the form card —
+  usually a neutral tone that complements backgroundColor while keeping the
+  card visually distinct from the page behind it. When pageBackgroundType is
+  "gradient", it's the gradient's first color stop.
+- pageBackgroundType "gradient" blends pageBackgroundColor into
+  pageBackgroundGradientColor at pageBackgroundGradientAngle degrees; only
+  set it when the brief calls for something more atmospheric than a flat
+  color. Otherwise use "solid" and ignore the gradient fields (still fill
+  them with reasonable values — they're required by the schema, just unused
+  visually).
+- pageBackgroundAnimation is almost always "none" — a subtle motion effect
+  ("gradientShift" or "drift", best with a gradient; "pulse" works on any
+  background) only when the brief explicitly wants something lively or
+  in-motion. Never combine with a busy backgroundImage.
+- submitButtonStyle "solid" fills the button with submitButtonBackgroundColor
+  (white text); "outline" uses submitButtonBackgroundColor only as a border/
+  text accent on a transparent button — pick whichever fits the overall
+  design, and pick submitButtonBackgroundColor for good contrast either way.
 - All colors are hex strings (e.g. "#1a1a1a").
 - ${imageGuidance}
 Produce at least one field. Order fields in a sensible completion order.`;

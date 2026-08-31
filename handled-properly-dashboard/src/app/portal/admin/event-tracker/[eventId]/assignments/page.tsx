@@ -32,7 +32,8 @@ export default async function EventAssignmentsDetailPage({
   if (!event) notFound();
 
   const isLocked = event.status === "completed";
-  const { assignments, rosterStaff, availableForms, siteUrl } = await getAssignmentsBoardData(eventId);
+  const { assignments, rosterStaff, availableForms, siteUrl, allAssignments } =
+    await getAssignmentsBoardData(eventId);
 
   return (
     <div className={styles.page}>
@@ -51,7 +52,7 @@ export default async function EventAssignmentsDetailPage({
             <h1 className={styles.title}>{event.name}</h1>
             {!isLocked && (
               <AddModalButton label="New Assignment" modalTitle="New Assignment">
-                <NewAssignmentForm eventId={eventId} rosterStaff={rosterStaff} />
+                <NewAssignmentForm eventId={eventId} rosterStaff={rosterStaff} existingAssignments={allAssignments} />
               </AddModalButton>
             )}
           </div>
@@ -76,6 +77,7 @@ export default async function EventAssignmentsDetailPage({
                   eventId={eventId}
                   assignment={assignment}
                   rosterStaff={rosterStaff}
+                  existingAssignments={allAssignments}
                   isLocked={isLocked}
                   availableForms={availableForms}
                   siteUrl={siteUrl}

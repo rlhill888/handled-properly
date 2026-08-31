@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useRef, useEffect } from "react";
+import { useActionState, useRef, useEffect, useState } from "react";
 import { createAssignment, type ActionState } from "./actions";
 import SubmitButton from "@/components/portal/SubmitButton";
+import MultiSelectField from "@/components/portal/MultiSelectField";
 import styles from "@/styles/admin-shared.module.css";
 
 export type StaffOption = { id: string; name: string };
@@ -10,12 +11,14 @@ export type StaffOption = { id: string; name: string };
 export default function NewAssignmentForm({
   eventId,
   rosterStaff,
+  existingAssignments = [],
   parentAssignmentId = null,
   submitLabel = "Create Assignment",
   onCreated,
 }: {
   eventId: string;
   rosterStaff: StaffOption[];
+  existingAssignments?: { id: string; title: string }[];
   parentAssignmentId?: string | null;
   submitLabel?: string;
   onCreated?: () => void;
@@ -24,10 +27,15 @@ export default function NewAssignmentForm({
   const [state, formAction] = useActionState<ActionState, FormData>(boundAction, null);
   const formRef = useRef<HTMLFormElement>(null);
   const previousState = useRef<ActionState>(null);
+  // MultiSelectField tracks its own selection in React state, which
+  // formRef.current.reset() (a native DOM reset) can't touch — bumping this
+  // key remounts both fields after a successful create so they clear too.
+  const [fieldsResetKey, setFieldsResetKey] = useState(0);
 
   useEffect(() => {
     if (previousState.current !== null && state === null) {
       formRef.current?.reset();
+      setFieldsResetKey((k) => k + 1);
       onCreated?.();
     }
     previousState.current = state;
@@ -96,17 +104,27 @@ export default function NewAssignmentForm({
       </div>
 
       {rosterStaff.length > 0 && (
-        <div className={styles.field}>
-          <span className={styles.label}>Assignees <span className={styles.optional}>(optional)</span></span>
-          <div className={styles.metaRow}>
-            {rosterStaff.map((staff) => (
-              <label key={staff.id} className={styles.checkboxRow}>
-                <input type="checkbox" name="assignee_ids" value={staff.id} />
-                {staff.name}
-              </label>
-            ))}
-          </div>
-        </div>
+        <MultiSelectField
+          key={`assignees-${fieldsResetKey}`}
+          name="assignee_ids"
+          label="Assignees"
+          helperText="(optional)"
+          options={rosterStaff.map((staff) => ({ id: staff.id, label: staff.name }))}
+          placeholder="Add an assignee…"
+          searchPlaceholder="Search staff…"
+        />
+      )}
+
+      {existingAssignments.length > 0 && (
+        <MultiSelectField
+          key={`depends-on-${fieldsResetKey}`}
+          name="depends_on_ids"
+          label="Depends on"
+          helperText="(must be Done before this can start)"
+          options={existingAssignments.map((a) => ({ id: a.id, label: a.title }))}
+          placeholder="Add a dependency…"
+          searchPlaceholder="Search assignments…"
+        />
       )}
 
       <div className={styles.actions}>

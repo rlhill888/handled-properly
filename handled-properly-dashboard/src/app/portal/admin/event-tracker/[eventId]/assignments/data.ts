@@ -1,5 +1,7 @@
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { buildAssignmentTree } from "@/lib/data/assignment-tree";
+import { getCommentsByAssignment } from "@/lib/data/assignment-comments";
+import { getAssignmentDependencies } from "@/lib/data/assignment-dependencies";
 import type { AssignmentData } from "./AssignmentCard";
 import type { StaffOption } from "./NewAssignmentForm";
 
@@ -42,6 +44,13 @@ export async function getAssignmentsBoardData(eventId: string) {
     formsByAssignment.set(f.target_id, list);
   }
 
+  const commentsByAssignment = await getCommentsByAssignment(supabase, assignmentIds);
+
+  const { dependsOnByAssignment, blocksByAssignment } = await getAssignmentDependencies(
+    supabase,
+    (assignmentRows ?? []).map((row) => ({ id: row.id, title: row.title, status: row.status }))
+  );
+
   const rosterStaff: StaffOption[] = (rosterRows ?? [])
     .filter((r) => r.event_staff?.contacts)
     .map((r) => ({ id: r.event_staff!.id, name: r.event_staff!.contacts!.name }));
@@ -63,14 +72,20 @@ export async function getAssignmentsBoardData(eventId: string) {
       .map((a) => a.event_staff?.contacts?.name)
       .filter((name): name is string => Boolean(name)),
     forms: formsByAssignment.get(row.id) ?? [],
+    comments: commentsByAssignment.get(row.id) ?? [],
+    dependsOn: dependsOnByAssignment.get(row.id) ?? [],
+    blocks: blocksByAssignment.get(row.id) ?? [],
   }));
 
   const assignments: AssignmentData[] = buildAssignmentTree(flatAssignments);
+
+  const allAssignments = (assignmentRows ?? []).map((row) => ({ id: row.id, title: row.title }));
 
   return {
     assignments,
     rosterStaff,
     availableForms: availableForms ?? [],
     siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "",
+    allAssignments,
   };
 }

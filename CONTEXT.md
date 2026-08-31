@@ -14,6 +14,10 @@ _Avoid_: Person, User (User is a Supabase Auth concept, not a domain term)
 A role attached to a Contact: someone who hires Handled Properly to staff an Event. A Client can have many Events. Clients do not log in.
 _Avoid_: Customer, Account
 
+**Client Application**:
+A prospective client's request to hire Handled Properly, submitted through the public "/get-started" intake page before any Client record exists. Captures contact details and a fixed set of event questions (date, guest count, location, budget, a free-text description), plus a cached AI-generated summary shown when the admin opens it. The admin reviews an Application and can convert it into a Client, or decline it. A dedicated table, not a standalone Form/Submission — see [`0011-client-applications-are-not-forms`](./docs/adr/0011-client-applications-are-not-forms.md).
+_Avoid_: Inquiry (the public page and its confirmation copy call it an inquiry — that's the same record from the submitter's side, not a different concept), Lead, Submission (Submission is reserved for Form answers)
+
 **Event Staff**:
 A role attached to a Contact: someone the admin can add to an Event's Roster and assign work to. Logs in via admin invite. One flat permission level — no supervisor/lead tier.
 _Avoid_: Staff member, Team member, Vendor, Employee
@@ -56,9 +60,9 @@ A record linking a Contact to a specific Event as an attendee, created manually 
 A unit of work belonging to exactly one Event. Has a title, description, Status, one or more Tags, a due date, a priority, a Pickup Setting, and zero or more assignees drawn from the Event's Roster. Created and content-edited by the admin only.
 _Avoid_: Task, Ticket, To-do
 
-**Sub-assignment**:
-An Assignment whose `parent` points at another Assignment. Not a distinct kind of record — a sub-assignment has every field a top-level Assignment has (its own Status, Tags, assignees, Pickup Setting).
-_Avoid_: Subtask, Checklist item
+**Subtask**:
+An Assignment whose `parent_assignment_id` points at another Assignment. Not a distinct kind of record — a Subtask has every field a top-level Assignment has (its own Status, Tags, assignees, Pickup Setting). A Subtask cannot itself have Subtasks: nesting is capped at one level below a top-level Assignment.
+_Avoid_: Sub-assignment, Checklist item
 
 **Status**:
 An Assignment's position in its 4-stage lifecycle: Ready to Work, In Progress, Blocked, Done. Any Roster member can move an Assignment's Status; only the admin edits its content.

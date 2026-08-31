@@ -1,12 +1,20 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Modal from "@/components/portal/Modal";
 import AiGeneratingOverlay from "@/components/AiGeneratingOverlay";
+import FormRenderSurface, { type RenderSurfaceField } from "@/components/FormRenderSurface";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { generateFormWithAI, reviewFormScreenshotAction } from "@/app/portal/admin/form/ai-actions";
 import type { AiFormDesign } from "@/lib/ai-form-design";
-import { FONT_OPTIONS, DEFAULT_THEME, hexToRgba, type FormTheme, type FontOption } from "@/lib/form-theme";
+import {
+  DEFAULT_THEME,
+  getPageBackgroundAnimationClass,
+  getPageBackgroundStyle,
+  getSubmitButtonStyle,
+  type FormTheme,
+  type FontOption,
+} from "@/lib/form-theme";
 import styles from "./FormBuilder.module.css";
 import sharedStyles from "@/styles/admin-shared.module.css";
 
@@ -57,12 +65,20 @@ function FieldPreview({ field }: { field: FormField }) {
   }
 
   if (field.type === "select") {
+    const options = field.options ?? [];
+    if (options.length === 0) {
+      return (
+        <select className={styles.previewInput} disabled defaultValue="">
+          <option value="">No options configured</option>
+        </select>
+      );
+    }
     return (
       <select className={styles.previewInput} disabled defaultValue="">
         <option value="" disabled>
           Select an option…
         </option>
-        {(field.options ?? []).map((option, index) => (
+        {options.map((option, index) => (
           <option key={index} value={option}>
             {option}
           </option>
@@ -88,6 +104,23 @@ function FieldPreview({ field }: { field: FormField }) {
   return <input className={styles.previewInput} type={field.type} disabled />;
 }
 
+// Decorative name/email chrome shown in every preview (inline tab and
+// full-screen) so admins see the same submitter fields a client would.
+const PREVIEW_CHROME: RenderSurfaceField[] = [
+  {
+    id: "preview_name",
+    label: "Your name",
+    required: true,
+    input: <input className={styles.previewInput} type="text" disabled />,
+  },
+  {
+    id: "preview_email",
+    label: "Your email",
+    required: true,
+    input: <input className={styles.previewInput} type="email" disabled />,
+  },
+];
+
 export type FormBuilderSaveData = {
   title: string;
   description: string;
@@ -111,7 +144,10 @@ export default function FormBuilder({
   saveLabel?: string;
 }) {
   const [fields, setFields] = useState<FormField[]>(initialFields);
-  const [theme, setTheme] = useState<FormTheme>(initialTheme ?? DEFAULT_THEME);
+  // Spread over DEFAULT_THEME (not just `?? DEFAULT_THEME`) so a theme saved
+  // before a field existed — or a stale one from a hot-reloaded session —
+  // still has every key defined, never `undefined` into a color/range input.
+  const [theme, setTheme] = useState<FormTheme>({ ...DEFAULT_THEME, ...initialTheme });
   const [formTitle, setFormTitle] = useState(initialTitle);
   const [formDescription, setFormDescription] = useState(initialDescription);
   const [viewMode, setViewMode] = useState<"preview" | "edit">("preview");
@@ -137,8 +173,47 @@ export default function FormBuilder({
   const aiRegionRef = useRef<HTMLDivElement>(null);
   useFocusTrap(aiOpen, aiRegionRef);
 
+  const [fullScreenPreviewOpen, setFullScreenPreviewOpen] = useState(false);
+  const fullScreenPreviewRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(fullScreenPreviewOpen, fullScreenPreviewRef);
+
+  useEffect(() => {
+    if (!fullScreenPreviewOpen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFullScreenPreviewOpen(false);
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [fullScreenPreviewOpen]);
+
   const selectedField = fields.find((field) => field.id === selectedId) ?? null;
   const isFormEmpty = fields.length === 0 && !formTitle.trim() && !formDescription.trim();
+
+  // Shared by the inline Preview tab and the full-screen preview overlay so
+  // the two can never show different data.
+  const previewFields: RenderSurfaceField[] = fields.map((field) => ({
+    id: field.id,
+    label: field.label,
+    description: field.description,
+    required: field.required,
+    backgroundColor: field.backgroundColor,
+    input: <FieldPreview field={field} />,
+  }));
+  const previewEmptyState = (
+    <p className={styles.empty}>
+      This form has no custom questions yet — just the name and email fields above.
+    </p>
+  );
+  const previewFooter = (
+    <button
+      type="button"
+      className={styles.previewSubmitButton}
+      style={getSubmitButtonStyle(theme)}
+      disabled
+    >
+      Submit
+    </button>
+  );
 
   const handleMoveField = (id: string, direction: -1 | 1) => {
     setFields((current) => {
@@ -300,6 +375,7 @@ export default function FormBuilder({
     });
     setSelectedId(null);
     setViewMode("preview"); // must be mounted to be screenshotted
+    setFullScreenPreviewOpen(false); // don't let a revision land silently under an open overlay
   };
 
   const captureScreenshot = async (): Promise<string | null> => {
@@ -419,7 +495,7 @@ export default function FormBuilder({
           <span className={styles.themeSectionLabel}>Background</span>
           <div className={styles.themeGrid}>
             <label className={styles.themeControl}>
-              Background color
+              Card background color
               <input
                 type="color"
                 className={styles.colorInput}
@@ -428,6 +504,90 @@ export default function FormBuilder({
                   handleUpdateTheme({ backgroundColor: e.target.value })
                 }
               />
+            </label>
+
+            <label className={styles.themeControl}>
+              Page background color
+              <input
+                type="color"
+                className={styles.colorInput}
+                value={theme.pageBackgroundColor}
+                onChange={(e) =>
+                  handleUpdateTheme({ pageBackgroundColor: e.target.value })
+                }
+              />
+            </label>
+
+            <div className={styles.themeControl}>
+              Page background type
+              <div className={styles.radioGroup}>
+                <label className={styles.radioOption}>
+                  <input
+                    type="radio"
+                    name="pageBackgroundType"
+                    checked={theme.pageBackgroundType === "solid"}
+                    onChange={() => handleUpdateTheme({ pageBackgroundType: "solid" })}
+                  />
+                  Solid
+                </label>
+                <label className={styles.radioOption}>
+                  <input
+                    type="radio"
+                    name="pageBackgroundType"
+                    checked={theme.pageBackgroundType === "gradient"}
+                    onChange={() => handleUpdateTheme({ pageBackgroundType: "gradient" })}
+                  />
+                  Gradient
+                </label>
+              </div>
+            </div>
+
+            {theme.pageBackgroundType === "gradient" && (
+              <>
+                <label className={styles.themeControl}>
+                  Gradient second color
+                  <input
+                    type="color"
+                    className={styles.colorInput}
+                    value={theme.pageBackgroundGradientColor}
+                    onChange={(e) =>
+                      handleUpdateTheme({ pageBackgroundGradientColor: e.target.value })
+                    }
+                  />
+                </label>
+
+                <label className={styles.themeControl}>
+                  Gradient angle ({theme.pageBackgroundGradientAngle}°)
+                  <input
+                    type="range"
+                    className={styles.rangeInput}
+                    min={0}
+                    max={360}
+                    value={theme.pageBackgroundGradientAngle}
+                    onChange={(e) =>
+                      handleUpdateTheme({ pageBackgroundGradientAngle: Number(e.target.value) })
+                    }
+                  />
+                </label>
+              </>
+            )}
+
+            <label className={styles.themeControl}>
+              Page background animation
+              <select
+                className={styles.select}
+                value={theme.pageBackgroundAnimation}
+                onChange={(e) =>
+                  handleUpdateTheme({
+                    pageBackgroundAnimation: e.target.value as FormTheme["pageBackgroundAnimation"],
+                  })
+                }
+              >
+                <option value="none">None</option>
+                <option value="gradientShift">Gradient shift</option>
+                <option value="drift">Drift</option>
+                <option value="pulse">Pulse</option>
+              </select>
             </label>
 
             <label className={styles.themeControl}>
@@ -660,158 +820,108 @@ export default function FormBuilder({
               </label>
             </div>
           </div>
+
+          <div className={styles.themePanel}>
+            <span className={styles.themeSectionLabel}>Submit Button</span>
+            <div className={styles.themeGrid}>
+              <label className={styles.themeControl}>
+                Font
+                <select
+                  className={styles.select}
+                  value={theme.submitButtonFont}
+                  onChange={(e) =>
+                    handleUpdateTheme({ submitButtonFont: e.target.value as FontOption })
+                  }
+                >
+                  <option value="sans">Sans-serif</option>
+                  <option value="serif">Serif</option>
+                  <option value="mono">Monospace</option>
+                </select>
+              </label>
+
+              <label className={styles.themeControl}>
+                Background color
+                <input
+                  type="color"
+                  className={styles.colorInput}
+                  value={theme.submitButtonBackgroundColor}
+                  onChange={(e) =>
+                    handleUpdateTheme({ submitButtonBackgroundColor: e.target.value })
+                  }
+                />
+              </label>
+
+              <div className={styles.themeControl}>
+                Button type
+                <div className={styles.radioGroup}>
+                  <label className={styles.radioOption}>
+                    <input
+                      type="radio"
+                      name="submitButtonStyle"
+                      checked={theme.submitButtonStyle === "solid"}
+                      onChange={() => handleUpdateTheme({ submitButtonStyle: "solid" })}
+                    />
+                    Solid
+                  </label>
+                  <label className={styles.radioOption}>
+                    <input
+                      type="radio"
+                      name="submitButtonStyle"
+                      checked={theme.submitButtonStyle === "outline"}
+                      onChange={() => handleUpdateTheme({ submitButtonStyle: "outline" })}
+                    />
+                    Outline
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className={styles.viewToggle} role="tablist">
+      <div className={styles.toolbarRow}>
+        <div className={styles.viewToggle} role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewMode === "preview"}
+            className={`${styles.toggleButton} ${viewMode === "preview" ? styles.toggleButtonActive : ""}`}
+            onClick={() => setViewMode("preview")}
+          >
+            Preview
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewMode === "edit"}
+            className={`${styles.toggleButton} ${viewMode === "edit" ? styles.toggleButtonActive : ""}`}
+            onClick={() => setViewMode("edit")}
+          >
+            Customize
+          </button>
+        </div>
+
         <button
           type="button"
-          role="tab"
-          aria-selected={viewMode === "preview"}
-          className={`${styles.toggleButton} ${viewMode === "preview" ? styles.toggleButtonActive : ""}`}
-          onClick={() => setViewMode("preview")}
+          className={styles.removeButtonInline}
+          onClick={() => setFullScreenPreviewOpen(true)}
         >
-          Preview
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={viewMode === "edit"}
-          className={`${styles.toggleButton} ${viewMode === "edit" ? styles.toggleButtonActive : ""}`}
-          onClick={() => setViewMode("edit")}
-        >
-          Customize
+          Full-Screen Preview
         </button>
       </div>
 
       {viewMode === "preview" ? (
-        <div
-          ref={previewRef}
-          className={styles.previewSurface}
-          style={{
-            fontSize: `${theme.fontSize}px`,
-            backgroundColor: theme.backgroundColor,
-            backgroundImage:
-              theme.backgroundMode === "full" && theme.backgroundImage
-                ? `url(${theme.backgroundImage})`
-                : undefined,
-          }}
-        >
-          {theme.backgroundMode === "banner" &&
-            (formTitle || theme.backgroundImage) && (
-              <div
-                className={styles.previewBanner}
-                style={{
-                  minHeight: `${theme.bannerHeight}px`,
-                  backgroundImage: theme.backgroundImage
-                    ? `url(${theme.backgroundImage})`
-                    : undefined,
-                }}
-              >
-                {formTitle && (
-                  <h2
-                    className={styles.previewTitle}
-                    style={{
-                      fontFamily: FONT_OPTIONS[theme.titleFont],
-                      color: theme.titleColor,
-                      fontSize: `${theme.titleSize}px`,
-                      marginBottom: `${theme.titleMarginBottom}px`,
-                    }}
-                  >
-                    {formTitle}
-                  </h2>
-                )}
-              </div>
-            )}
-
-          <div className={styles.previewContent}>
-            {theme.backgroundMode === "full" && formTitle && (
-              <h2
-                className={styles.previewTitleFull}
-                style={{
-                  fontFamily: FONT_OPTIONS[theme.titleFont],
-                  color: theme.titleColor,
-                  fontSize: `${theme.titleSize}px`,
-                  marginBottom: `${theme.titleMarginBottom}px`,
-                }}
-              >
-                {formTitle}
-              </h2>
-            )}
-
-            {formDescription && (
-              <div
-                className={styles.descriptionCard}
-                style={{
-                  backgroundColor: hexToRgba(
-                    theme.questionBackgroundColor,
-                    theme.cardOpacity,
-                  ),
-                }}
-              >
-                <p
-                  className={styles.previewDescription}
-                  style={{
-                    fontFamily: FONT_OPTIONS[theme.descriptionFont],
-                    color: theme.descriptionColor,
-                    fontSize: `${theme.descriptionSize}px`,
-                    marginBottom: `${theme.descriptionMarginBottom}px`,
-                  }}
-                >
-                  {formDescription}
-                </p>
-              </div>
-            )}
-
-            <ul className={styles.fieldList}>
-              {fields.map((field) => (
-                <li
-                  key={field.id}
-                  className={styles.field}
-                  style={{
-                    backgroundColor: hexToRgba(
-                      field.backgroundColor ?? theme.questionBackgroundColor,
-                      theme.cardOpacity,
-                    ),
-                  }}
-                >
-                  <label className={styles.previewLabel}>
-                    {field.label}
-                    {field.required && (
-                      <span className={styles.requiredMark}>*</span>
-                    )}
-                  </label>
-                  {field.description && (
-                    <p className={styles.previewFieldDescription}>
-                      {field.description}
-                    </p>
-                  )}
-                  <FieldPreview field={field} />
-                </li>
-              ))}
-              {fields.length === 0 && (
-                <li className={styles.emptyPreview}>
-                  <svg
-                    width="28"
-                    height="28"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    aria-hidden="true"
-                  >
-                    <rect x="3" y="3" width="18" height="18" rx="3" strokeDasharray="4 3" />
-                  </svg>
-                  <span className={styles.emptyPreviewText}>
-                    The preview can&apos;t render yet
-                  </span>
-                  <span className={styles.emptyPreviewSubtext}>
-                    Add at least one field below to continue.
-                  </span>
-                </li>
-              )}
-            </ul>
-          </div>
+        <div className={styles.previewFrame}>
+          <FormRenderSurface
+            surfaceRef={previewRef}
+            name={formTitle}
+            description={formDescription}
+            theme={theme}
+            chrome={PREVIEW_CHROME}
+            fields={previewFields}
+            emptyState={previewEmptyState}
+            footer={previewFooter}
+          />
         </div>
       ) : (
         <div className={styles.customizeLayout}>
@@ -850,7 +960,7 @@ export default function FormBuilder({
                   className={styles.questionItemSelect}
                   onClick={() => setSelectedId(field.id)}
                 >
-                  <span className={styles.fieldLabel}>{field.label}</span>
+                  <span className={styles.fieldLabel}>{field.label.trim() || "Untitled question"}</span>
                   <span className={styles.fieldMeta}>
                     {FIELD_TYPE_LABELS[field.type]}
                     {field.required ? " · Required" : ""}
@@ -1146,6 +1256,37 @@ export default function FormBuilder({
           />
         )}
       </div>
+
+      {fullScreenPreviewOpen && (
+        <div
+          ref={fullScreenPreviewRef}
+          className={`${styles.fullscreenOverlay} ${getPageBackgroundAnimationClass(theme)}`}
+          style={getPageBackgroundStyle(theme)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Full-screen preview"
+        >
+          <button
+            type="button"
+            className={styles.fullscreenClose}
+            aria-label="Close preview"
+            onClick={() => setFullScreenPreviewOpen(false)}
+          >
+            ×
+          </button>
+          <div className={styles.fullscreenFrame}>
+            <FormRenderSurface
+              name={formTitle}
+              description={formDescription}
+              theme={theme}
+              chrome={PREVIEW_CHROME}
+              fields={previewFields}
+              emptyState={previewEmptyState}
+              footer={previewFooter}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

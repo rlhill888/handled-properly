@@ -2,11 +2,21 @@
 
 import { useCallback, useRef, useState, useTransition } from "react";
 import { updateAssignmentStatus } from "./assignments/actions";
-import { type AssignmentData } from "./assignments/AssignmentCard";
+import AssignmentCard, { type AssignmentData } from "./assignments/AssignmentCard";
 import type { StaffOption } from "./assignments/NewAssignmentForm";
-import AssignmentDetailView from "./AssignmentDetailView";
 import Modal from "@/components/portal/Modal";
+import LockIcon from "@/components/portal/LockIcon";
 import boardStyles from "@/styles/assignments-board.module.css";
+
+// An assignment with an unmet dependency can't move on the board at all —
+// it still opens (via the ▾ toggle) for viewing/editing, just can't be
+// dragged. Mirrors the dependency gate in the set_assignment_status RPC
+// (which only covers the staff path); dragging is admin-only and writes
+// status directly, so without this the board would let an admin drag a
+// blocked assignment around with no indication anything was wrong.
+function isBlocked(assignment: AssignmentData): boolean {
+  return assignment.dependsOn.some((dep) => dep.status !== "done");
+}
 
 const COLUMNS: { status: AssignmentData["status"]; label: string }[] = [
   { status: "ready", label: "Ready to Work" },
@@ -23,11 +33,17 @@ export default function AssignmentBoardClient({
   eventId,
   assignments,
   rosterStaff,
+  existingAssignments,
+  availableForms,
+  siteUrl,
   isLocked,
 }: {
   eventId: string;
   assignments: AssignmentData[];
   rosterStaff: StaffOption[];
+  existingAssignments: { id: string; title: string }[];
+  availableForms: { id: string; name: string }[];
+  siteUrl: string;
   isLocked: boolean;
 }) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -45,6 +61,11 @@ export default function AssignmentBoardClient({
   } | null>(null);
 
   const openAssignment = assignments.find((a) => a.id === openAssignmentId) ?? null;
+  // AssignmentCard (shown in the modal below) can delete an assignment from
+  // right here — derived (not synced via an effect) so the modal closes
+  // itself the moment its assignment no longer exists in `assignments`,
+  // rather than leaving an empty dialog open after a delete.
+  const isModalOpen = openAssignmentId !== null && openAssignment !== null;
 
   // Pointer Events fire uniformly for mouse, touch, and pen — unlike the
   // native HTML5 Drag and Drop API, which is mouse-only and never fires on
@@ -70,6 +91,8 @@ export default function AssignmentBoardClient({
 
   const handlePointerDown = (assignmentId: string) => (e: React.PointerEvent<HTMLDivElement>) => {
     if (isLocked) return;
+    const assignment = assignments.find((a) => a.id === assignmentId);
+    if (assignment && isBlocked(assignment)) return;
     if (e.pointerType === "mouse" && e.button !== 0) return;
     pointerState.current = {
       assignmentId,
@@ -136,13 +159,20 @@ export default function AssignmentBoardClient({
                   key={assignment.id}
                   className={`${boardStyles.titleCard} ${
                     draggingId === assignment.id ? boardStyles.titleCardDragging : ""
-                  }`}
+                  } ${isBlocked(assignment) ? boardStyles.titleCardBlocked : ""}`}
                   onPointerDown={handlePointerDown(assignment.id)}
                   onPointerMove={handlePointerMove}
                   onPointerUp={endDrag}
                   onPointerCancel={endDrag}
                 >
-                  <span className={boardStyles.titleCardText}>{assignment.title}</span>
+                  <span className={boardStyles.titleCardText}>
+                    {isBlocked(assignment) && (
+                      <span className={boardStyles.titleCardBlockedIcon} aria-label="Blocked">
+                        <LockIcon size={12} />
+                      </span>
+                    )}
+                    {assignment.title}
+                  </span>
                   <button
                     type="button"
                     className={boardStyles.titleCardToggle}
@@ -158,17 +188,16 @@ export default function AssignmentBoardClient({
         ))}
       </div>
 
-      <Modal
-        open={openAssignmentId !== null}
-        onClose={() => setOpenAssignmentId(null)}
-        title={openAssignment?.title ?? "Assignment"}
-      >
+      <Modal open={isModalOpen} onClose={() => setOpenAssignmentId(null)} title="Assignment">
         {openAssignment && (
-          <AssignmentDetailView
+          <AssignmentCard
             eventId={eventId}
             assignment={openAssignment}
             rosterStaff={rosterStaff}
+            existingAssignments={existingAssignments}
             isLocked={isLocked}
+            availableForms={availableForms}
+            siteUrl={siteUrl}
           />
         )}
       </Modal>

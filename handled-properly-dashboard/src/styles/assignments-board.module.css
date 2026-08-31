@@ -5,19 +5,6 @@
   width: 100%;
 }
 
-.detailView {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.detailHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
 .column {
   display: flex;
   flex-direction: column;
@@ -77,10 +64,24 @@
   border-color: #0a0a0a;
 }
 
+.titleCardBlocked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .titleCardText {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 14px;
   font-weight: 700;
   color: var(--foreground);
+}
+
+.titleCardBlockedIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: #b91c1c;
 }
 
 .titleCardToggle {
@@ -127,6 +128,30 @@
   color: var(--foreground);
 }
 
+.cardTitleDone {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.completeToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.completeToggle input {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.completeToggle input:disabled {
+  cursor: not-allowed;
+}
+
 .cardDescription {
   font-size: 12px;
   color: var(--muted);
@@ -134,10 +159,20 @@
 }
 
 .cardMeta {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.assigneesBlock {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+}
+
+.metaLabel {
   font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
   color: var(--muted);
 }
 
@@ -172,6 +207,43 @@
   color: #b91c1c;
 }
 
+.depPending {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.depDone {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.depBlocking {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+}
+
 .subSection {
   display: flex;
   flex-direction: column;
@@ -203,4 +275,38 @@
   gap: 8px;
   padding-left: 12px;
   border-left: 2px solid var(--border);
+}
+
+.subAccordionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+
+.subAccordionHeader:has(.subAccordionTitleButton:hover) {
+  border-color: #0a0a0a;
+}
+
+.subAccordionTitleButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.subAccordionChevron {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--muted);
 }

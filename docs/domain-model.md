@@ -40,7 +40,7 @@ The Event ↔ Contact relationship that makes a Contact "an attendee."
 - `event_id` → Event, `contact_id` → Contact, `source` (`manual` | `form_submission`), `created_at`
 
 ### Assignment
-Sub-assignments are Assignment rows with `parent_assignment_id` set — see [`0005-sub-assignments-are-full-assignments`](./adr/0005-sub-assignments-are-full-assignments.md). Tags are a plain string array, not a separate table (no central taxonomy).
+Subtasks are Assignment rows with `parent_assignment_id` set, capped at one level of nesting — see [`0005-sub-assignments-are-full-assignments`](./adr/0005-sub-assignments-are-full-assignments.md) and [`0012-subtasks-cannot-have-subtasks`](./adr/0012-subtasks-cannot-have-subtasks.md). Tags are a plain string array, not a separate table (no central taxonomy).
 - `id`, `event_id` → Event, `parent_assignment_id` → Assignment (nullable, self-referential), `title`, `description`, `status` (`ready` | `in_progress` | `blocked` | `done`), `tags` (text[]), `due_date`, `priority` (`low` | `medium` | `high`), `pickup_setting` (`admin_only` | `open_pickup`), `created_at`
 
 ### AssignmentAssignee (join)
@@ -93,7 +93,7 @@ Event            1 ── *    Assignment
 Event            1 ── *    Conversation
 Event            1 ── *    EventAttendance
 
-Assignment       0/1 ── *  Assignment          (parent/children, self-referential)
+Assignment       0/1 ── *  Assignment          (parent/subtasks, self-referential, capped at one level)
 Assignment       * ── *    EventStaff          (via AssignmentAssignee — subset of that Event's Roster)
 
 Conversation     * ── *    EventStaff          (via ConversationParticipant — subset of that Event's Roster)

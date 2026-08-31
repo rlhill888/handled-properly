@@ -4,6 +4,8 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { getCurrentActor } from "@/lib/auth/get-current-actor";
 import StaffAssignmentCard, { type StaffAssignmentData } from "./StaffAssignmentCard";
 import { buildAssignmentTree } from "@/lib/data/assignment-tree";
+import { getCommentsByAssignment } from "@/lib/data/assignment-comments";
+import { getAssignmentDependencies } from "@/lib/data/assignment-dependencies";
 import styles from "@/styles/admin-shared.module.css";
 import boardStyles from "@/styles/assignments-board.module.css";
 
@@ -63,6 +65,13 @@ export default async function StaffEventAssignmentsPage({
     visibleFormsByAssignment.set(f.target_id, list);
   }
 
+  const commentsByAssignment = await getCommentsByAssignment(supabase, assignmentIds);
+
+  const { dependsOnByAssignment, blocksByAssignment } = await getAssignmentDependencies(
+    supabase,
+    (assignmentRows ?? []).map((row) => ({ id: row.id, title: row.title, status: row.status }))
+  );
+
   const flatAssignments = (assignmentRows ?? []).map((row) => ({
     id: row.id,
     parentAssignmentId: row.parent_assignment_id,
@@ -80,6 +89,9 @@ export default async function StaffEventAssignmentsPage({
       .map((a) => a.event_staff?.contacts?.name)
       .filter((name): name is string => Boolean(name)),
     visibleForms: visibleFormsByAssignment.get(row.id) ?? [],
+    comments: commentsByAssignment.get(row.id) ?? [],
+    dependsOn: dependsOnByAssignment.get(row.id) ?? [],
+    blocks: blocksByAssignment.get(row.id) ?? [],
   }));
 
   const assignments: StaffAssignmentData[] = buildAssignmentTree(flatAssignments);

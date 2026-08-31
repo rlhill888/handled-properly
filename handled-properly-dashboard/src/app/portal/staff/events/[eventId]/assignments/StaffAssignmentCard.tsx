@@ -3,6 +3,10 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { staffSetStatus, staffPickupAssignment } from "./actions";
+import CommentsSection from "@/components/portal/CommentsSection";
+import LockIcon from "@/components/portal/LockIcon";
+import type { CommentData } from "@/lib/actions/assignment-comments";
+import type { DependencyRef } from "@/lib/data/assignment-dependencies";
 import styles from "@/styles/admin-shared.module.css";
 import cardStyles from "@/styles/assignments-board.module.css";
 
@@ -18,7 +22,10 @@ export type StaffAssignmentData = {
   assigneeIds: string[];
   assigneeNames: string[];
   visibleForms: { id: string; name: string }[];
-  children: StaffAssignmentData[];
+  comments: CommentData[];
+  dependsOn: DependencyRef[];
+  blocks: DependencyRef[];
+  subtasks: StaffAssignmentData[];
 };
 
 const STATUS_OPTIONS: { value: StaffAssignmentData["status"]; label: string }[] = [
@@ -41,13 +48,14 @@ export default function StaffAssignmentCard({
 }) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [childrenExpanded, setChildrenExpanded] = useState(true);
+  const [subtasksExpanded, setSubtasksExpanded] = useState(true);
 
-  const doneCount = assignment.children.filter((c) => c.status === "done").length;
-  const hasChildren = assignment.children.length > 0;
+  const doneCount = assignment.subtasks.filter((c) => c.status === "done").length;
+  const hasSubtasks = assignment.subtasks.length > 0;
 
   const isAlreadyAssigned = Boolean(currentStaffId && assignment.assigneeIds.includes(currentStaffId));
   const canPickUp = assignment.pickupSetting === "open_pickup" && !isAlreadyAssigned && !isLocked;
+  const hasUnmetDependencies = assignment.dependsOn.some((dep) => dep.status !== "done");
 
   const handleStatusChange = (status: StaffAssignmentData["status"]) => {
     setError(null);
@@ -83,10 +91,14 @@ export default function StaffAssignmentCard({
           ))}
         </div>
       )}
-      <div className={cardStyles.cardMeta}>
-        {assignment.dueDate && <span>Due {new Date(assignment.dueDate).toLocaleDateString()}</span>}
-        <span>{assignment.pickupSetting === "open_pickup" ? "Open pickup" : "Admin-assigned"}</span>
-      </div>
+      <span className={cardStyles.cardMeta}>
+        {[
+          assignment.dueDate && `Due ${new Date(assignment.dueDate).toLocaleDateString()}`,
+          assignment.pickupSetting === "open_pickup" ? "Open pickup" : "Assigned",
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+      </span>
       {assignment.assigneeNames.length > 0 && (
         <div className={styles.metaRow}>
           {assignment.assigneeNames.map((name) => (
@@ -107,6 +119,27 @@ export default function StaffAssignmentCard({
         </div>
       )}
 
+      {assignment.dependsOn.length > 0 && (
+        <div className={styles.metaRow}>
+          {assignment.dependsOn.map((dep) => (
+            <span key={dep.id} className={dep.status === "done" ? cardStyles.depDone : cardStyles.depPending}>
+              {dep.status !== "done" && <LockIcon size={10} />}
+              Waiting on: {dep.title}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {assignment.blocks.length > 0 && (
+        <div className={styles.metaRow}>
+          {assignment.blocks.map((b) => (
+            <span key={b.id} className={cardStyles.depBlocking}>
+              Blocking: {b.title}
+            </span>
+          ))}
+        </div>
+      )}
+
       {error && <p className={styles.error}>{error}</p>}
 
       {!isLocked && (
@@ -118,7 +151,11 @@ export default function StaffAssignmentCard({
             onChange={(e) => handleStatusChange(e.target.value as StaffAssignmentData["status"])}
           >
             {STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
+              <option
+                key={opt.value}
+                value={opt.value}
+                disabled={hasUnmetDependencies && (opt.value === "in_progress" || opt.value === "done")}
+              >
                 {opt.label}
               </option>
             ))}
@@ -136,18 +173,18 @@ export default function StaffAssignmentCard({
         </div>
       )}
 
-      {hasChildren && (
+      {hasSubtasks && (
         <div className={cardStyles.subSection}>
           <button
             type="button"
             className={cardStyles.subToggle}
-            onClick={() => setChildrenExpanded((e) => !e)}
+            onClick={() => setSubtasksExpanded((e) => !e)}
           >
-            {childrenExpanded ? "▾" : "▸"} Sub-assignments ({doneCount}/{assignment.children.length} done)
+            {subtasksExpanded ? "▾" : "▸"} Subtasks ({doneCount}/{assignment.subtasks.length} done)
           </button>
-          {childrenExpanded && (
+          {subtasksExpanded && (
             <div className={cardStyles.subList}>
-              {assignment.children.map((child) => (
+              {assignment.subtasks.map((child) => (
                 <StaffAssignmentCard
                   key={child.id}
                   eventId={eventId}
@@ -160,6 +197,8 @@ export default function StaffAssignmentCard({
           )}
         </div>
       )}
+
+      <CommentsSection assignmentId={assignment.id} initialComments={assignment.comments} />
     </div>
   );
 }

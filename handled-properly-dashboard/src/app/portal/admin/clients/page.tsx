@@ -1,6 +1,7 @@
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import ClientRow, { type ClientRowData } from "./ClientRow";
 import NewClientForm from "./NewClientForm";
+import ApplicationRow, { type ApplicationRowData } from "./ApplicationRow";
 import AddModalButton from "@/components/portal/AddModalButton";
 import styles from "@/styles/admin-shared.module.css";
 
@@ -24,6 +25,30 @@ export default async function ClientsPage() {
       notes: row.notes,
     }));
 
+  const { data: applicationRows, error: applicationsError } = await supabase
+    .from("client_applications")
+    .select(
+      "id, name, email, phone, company_name, event_date, guest_count, location, budget, message, status, ai_summary, submitted_at",
+    )
+    .neq("status", "converted")
+    .order("submitted_at", { ascending: false });
+
+  const applications: ApplicationRowData[] = (applicationRows ?? []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    phone: row.phone,
+    companyName: row.company_name,
+    eventDate: row.event_date,
+    guestCount: row.guest_count,
+    location: row.location,
+    budget: row.budget,
+    message: row.message,
+    status: row.status,
+    aiSummary: row.ai_summary,
+    submittedAt: row.submitted_at,
+  }));
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -43,18 +68,29 @@ export default async function ClientsPage() {
       </div>
 
       {error && <p className={styles.error}>Could not load clients: {error.message}</p>}
+      {applicationsError && (
+        <p className={styles.error}>Could not load applications: {applicationsError.message}</p>
+      )}
 
       <div className={styles.card}>
         <div className={styles.cardHeaderRow}>
           <h2 className={styles.cardTitle} style={{ marginBottom: 0 }}>
             Client Applications
           </h2>
-          <span className={styles.badgeMuted}>Coming soon</span>
+          <span className={styles.badgeMuted}>{applications.length}</span>
         </div>
-        <p className={styles.emptyState}>
-          No applications yet. Once the application workflow is set up, people requesting your
-          services will show up here for review before becoming Clients.
-        </p>
+        {applications.length === 0 ? (
+          <p className={styles.emptyState}>
+            No applications yet. People requesting your services through the get-started page will
+            show up here for review before becoming Clients.
+          </p>
+        ) : (
+          <div className={styles.accordionList}>
+            {applications.map((application) => (
+              <ApplicationRow key={application.id} application={application} />
+            ))}
+          </div>
+        )}
       </div>
 
       <div className={styles.card}>

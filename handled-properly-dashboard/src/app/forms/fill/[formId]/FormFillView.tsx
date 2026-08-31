@@ -1,9 +1,16 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { submitForm, type ActionState } from "./actions";
 import type { FillField } from "./data";
-import { FONT_OPTIONS, hexToRgba, type FormTheme } from "@/lib/form-theme";
+import {
+  getPageBackgroundAnimationClass,
+  getPageBackgroundStyle,
+  getSubmitButtonStyle,
+  type FormTheme,
+} from "@/lib/form-theme";
+import FormRenderSurface, { type RenderSurfaceField } from "@/components/FormRenderSurface";
+import Spinner from "@/components/Spinner";
 import styles from "./FormFillView.module.css";
 
 function FieldInput({ field }: { field: FillField }) {
@@ -14,12 +21,20 @@ function FieldInput({ field }: { field: FillField }) {
   }
 
   if (field.fieldType === "select") {
+    const options = field.options ?? [];
+    if (options.length === 0) {
+      return (
+        <select id={name} className={styles.select} disabled defaultValue="">
+          <option value="">No options configured</option>
+        </select>
+      );
+    }
     return (
       <select id={name} name={name} required={field.required} className={styles.select} defaultValue="">
         <option value="" disabled>
           Select an option…
         </option>
-        {(field.options ?? []).map((option) => (
+        {options.map((option) => (
           <option key={option} value={option}>
             {option}
           </option>
@@ -46,6 +61,29 @@ function FieldInput({ field }: { field: FillField }) {
   );
 }
 
+// A minimum-duration loading beat before the form is revealed (see the CSS
+// transition below), floored so it's always felt even on a fast connection,
+// and — when the theme has a background image — extended until that image
+// has actually decoded, so the reveal never flashes an un-rendered image.
+function useReady(theme: FormTheme): boolean {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const floor = new Promise<void>((resolve) => setTimeout(resolve, 500));
+    const imageReady = theme.backgroundImage
+      ? (() => {
+          const img = new window.Image();
+          img.src = theme.backgroundImage!;
+          return img.decode().catch(() => undefined);
+        })()
+      : Promise.resolve();
+
+    Promise.all([floor, imageReady]).then(() => setReady(true));
+  }, [theme.backgroundImage]);
+
+  return ready;
+}
+
 export default function FormFillView({
   formId,
   name,
@@ -61,146 +99,73 @@ export default function FormFillView({
 }) {
   const boundSubmit = submitForm.bind(null, formId);
   const [state, formAction, isPending] = useActionState<ActionState, FormData>(boundSubmit, null);
+  const ready = useReady(theme);
 
-  const surfaceStyle = {
-    fontSize: `${theme.fontSize}px`,
-    backgroundColor: theme.backgroundColor,
-    backgroundImage:
-      theme.backgroundMode === "full" && theme.backgroundImage ? `url(${theme.backgroundImage})` : undefined,
-  };
+  const chrome: RenderSurfaceField[] = [
+    {
+      id: "submitter_name",
+      label: "Your name",
+      required: true,
+      input: <input id="submitter_name" name="submitter_name" required className={styles.input} />,
+    },
+    {
+      id: "submitter_email",
+      label: "Your email",
+      required: true,
+      input: (
+        <input id="submitter_email" name="submitter_email" type="email" required className={styles.input} />
+      ),
+    },
+  ];
 
-  const banner = theme.backgroundMode === "banner" && (name || theme.backgroundImage) && (
-    <div
-      className={styles.banner}
-      style={{
-        minHeight: `${theme.bannerHeight}px`,
-        backgroundImage: theme.backgroundImage ? `url(${theme.backgroundImage})` : undefined,
-      }}
-    >
-      <h1
-        className={styles.bannerTitle}
-        style={{
-          fontFamily: FONT_OPTIONS[theme.titleFont],
-          color: theme.titleColor,
-          fontSize: `${theme.titleSize}px`,
-          marginBottom: `${theme.titleMarginBottom}px`,
-        }}
-      >
-        {name}
-      </h1>
-    </div>
-  );
+  const renderFields: RenderSurfaceField[] = fields.map((field) => ({
+    id: `field_${field.id}`,
+    label: field.label,
+    description: field.description,
+    required: field.required,
+    backgroundColor: field.backgroundColor,
+    input: <FieldInput field={field} />,
+  }));
 
-  const fullTitle = theme.backgroundMode === "full" && (
-    <h1
-      className={styles.title}
-      style={{
-        fontFamily: FONT_OPTIONS[theme.titleFont],
-        color: theme.titleColor,
-        fontSize: `${theme.titleSize}px`,
-        marginBottom: `${theme.titleMarginBottom}px`,
-      }}
-    >
-      {name}
-    </h1>
-  );
-
-  if (state && "success" in state) {
-    return (
-      <div className={styles.page}>
-        <div className={styles.card} style={surfaceStyle}>
-          {banner}
-          <div className={styles.successCard}>
-            {fullTitle}
-            <h2 className={styles.title}>Thanks!</h2>
-            <p className={styles.description}>Your response has been submitted.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const pageBackgroundStyle = getPageBackgroundStyle(theme);
+  const pageBackgroundAnimationClass = getPageBackgroundAnimationClass(theme);
 
   return (
-    <div className={styles.page}>
-      <div className={styles.card} style={surfaceStyle}>
-        {banner}
-        {fullTitle}
+    <>
+      <div
+        className={`${styles.loadingOverlay} ${ready ? styles.loadingOverlayHidden : ""} ${pageBackgroundAnimationClass}`}
+        style={pageBackgroundStyle}
+        aria-hidden={ready}
+      >
+        <Spinner size={32} />
+      </div>
 
-        {description && (
-          <div
-            className={styles.descriptionCard}
-            style={{ backgroundColor: hexToRgba(theme.questionBackgroundColor, theme.cardOpacity) }}
-          >
-            <p
-              className={styles.description}
-              style={{
-                fontFamily: FONT_OPTIONS[theme.descriptionFont],
-                color: theme.descriptionColor,
-                fontSize: `${theme.descriptionSize}px`,
-                marginBottom: `${theme.descriptionMarginBottom}px`,
-              }}
-            >
-              {description}
-            </p>
-          </div>
-        )}
-
-        <form action={formAction} className={styles.form}>
-          {state && "error" in state && <p className={styles.error}>{state.error}</p>}
-
-          <div
-            className={styles.field}
-            style={{ backgroundColor: hexToRgba(theme.questionBackgroundColor, theme.cardOpacity) }}
-          >
-            <label className={styles.label} htmlFor="submitter_name">
-              Your name<span className={styles.required}>*</span>
-            </label>
-            <input id="submitter_name" name="submitter_name" required className={styles.input} />
-          </div>
-
-          <div
-            className={styles.field}
-            style={{ backgroundColor: hexToRgba(theme.questionBackgroundColor, theme.cardOpacity) }}
-          >
-            <label className={styles.label} htmlFor="submitter_email">
-              Your email<span className={styles.required}>*</span>
-            </label>
-            <input
-              id="submitter_email"
-              name="submitter_email"
-              type="email"
-              required
-              className={styles.input}
-            />
-          </div>
-
-          {fields.length > 0 && <hr className={styles.divider} />}
-
-          {fields.map((field) => (
-            <div
-              key={field.id}
-              className={styles.field}
-              style={{
-                backgroundColor: hexToRgba(
-                  field.backgroundColor ?? theme.questionBackgroundColor,
-                  theme.cardOpacity,
-                ),
-              }}
-            >
-              <label className={styles.label} htmlFor={`field_${field.id}`}>
-                {field.label}
-                {field.required && <span className={styles.required}>*</span>}
-              </label>
-              {field.description && <p className={styles.fieldDescription}>{field.description}</p>}
-              <FieldInput field={field} />
-            </div>
-          ))}
-
-          <button type="submit" className={styles.submitButton} disabled={isPending}>
-            {isPending ? "Submitting…" : "Submit"}
-          </button>
+      <div
+        className={`${styles.page} ${ready ? styles.contentEnterActive : styles.contentEnter} ${pageBackgroundAnimationClass}`}
+        style={pageBackgroundStyle}
+      >
+        <form action={formAction}>
+          <FormRenderSurface
+            name={name}
+            description={description}
+            theme={theme}
+            errorMessage={state && "error" in state ? state.error : null}
+            successMessage={state && "success" in state ? "Your response has been submitted." : undefined}
+            chrome={chrome}
+            fields={renderFields}
+            footer={
+              <button
+                type="submit"
+                className={styles.submitButton}
+                style={getSubmitButtonStyle(theme)}
+                disabled={isPending}
+              >
+                {isPending ? "Submitting…" : "Submit"}
+              </button>
+            }
+          />
         </form>
       </div>
-    </div>
+    </>
   );
 }
