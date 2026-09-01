@@ -10,7 +10,7 @@ export default async function ClientsPage() {
 
   const { data, error } = await supabase
     .from("clients")
-    .select("id, company_name, notes, contacts(id, name, email, phone)")
+    .select("id, company_name, notes, auth_user_id, invite_status, contacts(id, name, email, phone)")
     .order("created_at", { ascending: false });
 
   const clients: ClientRowData[] = (data ?? [])
@@ -23,6 +23,8 @@ export default async function ClientsPage() {
       phone: row.contacts!.phone,
       companyName: row.company_name,
       notes: row.notes,
+      authUserId: row.auth_user_id,
+      inviteStatus: row.invite_status,
     }));
 
   const { data: applicationRows, error: applicationsError } = await supabase

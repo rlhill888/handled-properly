@@ -146,6 +146,48 @@
   padding: 14px;
 }
 
+.linkCard {
+  composes: card;
+  transition: border-color 0.2s ease;
+}
+
+.linkCard:hover {
+  border-color: #0a0a0a;
+}
+
+.taskGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 180px));
+  gap: 12px;
+}
+
+.squareCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px;
+  transition: border-color 0.2s ease;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+}
+
+.squareCard:hover {
+  border-color: #0a0a0a;
+}
+
+.squareCardDescription {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .cardHeader {
   display: flex;
   align-items: flex-start;

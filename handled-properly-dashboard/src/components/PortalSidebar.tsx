@@ -7,6 +7,7 @@ import styles from "./PortalSidebar.module.css";
 type PortalNavLink = {
   label: string;
   href: string;
+  badgeCount?: number;
 };
 
 export default function PortalSidebar({
@@ -70,7 +71,8 @@ export default function PortalSidebar({
                       isActive ? styles.navLinkActive : ""
                     }`}
                   >
-                    {link.label}
+                    <span>{link.label}</span>
+                    {Boolean(link.badgeCount) && <span className={styles.navBadge}>{link.badgeCount}</span>}
                   </a>
                 </li>
               );
@@ -120,7 +122,8 @@ export default function PortalSidebar({
                     }`}
                     onClick={() => setMenuOpen(false)}
                   >
-                    {link.label}
+                    <span>{link.label}</span>
+                    {Boolean(link.badgeCount) && <span className={styles.navBadge}>{link.badgeCount}</span>}
                   </a>
                 </li>
               );

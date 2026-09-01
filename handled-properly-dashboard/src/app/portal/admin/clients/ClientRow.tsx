@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
-import { updateClientRecord, type ActionState } from "./actions";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { updateClientRecord, inviteClient, type ActionState } from "./actions";
 import SubmitButton from "@/components/portal/SubmitButton";
 import styles from "@/styles/admin-shared.module.css";
 
@@ -13,9 +14,12 @@ export type ClientRowData = {
   phone: string | null;
   companyName: string | null;
   notes: string | null;
+  authUserId: string | null;
+  inviteStatus: string;
 };
 
 export default function ClientRow({ client }: { client: ClientRowData }) {
+  const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [state, formAction, isPending] = useActionState<ActionState, FormData>(
@@ -23,6 +27,8 @@ export default function ClientRow({ client }: { client: ClientRowData }) {
     null
   );
   const wasPending = useRef(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [isInviting, startInviteTransition] = useTransition();
 
   useEffect(() => {
     if (wasPending.current && !isPending && state === null) {
@@ -30,6 +36,15 @@ export default function ClientRow({ client }: { client: ClientRowData }) {
     }
     wasPending.current = isPending;
   }, [isPending, state]);
+
+  const handleInvite = () => {
+    setInviteError(null);
+    startInviteTransition(async () => {
+      const result = await inviteClient(client.clientId);
+      if (result?.error) setInviteError(result.error);
+      router.refresh();
+    });
+  };
 
   return (
     <div className={styles.accordionItem}>
@@ -40,6 +55,11 @@ export default function ClientRow({ client }: { client: ClientRowData }) {
         aria-expanded={expanded}
       >
         <span className={styles.accordionTitle}>{client.name}</span>
+        {client.authUserId && (
+          <span className={client.inviteStatus === "active" ? styles.badge : styles.badgeMuted}>
+            {client.inviteStatus}
+          </span>
+        )}
         <span
           className={`${styles.accordionChevron} ${expanded ? styles.accordionChevronOpen : ""}`}
           aria-hidden="true"
@@ -74,6 +94,7 @@ export default function ClientRow({ client }: { client: ClientRowData }) {
                   )}
                 </tbody>
               </table>
+              {inviteError && <p className={styles.error}>{inviteError}</p>}
               <div className={styles.actions}>
                 <button
                   type="button"
@@ -82,6 +103,16 @@ export default function ClientRow({ client }: { client: ClientRowData }) {
                 >
                   Edit
                 </button>
+                {!client.authUserId && (
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={handleInvite}
+                    disabled={isInviting}
+                  >
+                    {isInviting ? "Inviting…" : "Invite to Portal"}
+                  </button>
+                )}
               </div>
             </>
           ) : (

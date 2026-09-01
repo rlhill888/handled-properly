@@ -283,24 +283,33 @@ export type Database = {
       }
       clients: {
         Row: {
+          auth_user_id: string | null
           company_name: string | null
           contact_id: string
           created_at: string
           id: string
+          invite_status: Database["public"]["Enums"]["client_invite_status"]
+          invited_at: string
           notes: string | null
         }
         Insert: {
+          auth_user_id?: string | null
           company_name?: string | null
           contact_id: string
           created_at?: string
           id?: string
+          invite_status?: Database["public"]["Enums"]["client_invite_status"]
+          invited_at?: string
           notes?: string | null
         }
         Update: {
+          auth_user_id?: string | null
           company_name?: string | null
           contact_id?: string
           created_at?: string
           id?: string
+          invite_status?: Database["public"]["Enums"]["client_invite_status"]
+          invited_at?: string
           notes?: string | null
         }
         Relationships: [
@@ -436,6 +445,41 @@ export type Database = {
           },
           {
             foreignKeyName: "conversations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documentation: {
+        Row: {
+          created_at: string
+          description: string | null
+          event_id: string
+          file_path: string
+          id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          event_id: string
+          file_path: string
+          id?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          event_id?: string
+          file_path?: string
+          id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentation_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
@@ -627,6 +671,113 @@ export type Database = {
           },
         ]
       }
+      event_task_updates: {
+        Row: {
+          author_admin_id: string
+          body: string
+          created_at: string
+          event_task_id: string
+          id: string
+        }
+        Insert: {
+          author_admin_id: string
+          body: string
+          created_at?: string
+          event_task_id: string
+          id?: string
+        }
+        Update: {
+          author_admin_id?: string
+          body?: string
+          created_at?: string
+          event_task_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_task_updates_author_admin_id_fkey"
+            columns: ["author_admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_task_updates_event_task_id_fkey"
+            columns: ["event_task_id"]
+            isOneToOne: false
+            referencedRelation: "event_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_tasks: {
+        Row: {
+          created_at: string
+          description: string | null
+          event_id: string
+          id: string
+          status: Database["public"]["Enums"]["event_task_status"]
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          event_id: string
+          id?: string
+          status?: Database["public"]["Enums"]["event_task_status"]
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          event_id?: string
+          id?: string
+          status?: Database["public"]["Enums"]["event_task_status"]
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_tasks_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_vendors: {
+        Row: {
+          added_at: string
+          event_id: string
+          vendor_id: string
+        }
+        Insert: {
+          added_at?: string
+          event_id: string
+          vendor_id: string
+        }
+        Update: {
+          added_at?: string
+          event_id?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_vendors_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_vendors_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           client_id: string
@@ -804,6 +955,86 @@ export type Database = {
           },
         ]
       }
+      request_dependencies: {
+        Row: {
+          created_at: string
+          event_task_id: string
+          request_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_task_id: string
+          request_id: string
+        }
+        Update: {
+          created_at?: string
+          event_task_id?: string
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_dependencies_event_task_id_fkey"
+            columns: ["event_task_id"]
+            isOneToOne: false
+            referencedRelation: "event_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "request_dependencies_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      requests: {
+        Row: {
+          created_at: string
+          description: string | null
+          due_date: string | null
+          event_id: string
+          file_path: string | null
+          fulfilled_at: string | null
+          fulfillment_setting: Database["public"]["Enums"]["fulfillment_setting"]
+          id: string
+          requires_file: boolean
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          event_id: string
+          file_path?: string | null
+          fulfilled_at?: string | null
+          fulfillment_setting?: Database["public"]["Enums"]["fulfillment_setting"]
+          id?: string
+          requires_file?: boolean
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          event_id?: string
+          file_path?: string | null
+          fulfilled_at?: string | null
+          fulfillment_setting?: Database["public"]["Enums"]["fulfillment_setting"]
+          id?: string
+          requires_file?: boolean
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       roster_categories: {
         Row: {
           created_at: string
@@ -971,11 +1202,41 @@ export type Database = {
           },
         ]
       }
+      vendors: {
+        Row: {
+          category: string
+          contact_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          category: string
+          contact_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          category?: string
+          contact_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendors_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      activate_own_client_account: { Args: never; Returns: undefined }
       activate_own_staff_account: { Args: never; Returns: undefined }
       can_staff_view_form: {
         Args: { target_form_id: string }
@@ -985,8 +1246,13 @@ export type Database = {
         Args: { participant_event_staff_ids: string[]; target_event_id: string }
         Returns: string
       }
+      current_client_id: { Args: never; Returns: string }
       current_event_staff_id: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
+      is_client_for_event: {
+        Args: { target_event_id: string }
+        Returns: boolean
+      }
       is_conversation_participant: {
         Args: { target_conversation_id: string }
         Returns: boolean
@@ -1007,6 +1273,13 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_event_task_status: {
+        Args: {
+          new_status: Database["public"]["Enums"]["event_task_status"]
+          target_event_task_id: string
+        }
+        Returns: undefined
+      }
       shares_roster_with: { Args: { other_staff_id: string }; Returns: boolean }
     }
     Enums: {
@@ -1015,7 +1288,9 @@ export type Database = {
       assignment_status: "ready" | "in_progress" | "blocked" | "done"
       attendance_source: "manual" | "form_submission"
       client_application_status: "pending" | "converted" | "declined"
+      client_invite_status: "invited" | "active" | "revoked"
       event_status: "active" | "completed"
+      event_task_status: "not_started" | "in_progress" | "blocked" | "done"
       form_field_type:
         | "text"
         | "email"
@@ -1026,6 +1301,7 @@ export type Database = {
         | "select"
         | "file"
       form_target_type: "event" | "assignment" | "email_send"
+      fulfillment_setting: "auto" | "manual_review"
       pickup_setting: "admin_only" | "open_pickup"
       staff_invite_status: "invited" | "active" | "revoked"
     }
@@ -1160,7 +1436,9 @@ export const Constants = {
       assignment_status: ["ready", "in_progress", "blocked", "done"],
       attendance_source: ["manual", "form_submission"],
       client_application_status: ["pending", "converted", "declined"],
+      client_invite_status: ["invited", "active", "revoked"],
       event_status: ["active", "completed"],
+      event_task_status: ["not_started", "in_progress", "blocked", "done"],
       form_field_type: [
         "text",
         "email",
@@ -1172,6 +1450,7 @@ export const Constants = {
         "file",
       ],
       form_target_type: ["event", "assignment", "email_send"],
+      fulfillment_setting: ["auto", "manual_review"],
       pickup_setting: ["admin_only", "open_pickup"],
       staff_invite_status: ["invited", "active", "revoked"],
     },

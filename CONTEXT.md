@@ -11,7 +11,7 @@ The base identity record for any real person the system knows about (name, email
 _Avoid_: Person, User (User is a Supabase Auth concept, not a domain term)
 
 **Client**:
-A role attached to a Contact: someone who hires Handled Properly to staff an Event. A Client can have many Events. Clients do not log in.
+A role attached to a Contact: someone who hires Handled Properly to staff an Event. A Client can have many Events. Logs into the Client Portal via admin invite, mirroring the Event Staff invite/set-password flow — see [`0013-clients-can-log-in`](./docs/adr/0013-clients-can-log-in.md).
 _Avoid_: Customer, Account
 
 **Client Application**:
@@ -46,6 +46,10 @@ _Avoid_: Team, Assigned staff
 **Roster Category**:
 An admin-created label scoped to a single Event, used to group that Event's Roster members (e.g. "Security", "Bar Staff"). A Roster member can carry several. Created and managed per Event — never shared or reused across Events, unlike Category.
 _Avoid_: Category (reserved for the global Contact taxonomy — see below), Tag (reserved for Assignments — see below)
+
+**Active** (Event status):
+The literal, default `event_status` an Event holds from creation until the admin manually marks it Completed — not a separate concept, just the not-yet-Completed state. This is what the Client Portal's "active events" list filters on.
+_Avoid_: In Progress (that's an Event Task/Assignment Status, not an Event status)
 
 **Completed** (Event status):
 The terminal state an admin manually sets once an Event's work is done. A Completed Event is locked read-only and appears in history/archive views.
@@ -109,3 +113,46 @@ _Avoid_: Form Template, Template (there is no separate reusable-template concept
 **Submission**:
 One person's filled-out answers to a Form, made through a public, no-login-required link. May include uploaded files. If made through a Form scoped to an Event or Assignment, and the submitter's email doesn't match an existing Contact, it creates one and an Event Attendance record for that Event.
 _Avoid_: Response, Entry
+
+### Client Portal
+
+**Event Task**:
+An admin-authored unit of client-visible work on an Event: a title, a description, and a Status. Distinct from Assignment — an Event Task has no assignee (Assignment's assignees are drawn from the Event Roster, which Clients aren't part of) and none of Assignment's staff-only fields (Tags, Priority, Pickup Setting). Only the admin creates and edits an Event Task; the Client sees it and its Updates read-only.
+_Avoid_: Assignment (reserved for staff-facing work — see above), Task (too generic; always say "Event Task")
+
+**Event Task Status**:
+An Event Task's position in its 4-stage lifecycle: Not Started, In Progress, Blocked, Done. Distinct from Assignment's Status (Ready to Work / In Progress / Blocked / Done) — same shape, separate enum, because Event Task has no admin/staff split in who moves it: only the admin does.
+
+**Event Task Update**:
+A timestamped, admin-authored note posted to an Event Task, visible to the Client. Mirrors Assignment Comment's shape (chronological, append-only) but single-author (admin only) rather than dual-author, since Clients don't post to their own Event Tasks.
+_Avoid_: Assignment Comment (reserved for the Assignment-facing equivalent — see above)
+
+**Request**:
+An admin-authored ask directed at a Client, scoped to one Event. Has a title, sometimes a due date, and may require the Client to upload a file. The Client's analog of an Assignment, but a separate table — Assignment's Roster-drawn assignee model doesn't fit a Client, and a Request needs file-upload capability and a Fulfillment Setting Assignment doesn't have. Has no Status field — a Request is either fulfilled or not, tracked by Fulfilled At.
+_Avoid_: Assignment (reserved for staff-facing work — see above), Task (reserved for Event Task — see above)
+
+**Fulfillment Setting**:
+A per-Request flag the admin sets when creating a Request that requires a file: either the upload alone sets Fulfilled At immediately, or the admin must review the upload and mark it fulfilled by hand. A Request that doesn't require a file is always fulfilled by the admin manually. Mirrors how Pickup Setting is a per-Assignment flag governing how an Assignment moves, not the movement itself.
+
+**Fulfilled At**:
+The timestamp marking a Request as satisfied — set automatically on upload (if the Request's Fulfillment Setting allows it) or manually by the admin. Null means outstanding. Gates any Event Task that depends on the Request via a Request Dependency.
+
+**Request Dependency**:
+A structural link from an Event Task to a Request it's blocked on, admin-configured. While the linked Request's Fulfilled At is null, the Event Task's Status cannot move into In Progress or Done — mirroring how `assignment_dependencies` gates an Assignment's Status, blocking the transition rather than silently forcing the Event Task's Status to Blocked. One-directional only: a Request can block an Event Task, but Event Tasks don't depend on each other (unlike Assignments, which can).
+_Avoid_: Assignment Dependency (reserved for the Assignment-to-Assignment equivalent)
+
+**Documentation**:
+An admin-uploaded file made visible to a Client, with a title and a description, scoped to exactly one Event — never reused across Events (unlike Form, which can attach to several Email Sends).
+_Avoid_: Document (fine informally, but "Documentation" is the record name), Attachment (reserved for the Form-to-Email-Send relationship — see above)
+
+**Vendor**:
+A role attached to a Contact: an external party (caterer, photographer, DJ, ...) the admin tracks and can make visible to Clients. Structurally mirrors Client and Event Staff (its own table, `contact_id` unique to a Contact) but carries no login — a Vendor never authenticates, unlike Client and Event Staff.
+_Avoid_: Event Staff (Vendor is external, never on a Roster, never assigned Assignments), Contact (a Vendor is a Contact playing this role, not the base identity itself)
+
+**Vendor Category**:
+A fixed, single label on a Vendor record itself (e.g. "Caterer", "Photographer") describing what kind of vendor they are — set once on the Vendor, not per-Event.
+_Avoid_: Category (reserved for the global Contact taxonomy — see below; Vendor Category is a field on Vendor, not a Category tag), Roster Category (reserved for per-Event Roster grouping — see above)
+
+**Event Vendor List**:
+The explicit set of Vendors the admin has added to a specific Event, visible to that Event's Client. Configured per Event only — never at Client Application acceptance, since accepting an Application creates just a Client record, before any Event exists.
+_Avoid_: Roster (reserved for Event Staff — see above)

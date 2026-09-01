@@ -6,6 +6,10 @@ import RosterManager from "./RosterManager";
 import ConversationSettingToggle from "./ConversationSettingToggle";
 import EventHeaderImageSettings from "./EventHeaderImageSettings";
 import AssignmentsBoard from "./AssignmentsBoard";
+import EventTasksBoard from "./event-tasks/EventTasksBoard";
+import RequestsPanel from "./requests/RequestsPanel";
+import DocumentationPanel from "./documentation/DocumentationPanel";
+import EventVendorsPanel from "./event-vendors/EventVendorsPanel";
 import FormsPanel from "@/components/portal/FormsPanel";
 import SettingsModalButton from "@/components/portal/SettingsModalButton";
 import EventHeaderImage from "@/components/portal/EventHeaderImage";
@@ -200,6 +204,14 @@ export default async function EventDetailPage({
       </div>
 
       <AssignmentsBoard eventId={event.id} isLocked={event.status === "completed"} />
+
+      <EventTasksBoard eventId={event.id} isLocked={event.status === "completed"} />
+
+      <RequestsPanel eventId={event.id} isLocked={event.status === "completed"} />
+
+      <DocumentationPanel eventId={event.id} isLocked={event.status === "completed"} />
+
+      <EventVendorsPanel eventId={event.id} />
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Roster</h2>
