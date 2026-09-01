@@ -5,6 +5,7 @@ import Link from "next/link";
 import { staffSetStatus, staffPickupAssignment } from "./actions";
 import CommentsSection from "@/components/portal/CommentsSection";
 import LockIcon from "@/components/portal/LockIcon";
+import PersonIcon from "@/components/portal/PersonIcon";
 import SelectDropdown from "@/components/portal/SelectDropdown";
 import type { CommentData } from "@/lib/actions/assignment-comments";
 import type { DependencyRef } from "@/lib/data/assignment-dependencies";
@@ -76,7 +77,14 @@ export default function StaffAssignmentCard({
   return (
     <div className={cardStyles.card}>
       <div className={cardStyles.cardHeader}>
-        <span className={cardStyles.cardTitle}>{assignment.title}</span>
+        <span className={cardStyles.cardTitle}>
+          {isAlreadyAssigned && (
+            <span className={cardStyles.assignedToMeIcon} aria-label="Assigned to you">
+              <PersonIcon size={12} />
+            </span>
+          )}{" "}
+          {assignment.title}
+        </span>
         <span className={`${cardStyles.priority} ${cardStyles[`priority_${assignment.priority}`]}`}>
           {assignment.priority}
         </span>

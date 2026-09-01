@@ -109,6 +109,12 @@
   color: #b91c1c;
 }
 
+.assignedToMeIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
 .titleCardToggle {
   display: inline-flex;
   align-items: center;

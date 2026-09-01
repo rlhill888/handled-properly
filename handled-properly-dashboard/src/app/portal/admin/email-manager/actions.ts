@@ -2,11 +2,45 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentActor } from "@/lib/auth/get-current-actor";
 import { sendEmail } from "@/lib/ses";
-import { FILL_LINK_PLACEHOLDER } from "@/lib/ai-email-html";
+import { sanitizeStorageFilename } from "@/lib/storage-filename";
 
 export type ActionState = { error: string } | { success: string } | null;
+
+// Images that came alongside an uploaded HTML export (e.g. a Canva export's
+// "images/" folder) — hosted here, publicly, so the rewritten <img src>
+// references keep working indefinitely for any recipient's email client,
+// not just for the admin's own authenticated session. Keyed by original
+// filename so the caller can rewrite the HTML's relative-path references
+// (e.g. "images/photo1.png") by matching on the trailing filename alone.
+export async function uploadEmailAssets(
+  formData: FormData
+): Promise<{ urls: Record<string, string> } | { error: string }> {
+  const actor = await getCurrentActor();
+  if (actor?.role !== "admin") return { error: "Not authorized." };
+
+  const files = formData.getAll("files").filter((f): f is File => f instanceof File);
+  if (files.length === 0) return { urls: {} };
+
+  const adminClient = createAdminClient();
+  const prefix = `${Date.now()}-${crypto.randomUUID()}`;
+  const urls: Record<string, string> = {};
+
+  for (const file of files) {
+    const path = `${prefix}/${sanitizeStorageFilename(file.name)}`;
+    const { error: uploadError } = await adminClient.storage
+      .from("email-assets")
+      .upload(path, file, { contentType: file.type || undefined });
+    if (uploadError) return { error: uploadError.message };
+
+    const { data } = adminClient.storage.from("email-assets").getPublicUrl(path);
+    urls[file.name] = data.publicUrl;
+  }
+
+  return { urls };
+}
 
 export async function sendMassEmail(
   _prevState: ActionState,
@@ -98,22 +132,21 @@ export async function sendMassEmail(
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
     const fillUrl = (formId: string) => `${siteUrl}/forms/fill/${formId}`;
 
-    // AI-generated bodies embed a single {{FILL_LINK}} placeholder inside
-    // their own styled button markup (see ai-actions.ts — it's only ever
-    // told about one form). Consume it with the first attached form's link,
-    // then append a plain link for every other attached form (i.e. all of
-    // them, if a manually-written body never had the placeholder at all).
-    let remainingIds = formIds;
-    if (bodyHtml.includes(FILL_LINK_PLACEHOLDER)) {
-      finalBodyHtml = bodyHtml.split(FILL_LINK_PLACEHOLDER).join(fillUrl(formIds[0]));
-      remainingIds = formIds.slice(1);
+    // A button already mapped to this form (via "Map Forms to Buttons" in
+    // ComposeForm.tsx, see ai-actions.ts/ai-email-button-mapping.ts) has its
+    // href set to this literal token. Any form without a mapped button —
+    // mapping was never run, or no good button match was found — falls back
+    // to a plain link appended to the email, so every attached form always
+    // ends up reachable one way or another.
+    for (const formId of formIds) {
+      const token = `{{FORM_LINK_${formId}}}`;
+      if (finalBodyHtml.includes(token)) {
+        finalBodyHtml = finalBodyHtml.split(token).join(fillUrl(formId));
+      } else {
+        const form = attachedForms?.find((f) => f.id === formId);
+        if (form) finalBodyHtml += `<p><a href="${fillUrl(formId)}">Fill out ${form.name}</a></p>`;
+      }
     }
-    const extraLinks = remainingIds
-      .map((id) => attachedForms?.find((f) => f.id === id))
-      .filter((f): f is { id: string; name: string } => Boolean(f))
-      .map((f) => `<p><a href="${fillUrl(f.id)}">Fill out ${f.name}</a></p>`)
-      .join("");
-    finalBodyHtml += extraLinks;
 
     const { error: attachError } = await supabase
       .from("email_send_forms")
