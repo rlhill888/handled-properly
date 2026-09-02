@@ -1,5 +1,6 @@
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getCommentsByRequestIds } from "@/lib/data/request-comments";
 import AddModalButton from "@/components/portal/AddModalButton";
 import NewRequestForm from "./NewRequestForm";
 import RequestsPanelClient, { type RequestRowData } from "./RequestsPanelClient";
@@ -16,11 +17,12 @@ export default async function RequestsPanel({
 
   const { data: rows } = await supabase
     .from("requests")
-    .select("id, title, due_date, requires_file, fulfillment_setting, fulfilled_at, file_path")
+    .select("id, title, due_date, request_type, fulfillment_setting, fulfilled_at, file_path, response_text, checked_at")
     .eq("event_id", eventId)
     .order("created_at", { ascending: true });
 
   const adminClient = createAdminClient();
+  const commentsByRequest = await getCommentsByRequestIds(supabase, (rows ?? []).map((row) => row.id));
   const requests: RequestRowData[] = await Promise.all(
     (rows ?? []).map(async (row) => {
       let fileUrl: string | null = null;
@@ -34,10 +36,13 @@ export default async function RequestsPanel({
         id: row.id,
         title: row.title,
         dueDate: row.due_date,
-        requiresFile: row.requires_file,
+        requestType: row.request_type,
         fulfillmentSetting: row.fulfillment_setting,
         fulfilledAt: row.fulfilled_at,
         fileUrl,
+        responseText: row.response_text,
+        checkedAt: row.checked_at,
+        comments: commentsByRequest.get(row.id) ?? [],
       };
     })
   );

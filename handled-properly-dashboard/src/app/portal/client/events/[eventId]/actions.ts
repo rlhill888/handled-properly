@@ -27,11 +27,11 @@ export async function uploadRequestFile(
   // for someone else's event in this one query.
   const { data: request } = await supabase
     .from("requests")
-    .select("id, event_id, requires_file, fulfillment_setting, file_path")
+    .select("id, event_id, request_type, fulfillment_setting, file_path")
     .eq("id", requestId)
     .maybeSingle();
   if (!request) return { error: "Request not found." };
-  if (!request.requires_file) return { error: "This request doesn't accept a file upload." };
+  if (request.request_type !== "file") return { error: "This request doesn't accept a file upload." };
 
   const adminClient = createAdminClient();
   const path = `${requestId}/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
@@ -56,4 +56,72 @@ export async function uploadRequestFile(
   revalidatePath(`/portal/client/events/${request.event_id}/requests/${requestId}`);
   revalidatePath(`/portal/client/events/${request.event_id}`);
   return null;
+}
+
+// Same Client-writable path as uploadRequestFile above, for the Text
+// Request Type — requests has no client UPDATE RLS policy, so this also
+// goes through the service-role client.
+export async function submitRequestText(
+  requestId: string,
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const actor = await getCurrentActor();
+  if (actor?.role !== "client") return { error: "Not authorized." };
+
+  const text = String(formData.get("response_text") ?? "").trim();
+  if (!text) return { error: "Enter a response." };
+
+  const supabase = await createSupabaseServerClient();
+  const { data: request } = await supabase
+    .from("requests")
+    .select("id, event_id, request_type, fulfillment_setting")
+    .eq("id", requestId)
+    .maybeSingle();
+  if (!request) return { error: "Request not found." };
+  if (request.request_type !== "text") return { error: "This request doesn't accept a text response." };
+
+  const adminClient = createAdminClient();
+  const update: { response_text: string; fulfilled_at?: string } = { response_text: text };
+  if (request.fulfillment_setting === "auto") {
+    update.fulfilled_at = new Date().toISOString();
+  }
+
+  const { error: updateError } = await adminClient.from("requests").update(update).eq("id", requestId);
+  if (updateError) return { error: updateError.message };
+
+  revalidatePath(`/portal/client/events/${request.event_id}/requests/${requestId}`);
+  revalidatePath(`/portal/client/events/${request.event_id}`);
+  return null;
+}
+
+// Same Client-writable path again, for the Checkbox Request Type. No form
+// data — checking off a Request is a single action, so this is called
+// directly from a button rather than through useActionState.
+export async function checkOffRequest(requestId: string): Promise<{ error?: string }> {
+  const actor = await getCurrentActor();
+  if (actor?.role !== "client") return { error: "Not authorized." };
+
+  const supabase = await createSupabaseServerClient();
+  const { data: request } = await supabase
+    .from("requests")
+    .select("id, event_id, request_type, fulfillment_setting, checked_at")
+    .eq("id", requestId)
+    .maybeSingle();
+  if (!request) return { error: "Request not found." };
+  if (request.request_type !== "checkbox") return { error: "This request isn't a checkbox." };
+  if (request.checked_at) return {};
+
+  const adminClient = createAdminClient();
+  const update: { checked_at: string; fulfilled_at?: string } = { checked_at: new Date().toISOString() };
+  if (request.fulfillment_setting === "auto") {
+    update.fulfilled_at = new Date().toISOString();
+  }
+
+  const { error: updateError } = await adminClient.from("requests").update(update).eq("id", requestId);
+  if (updateError) return { error: updateError.message };
+
+  revalidatePath(`/portal/client/events/${request.event_id}/requests/${requestId}`);
+  revalidatePath(`/portal/client/events/${request.event_id}`);
+  return {};
 }

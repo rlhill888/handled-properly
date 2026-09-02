@@ -2,7 +2,12 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getCommentsByRequestIds } from "@/lib/data/request-comments";
+import { addRequestComment } from "@/lib/actions/request-comments";
 import RequestUploadForm from "./RequestUploadForm";
+import RequestTextForm from "./RequestTextForm";
+import RequestCheckOffButton from "./RequestCheckOffButton";
+import CommentsSection from "@/components/portal/CommentsSection";
 import styles from "@/styles/admin-shared.module.css";
 
 export default async function ClientRequestDetailPage({
@@ -17,7 +22,7 @@ export default async function ClientRequestDetailPage({
   // request doesn't exist or it isn't on one of this client's events.
   const { data: request } = await supabase
     .from("requests")
-    .select("id, title, description, due_date, requires_file, fulfilled_at, file_path")
+    .select("id, title, description, due_date, request_type, fulfilled_at, fulfillment_setting, file_path, response_text, checked_at")
     .eq("id", requestId)
     .eq("event_id", eventId)
     .maybeSingle();
@@ -32,7 +37,8 @@ export default async function ClientRequestDetailPage({
     fileUrl = data?.signedUrl ?? null;
   }
 
-  const showUploadForm = request.requires_file && !request.fulfilled_at;
+  const commentsByRequest = await getCommentsByRequestIds(supabase, [request.id]);
+  const showAction = !request.fulfilled_at;
 
   return (
     <div className={styles.page}>
@@ -79,7 +85,7 @@ export default async function ClientRequestDetailPage({
         </table>
       </div>
 
-      {request.requires_file && (
+      {request.request_type === "file" && (
         <div className={styles.card}>
           <h2 className={styles.cardTitle}>File</h2>
           {fileUrl && (
@@ -89,9 +95,38 @@ export default async function ClientRequestDetailPage({
               </a>
             </p>
           )}
-          {showUploadForm && <RequestUploadForm requestId={request.id} />}
+          {showAction && <RequestUploadForm requestId={request.id} />}
         </div>
       )}
+
+      {request.request_type === "text" && (
+        <div className={styles.card}>
+          <h2 className={styles.cardTitle}>Response</h2>
+          {request.response_text && !showAction && <p>{request.response_text}</p>}
+          {showAction && <RequestTextForm requestId={request.id} defaultValue={request.response_text} />}
+        </div>
+      )}
+
+      {request.request_type === "checkbox" && (
+        <div className={styles.card}>
+          <h2 className={styles.cardTitle}>Checkbox</h2>
+          {request.checked_at ? (
+            <p>
+              Checked {new Date(request.checked_at).toLocaleString()}
+              {showAction && " — waiting on admin confirmation."}
+            </p>
+          ) : (
+            showAction && <RequestCheckOffButton requestId={request.id} />
+          )}
+        </div>
+      )}
+
+      <div className={styles.card}>
+        <CommentsSection
+          initialComments={commentsByRequest.get(request.id) ?? []}
+          onPost={addRequestComment.bind(null, request.id)}
+        />
+      </div>
     </div>
   );
 }

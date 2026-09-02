@@ -104,3 +104,47 @@ export async function syncEventTaskDependencies(
   revalidatePath(`/portal/admin/event-tracker/${eventId}`);
   return {};
 }
+
+// Replace-all, mirroring syncEventTaskDependencies. The picker only ever
+// offers Assignments from this Event, but that's just the UI — an
+// Assignment can only ever be associated with an Event Task on the same
+// Event, so this re-checks event_id server-side rather than trusting the
+// picker's options.
+export async function syncEventTaskAssignments(
+  eventTaskId: string,
+  eventId: string,
+  assignmentIds: string[]
+): Promise<{ error?: string }> {
+  const actor = await getCurrentActor();
+  if (actor?.role !== "admin") return { error: "Not authorized." };
+
+  const supabase = await createSupabaseServerClient();
+
+  if (assignmentIds.length > 0) {
+    const { data: assignmentRows, error: fetchError } = await supabase
+      .from("assignments")
+      .select("id, event_id")
+      .in("id", assignmentIds);
+    if (fetchError) return { error: fetchError.message };
+    const belongsToEvent = (assignmentRows ?? []).every((a) => a.event_id === eventId);
+    if (!belongsToEvent || (assignmentRows ?? []).length !== assignmentIds.length) {
+      return { error: "Assignments must belong to the same event as this event task." };
+    }
+  }
+
+  const { error: deleteError } = await supabase
+    .from("event_task_assignments")
+    .delete()
+    .eq("event_task_id", eventTaskId);
+  if (deleteError) return { error: deleteError.message };
+
+  if (assignmentIds.length > 0) {
+    const { error: insertError } = await supabase
+      .from("event_task_assignments")
+      .insert(assignmentIds.map((assignmentId) => ({ event_task_id: eventTaskId, assignment_id: assignmentId })));
+    if (insertError) return { error: insertError.message };
+  }
+
+  revalidatePath(`/portal/admin/event-tracker/${eventId}`);
+  return {};
+}

@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { updateAssignment, updateAssignmentStatus, deleteAssignment, type ActionState } from "./actions";
 import SubmitButton from "@/components/portal/SubmitButton";
 import NewAssignmentForm, { type StaffOption } from "./NewAssignmentForm";
-import FormsPanel, { type ScopedForm } from "@/components/portal/FormsPanel";
 import CommentsSection from "@/components/portal/CommentsSection";
 import MultiSelectField from "@/components/portal/MultiSelectField";
+import SingleSelectField from "@/components/portal/SingleSelectField";
 import LockIcon from "@/components/portal/LockIcon";
-import type { CommentData } from "@/lib/actions/assignment-comments";
+import { addAssignmentComment, type CommentData } from "@/lib/actions/assignment-comments";
 import type { DependencyRef } from "@/lib/data/assignment-dependencies";
 import styles from "@/styles/admin-shared.module.css";
 import cardStyles from "@/styles/assignments-board.module.css";
@@ -25,11 +25,11 @@ export type AssignmentData = {
   pickupSetting: "admin_only" | "open_pickup";
   assigneeIds: string[];
   assigneeNames: string[];
-  forms: ScopedForm[];
   comments: CommentData[];
   dependsOn: DependencyRef[];
   blocks: DependencyRef[];
   subtasks: AssignmentData[];
+  eventTaskId: string | null;
 };
 
 export default function AssignmentCard({
@@ -37,9 +37,8 @@ export default function AssignmentCard({
   assignment,
   rosterStaff,
   existingAssignments,
+  eventTasks,
   isLocked,
-  availableForms,
-  siteUrl,
   allowSubtasks = true,
   isSubtask = false,
 }: {
@@ -47,9 +46,8 @@ export default function AssignmentCard({
   assignment: AssignmentData;
   rosterStaff: StaffOption[];
   existingAssignments: { id: string; title: string }[];
+  eventTasks: { id: string; title: string }[];
   isLocked: boolean;
-  availableForms: { id: string; name: string }[];
-  siteUrl: string;
   // A Subtask cannot itself have Subtasks (enforced server-side by the
   // assignments_no_nested_subtasks trigger) — false on the recursive
   // self-render below so a Subtask's own card never offers "+ Add Subtask".
@@ -105,20 +103,6 @@ export default function AssignmentCard({
   const doneCount = assignment.subtasks.filter((c) => c.status === "done").length;
   const hasSubtasks = assignment.subtasks.length > 0;
 
-  const formsSection = (
-    <div className={cardStyles.subSection}>
-      <span className={cardStyles.subToggle}>Forms</span>
-      <FormsPanel
-        targetType="assignment"
-        targetId={assignment.id}
-        basePath={`/portal/admin/event-tracker/${eventId}/assignments`}
-        availableForms={availableForms}
-        forms={assignment.forms}
-        siteUrl={siteUrl}
-      />
-    </div>
-  );
-
   const subtasksSection = (
     <>
       {allowSubtasks && (hasSubtasks || !isLocked) && (
@@ -137,9 +121,8 @@ export default function AssignmentCard({
                   assignment={child}
                   rosterStaff={rosterStaff}
                   existingAssignments={existingAssignments}
+                  eventTasks={eventTasks}
                   isLocked={isLocked}
-                  availableForms={availableForms}
-                  siteUrl={siteUrl}
                 />
               ))}
             </div>
@@ -159,6 +142,7 @@ export default function AssignmentCard({
                 eventId={eventId}
                 rosterStaff={rosterStaff}
                 existingAssignments={existingAssignments}
+                eventTasks={eventTasks}
                 parentAssignmentId={assignment.id}
                 submitLabel="Add Subtask"
                 onCreated={() => setAddingSubtask(false)}
@@ -178,7 +162,10 @@ export default function AssignmentCard({
   );
 
   const commentsSection = (
-    <CommentsSection assignmentId={assignment.id} initialComments={assignment.comments} />
+    <CommentsSection
+      initialComments={assignment.comments}
+      onPost={(body) => addAssignmentComment(assignment.id, body)}
+    />
   );
 
   const dependenciesDisplay = (assignment.dependsOn.length > 0 || assignment.blocks.length > 0) && (
@@ -295,6 +282,15 @@ export default function AssignmentCard({
           )}
         </div>
 
+        {assignment.eventTaskId && (
+          <div className={cardStyles.assigneesBlock}>
+            <span className={cardStyles.metaLabel}>Event Task</span>
+            <span className={styles.pill}>
+              {eventTasks.find((t) => t.id === assignment.eventTaskId)?.title ?? "Unknown"}
+            </span>
+          </div>
+        )}
+
         {!isLocked && (
           <div className={cardStyles.cardActions}>
             <button type="button" className={styles.secondaryButton} onClick={() => setEditing(true)}>
@@ -306,7 +302,6 @@ export default function AssignmentCard({
           </div>
         )}
         {dependenciesDisplay}
-        {formsSection}
         {subtasksSection}
         {commentsSection}
       </div>
@@ -421,6 +416,18 @@ export default function AssignmentCard({
           />
         )}
 
+        {eventTasks.length > 0 && (
+          <SingleSelectField
+            name="event_task_id"
+            label="Event Task"
+            helperText="(optional)"
+            options={eventTasks.map((task) => ({ id: task.id, label: task.title }))}
+            initialSelectedId={assignment.eventTaskId ?? ""}
+            placeholder="Associate with an event task…"
+            searchPlaceholder="Search event tasks…"
+          />
+        )}
+
         <div className={styles.actions}>
           <SubmitButton pendingLabel="Saving…">Save</SubmitButton>
           <button type="button" className={styles.secondaryButton} onClick={() => setEditing(false)}>
@@ -429,7 +436,6 @@ export default function AssignmentCard({
         </div>
       </form>
       {dependenciesDisplay}
-      {formsSection}
       {subtasksSection}
       {commentsSection}
     </div>
@@ -444,17 +450,15 @@ function SubtaskAccordion({
   assignment,
   rosterStaff,
   existingAssignments,
+  eventTasks,
   isLocked,
-  availableForms,
-  siteUrl,
 }: {
   eventId: string;
   assignment: AssignmentData;
   rosterStaff: StaffOption[];
   existingAssignments: { id: string; title: string }[];
+  eventTasks: { id: string; title: string }[];
   isLocked: boolean;
-  availableForms: { id: string; name: string }[];
-  siteUrl: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [isToggling, startToggle] = useTransition();
@@ -480,9 +484,8 @@ function SubtaskAccordion({
           assignment={assignment}
           rosterStaff={rosterStaff}
           existingAssignments={existingAssignments}
+          eventTasks={eventTasks}
           isLocked={isLocked}
-          availableForms={availableForms}
-          siteUrl={siteUrl}
           allowSubtasks={false}
           isSubtask
         />

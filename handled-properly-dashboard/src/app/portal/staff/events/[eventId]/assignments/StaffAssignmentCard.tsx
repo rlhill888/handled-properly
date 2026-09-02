@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { staffSetStatus, staffPickupAssignment } from "./actions";
 import CommentsSection from "@/components/portal/CommentsSection";
 import LockIcon from "@/components/portal/LockIcon";
 import PersonIcon from "@/components/portal/PersonIcon";
 import SelectDropdown from "@/components/portal/SelectDropdown";
-import type { CommentData } from "@/lib/actions/assignment-comments";
+import { addAssignmentComment, type CommentData } from "@/lib/actions/assignment-comments";
 import type { DependencyRef } from "@/lib/data/assignment-dependencies";
 import styles from "@/styles/admin-shared.module.css";
 import cardStyles from "@/styles/assignments-board.module.css";
@@ -23,7 +22,6 @@ export type StaffAssignmentData = {
   pickupSetting: "admin_only" | "open_pickup";
   assigneeIds: string[];
   assigneeNames: string[];
-  visibleForms: { id: string; name: string }[];
   comments: CommentData[];
   dependsOn: DependencyRef[];
   blocks: DependencyRef[];
@@ -117,16 +115,6 @@ export default function StaffAssignmentCard({
         </div>
       )}
 
-      {assignment.visibleForms.length > 0 && (
-        <div className={styles.metaRow}>
-          {assignment.visibleForms.map((form) => (
-            <Link key={form.id} href={`/portal/staff/form-results/${form.id}`} className={styles.pill}>
-              {form.name} — View results
-            </Link>
-          ))}
-        </div>
-      )}
-
       {assignment.dependsOn.length > 0 && (
         <div className={styles.metaRow}>
           {assignment.dependsOn.map((dep) => (
@@ -200,7 +188,10 @@ export default function StaffAssignmentCard({
         </div>
       )}
 
-      <CommentsSection assignmentId={assignment.id} initialComments={assignment.comments} />
+      <CommentsSection
+        initialComments={assignment.comments}
+        onPost={(body) => addAssignmentComment(assignment.id, body)}
+      />
     </div>
   );
 }

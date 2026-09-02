@@ -6,9 +6,11 @@ import { getCurrentActor } from "@/lib/auth/get-current-actor";
 
 export type ActionState = { error: string } | null;
 
-// Replace-all, mirroring setRosterEntryCategories — the full Event Vendor
-// List for this Event is submitted as one batch, not added/removed
-// individually.
+// The MultiSelectField behind this form lists every Contact (searchable by
+// name) — there's no separate Vendor record to pick from, being a vendor is
+// just being on an Event's event_vendors list. Replace-all, mirroring
+// setRosterEntryCategories: the full list is submitted as one batch, not
+// added/removed individually.
 export async function setEventVendors(
   eventId: string,
   _prevState: ActionState,
@@ -17,17 +19,17 @@ export async function setEventVendors(
   const actor = await getCurrentActor();
   if (actor?.role !== "admin") return { error: "Not authorized." };
 
-  const vendorIds = formData.getAll("vendor_ids") as string[];
+  const contactIds = formData.getAll("contact_ids") as string[];
 
   const supabase = await createSupabaseServerClient();
 
   const { error: deleteError } = await supabase.from("event_vendors").delete().eq("event_id", eventId);
   if (deleteError) return { error: deleteError.message };
 
-  if (vendorIds.length > 0) {
+  if (contactIds.length > 0) {
     const { error: insertError } = await supabase
       .from("event_vendors")
-      .insert(vendorIds.map((vendorId) => ({ event_id: eventId, vendor_id: vendorId })));
+      .insert(contactIds.map((contactId) => ({ event_id: eventId, contact_id: contactId })));
     if (insertError) return { error: insertError.message };
   }
 

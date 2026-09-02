@@ -1,26 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import { addAssignmentComment, type CommentData } from "@/lib/actions/assignment-comments";
+import type { CommentData } from "@/lib/actions/assignment-comments";
 import styles from "@/styles/admin-shared.module.css";
 import cardStyles from "@/styles/assignments-board.module.css";
 import commentStyles from "./CommentsSection.module.css";
 
 // Shared by the admin (AssignmentCard, used both on the assignments list
-// page and inside the Kanban board's detail modal) and staff
-// (StaffAssignmentCard) assignment views. Comments always load with the
-// assignment itself (initialComments comes from the same board/tree fetch
-// as Forms/assignees — see getCommentsByAssignment) rather than being
-// lazily fetched on expand; posting a new one just appends the action's
-// returned row to local state.
+// page and inside the Kanban board's detail modal), staff
+// (StaffAssignmentCard), and Request (RequestsPanelClient, request detail
+// page) views. Comments always load with the parent entity (initialComments
+// comes from the same fetch as the rest of that entity's data) rather than
+// being lazily fetched on expand; posting a new one just appends onPost's
+// returned row to local state. The caller supplies onPost so this component
+// stays entity-agnostic — see addAssignmentComment/addRequestComment for the
+// two current implementations.
 export default function CommentsSection({
-  assignmentId,
   initialComments,
+  onPost,
+  defaultOpen = false,
 }: {
-  assignmentId: string;
   initialComments: CommentData[];
+  onPost: (body: string) => Promise<{ comment: CommentData } | { error: string }>;
+  // Requests' modal usage opens this already expanded, since the modal
+  // itself is already the explicit "show me comments" action — a second,
+  // nested collapse toggle there would just be friction. Every other
+  // caller (Assignment cards) keeps the default collapsed-by-default.
+  defaultOpen?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(defaultOpen);
   const [comments, setComments] = useState<CommentData[]>(initialComments);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -31,7 +39,7 @@ export default function CommentsSection({
     if (!draft.trim()) return;
     setSending(true);
     setError(null);
-    const result = await addAssignmentComment(assignmentId, draft);
+    const result = await onPost(draft);
     setSending(false);
     if ("error" in result) {
       setError(result.error);

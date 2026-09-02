@@ -35,16 +35,14 @@ export default function AssignmentBoardClient({
   assignments,
   rosterStaff,
   existingAssignments,
-  availableForms,
-  siteUrl,
+  eventTasks,
   isLocked,
 }: {
   eventId: string;
   assignments: AssignmentData[];
   rosterStaff: StaffOption[];
   existingAssignments: { id: string; title: string }[];
-  availableForms: { id: string; name: string }[];
-  siteUrl: string;
+  eventTasks: { id: string; title: string }[];
   isLocked: boolean;
 }) {
   const router = useRouter();
@@ -226,9 +224,8 @@ export default function AssignmentBoardClient({
             assignment={openAssignment}
             rosterStaff={rosterStaff}
             existingAssignments={existingAssignments}
+            eventTasks={eventTasks}
             isLocked={isLocked}
-            availableForms={availableForms}
-            siteUrl={siteUrl}
           />
         )}
       </Modal>

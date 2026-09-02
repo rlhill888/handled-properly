@@ -6,11 +6,11 @@ import RosterManager from "./RosterManager";
 import ConversationSettingToggle from "./ConversationSettingToggle";
 import EventHeaderImageSettings from "./EventHeaderImageSettings";
 import AssignmentsBoard from "./AssignmentsBoard";
+import EventDetailTabs from "./EventDetailTabs";
 import EventTasksBoard from "./event-tasks/EventTasksBoard";
 import RequestsPanel from "./requests/RequestsPanel";
 import DocumentationPanel from "./documentation/DocumentationPanel";
 import EventVendorsPanel from "./event-vendors/EventVendorsPanel";
-import FormsPanel from "@/components/portal/FormsPanel";
 import SettingsModalButton from "@/components/portal/SettingsModalButton";
 import EventHeaderImage from "@/components/portal/EventHeaderImage";
 import { getEventHeaderImageDataUrl } from "@/lib/data/event-header-image";
@@ -41,8 +41,6 @@ export default async function EventDetailPage({
   const [
     { data: rosterRows },
     { data: allStaff },
-    { data: availableForms },
-    { data: eventForms },
     { data: rosterCategoryRows },
     { data: allCategoryLinkRows },
   ] = await Promise.all([
@@ -51,12 +49,6 @@ export default async function EventDetailPage({
       .select("event_staff_id, event_staff(id, contacts(name, email))")
       .eq("event_id", eventId),
     supabase.from("event_staff").select("id, contacts(name, email)"),
-    supabase.from("forms").select("id, name").is("target_type", null).order("name", { ascending: true }),
-    supabase
-      .from("forms")
-      .select("id, name, staff_visible")
-      .eq("target_type", "event")
-      .eq("target_id", eventId),
     supabase
       .from("roster_categories")
       .select("id, name, roster_entry_categories(event_staff_id)")
@@ -111,11 +103,34 @@ export default async function EventDetailPage({
       tagNames: tagNamesByStaff.get(staff.id) ?? [],
     }));
 
-  const scopedForms = (eventForms ?? []).map((f) => ({
-    id: f.id,
-    name: f.name,
-    staffVisible: f.staff_visible,
-  }));
+  // Shown on both tabs — see EventDetailTabs.
+  const detailsCard = (
+    <div className={styles.card}>
+      <h2 className={styles.cardTitle}>Details</h2>
+      <table className={`${styles.table} ${styles.keyValueTable}`}>
+        <tbody>
+          <tr>
+            <td>Client</td>
+            <td>{clientName}</td>
+          </tr>
+          <tr>
+            <td>Date &amp; time</td>
+            <td>{event.starts_at ? new Date(event.starts_at).toLocaleString() : "—"}</td>
+          </tr>
+          <tr>
+            <td>Location</td>
+            <td>{event.location || "—"}</td>
+          </tr>
+          {event.completed_at && (
+            <tr>
+              <td>Completed</td>
+              <td>{new Date(event.completed_at).toLocaleString()}</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
 
   return (
     <div className={styles.page}>
@@ -177,64 +192,39 @@ export default async function EventDetailPage({
         </div>
       </div>
 
-      <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Details</h2>
-        <table className={`${styles.table} ${styles.keyValueTable}`}>
-          <tbody>
-            <tr>
-              <td>Client</td>
-              <td>{clientName}</td>
-            </tr>
-            <tr>
-              <td>Date &amp; time</td>
-              <td>{event.starts_at ? new Date(event.starts_at).toLocaleString() : "—"}</td>
-            </tr>
-            <tr>
-              <td>Location</td>
-              <td>{event.location || "—"}</td>
-            </tr>
-            {event.completed_at && (
-              <tr>
-                <td>Completed</td>
-                <td>{new Date(event.completed_at).toLocaleString()}</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <EventDetailTabs
+        clientView={
+          <>
+            {detailsCard}
 
-      <AssignmentsBoard eventId={event.id} isLocked={event.status === "completed"} />
+            <EventTasksBoard eventId={event.id} isLocked={event.status === "completed"} />
 
-      <EventTasksBoard eventId={event.id} isLocked={event.status === "completed"} />
+            <RequestsPanel eventId={event.id} isLocked={event.status === "completed"} />
 
-      <RequestsPanel eventId={event.id} isLocked={event.status === "completed"} />
+            <DocumentationPanel eventId={event.id} isLocked={event.status === "completed"} />
 
-      <DocumentationPanel eventId={event.id} isLocked={event.status === "completed"} />
+            <EventVendorsPanel eventId={event.id} />
+          </>
+        }
+        internal={
+          <>
+            {detailsCard}
 
-      <EventVendorsPanel eventId={event.id} />
+            <AssignmentsBoard eventId={event.id} isLocked={event.status === "completed"} />
 
-      <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Roster</h2>
-        <RosterManager
-          eventId={event.id}
-          rosterMembers={rosterMembers}
-          availableStaff={availableStaff}
-          categories={rosterCategories}
-          isLocked={event.status === "completed"}
-        />
-      </div>
-
-      <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Forms</h2>
-        <FormsPanel
-          targetType="event"
-          targetId={event.id}
-          basePath={`/portal/admin/event-tracker/${event.id}`}
-          availableForms={availableForms ?? []}
-          forms={scopedForms}
-          siteUrl={process.env.NEXT_PUBLIC_SITE_URL ?? ""}
-        />
-      </div>
+            <div className={styles.card}>
+              <h2 className={styles.cardTitle}>Roster</h2>
+              <RosterManager
+                eventId={event.id}
+                rosterMembers={rosterMembers}
+                availableStaff={availableStaff}
+                categories={rosterCategories}
+                isLocked={event.status === "completed"}
+              />
+            </div>
+          </>
+        }
+      />
     </div>
   );
 }

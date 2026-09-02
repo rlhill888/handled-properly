@@ -1,5 +1,5 @@
 import styles from "@/styles/admin-shared.module.css";
-import commentStyles from "@/components/portal/CommentsSection.module.css";
+import commentStyles from "./CommentsSection.module.css";
 
 export type EventTaskUpdateData = {
   id: string;
@@ -8,7 +8,9 @@ export type EventTaskUpdateData = {
 };
 
 // Read-only counterpart to CommentsSection — Event Task Updates are
-// admin-authored only, the Client never posts, so there's no composer here.
+// admin-authored only, neither the Client nor Staff ever post, so there's
+// no composer here. Shared by the Client's and Staff's Event Task detail
+// pages.
 export default function EventTaskUpdatesList({ updates }: { updates: EventTaskUpdateData[] }) {
   return (
     <div className={commentStyles.list}>

@@ -7,10 +7,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -671,6 +691,39 @@ export type Database = {
           },
         ]
       }
+      event_task_assignments: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          event_task_id: string
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          event_task_id: string
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          event_task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_task_assignments_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_task_assignments_event_task_id_fkey"
+            columns: ["event_task_id"]
+            isOneToOne: false
+            referencedRelation: "event_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_task_updates: {
         Row: {
           author_admin_id: string
@@ -748,32 +801,32 @@ export type Database = {
       event_vendors: {
         Row: {
           added_at: string
+          contact_id: string
           event_id: string
-          vendor_id: string
         }
         Insert: {
           added_at?: string
+          contact_id: string
           event_id: string
-          vendor_id: string
         }
         Update: {
           added_at?: string
+          contact_id?: string
           event_id?: string
-          vendor_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "event_vendors_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "event_vendors_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "event_vendors_vendor_id_fkey"
-            columns: ["vendor_id"]
-            isOneToOne: false
-            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
@@ -955,6 +1008,55 @@ export type Database = {
           },
         ]
       }
+      request_comments: {
+        Row: {
+          author_admin_id: string | null
+          author_client_id: string | null
+          body: string
+          created_at: string
+          id: string
+          request_id: string
+        }
+        Insert: {
+          author_admin_id?: string | null
+          author_client_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          request_id: string
+        }
+        Update: {
+          author_admin_id?: string | null
+          author_client_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_comments_author_admin_id_fkey"
+            columns: ["author_admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "request_comments_author_client_id_fkey"
+            columns: ["author_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "request_comments_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       request_dependencies: {
         Row: {
           created_at: string
@@ -990,6 +1092,7 @@ export type Database = {
       }
       requests: {
         Row: {
+          checked_at: string | null
           created_at: string
           description: string | null
           due_date: string | null
@@ -998,10 +1101,12 @@ export type Database = {
           fulfilled_at: string | null
           fulfillment_setting: Database["public"]["Enums"]["fulfillment_setting"]
           id: string
-          requires_file: boolean
+          request_type: Database["public"]["Enums"]["request_type"]
+          response_text: string | null
           title: string
         }
         Insert: {
+          checked_at?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
@@ -1010,10 +1115,12 @@ export type Database = {
           fulfilled_at?: string | null
           fulfillment_setting?: Database["public"]["Enums"]["fulfillment_setting"]
           id?: string
-          requires_file?: boolean
+          request_type?: Database["public"]["Enums"]["request_type"]
+          response_text?: string | null
           title: string
         }
         Update: {
+          checked_at?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
@@ -1022,7 +1129,8 @@ export type Database = {
           fulfilled_at?: string | null
           fulfillment_setting?: Database["public"]["Enums"]["fulfillment_setting"]
           id?: string
-          requires_file?: boolean
+          request_type?: Database["public"]["Enums"]["request_type"]
+          response_text?: string | null
           title?: string
         }
         Relationships: [
@@ -1202,35 +1310,6 @@ export type Database = {
           },
         ]
       }
-      vendors: {
-        Row: {
-          category: string
-          contact_id: string
-          created_at: string
-          id: string
-        }
-        Insert: {
-          category: string
-          contact_id: string
-          created_at?: string
-          id?: string
-        }
-        Update: {
-          category?: string
-          contact_id?: string
-          created_at?: string
-          id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vendors_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: true
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
@@ -1303,6 +1382,7 @@ export type Database = {
       form_target_type: "event" | "assignment" | "email_send"
       fulfillment_setting: "auto" | "manual_review"
       pickup_setting: "admin_only" | "open_pickup"
+      request_type: "file" | "text" | "checkbox"
       staff_invite_status: "invited" | "active" | "revoked"
     }
     CompositeTypes: {
@@ -1429,6 +1509,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       assigned_via: ["admin", "pickup"],
@@ -1452,7 +1535,9 @@ export const Constants = {
       form_target_type: ["event", "assignment", "email_send"],
       fulfillment_setting: ["auto", "manual_review"],
       pickup_setting: ["admin_only", "open_pickup"],
+      request_type: ["file", "text", "checkbox"],
       staff_invite_status: ["invited", "active", "revoked"],
     },
   },
 } as const
+

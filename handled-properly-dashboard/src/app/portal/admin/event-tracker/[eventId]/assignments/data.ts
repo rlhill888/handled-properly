@@ -11,9 +11,9 @@ export async function getAssignmentsBoardData(eventId: string) {
   const [
     { data: rosterRows },
     { data: assignmentRows },
-    { data: availableForms },
     { data: rosterCategoryRows },
     { data: allCategoryLinkRows },
+    { data: eventTaskRows },
   ] = await Promise.all([
     supabase
       .from("roster_entries")
@@ -26,7 +26,6 @@ export async function getAssignmentsBoardData(eventId: string) {
       )
       .eq("event_id", eventId)
       .order("created_at", { ascending: true }),
-    supabase.from("forms").select("id, name").is("target_type", null).order("name", { ascending: true }),
     // Roster tags — lets the assignee picker match a search term like
     // "Catering" against a staff member's category, not just their name.
     supabase
@@ -39,6 +38,11 @@ export async function getAssignmentsBoardData(eventId: string) {
     // "Catering" on a past event still surfaces here even if this event
     // hasn't tagged them that way yet.
     supabase.from("roster_entry_categories").select("event_staff_id, roster_categories(name)"),
+    supabase
+      .from("event_tasks")
+      .select("id, title")
+      .eq("event_id", eventId)
+      .order("created_at", { ascending: true }),
   ]);
 
   const categoryNamesByStaff = new Map<string, string[]>();
@@ -59,24 +63,24 @@ export async function getAssignmentsBoardData(eventId: string) {
   }
 
   const assignmentIds = (assignmentRows ?? []).map((row) => row.id);
-  const { data: assignmentForms } =
+
+  // Which Event Task (if any) each Assignment is associated with — an
+  // Assignment can only ever link to one from this form (the underlying
+  // join table is many-to-many, but that only matters from the Event
+  // Task's own picker; here it's a single-select convenience).
+  const { data: taskAssignmentRows } =
     assignmentIds.length > 0
       ? await supabase
-          .from("forms")
-          .select("id, name, target_id, staff_visible")
-          .eq("target_type", "assignment")
-          .in("target_id", assignmentIds)
+          .from("event_task_assignments")
+          .select("event_task_id, assignment_id")
+          .in("assignment_id", assignmentIds)
       : { data: [] };
 
-  const formsByAssignment = new Map<
-    string,
-    { id: string; name: string; staffVisible: boolean }[]
-  >();
-  for (const f of assignmentForms ?? []) {
-    if (!f.target_id) continue;
-    const list = formsByAssignment.get(f.target_id) ?? [];
-    list.push({ id: f.id, name: f.name, staffVisible: f.staff_visible });
-    formsByAssignment.set(f.target_id, list);
+  const eventTaskIdByAssignment = new Map<string, string>();
+  for (const link of taskAssignmentRows ?? []) {
+    if (!eventTaskIdByAssignment.has(link.assignment_id)) {
+      eventTaskIdByAssignment.set(link.assignment_id, link.event_task_id);
+    }
   }
 
   const commentsByAssignment = await getCommentsByAssignment(supabase, assignmentIds);
@@ -111,21 +115,21 @@ export async function getAssignmentsBoardData(eventId: string) {
     assigneeNames: row.assignment_assignees
       .map((a) => a.event_staff?.contacts?.name)
       .filter((name): name is string => Boolean(name)),
-    forms: formsByAssignment.get(row.id) ?? [],
     comments: commentsByAssignment.get(row.id) ?? [],
     dependsOn: dependsOnByAssignment.get(row.id) ?? [],
     blocks: blocksByAssignment.get(row.id) ?? [],
+    eventTaskId: eventTaskIdByAssignment.get(row.id) ?? null,
   }));
 
   const assignments: AssignmentData[] = buildAssignmentTree(flatAssignments);
 
   const allAssignments = (assignmentRows ?? []).map((row) => ({ id: row.id, title: row.title }));
+  const eventTasks = (eventTaskRows ?? []).map((row) => ({ id: row.id, title: row.title }));
 
   return {
     assignments,
     rosterStaff,
-    availableForms: availableForms ?? [],
-    siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "",
     allAssignments,
+    eventTasks,
   };
 }

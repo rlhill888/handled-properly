@@ -6,22 +6,6 @@ import { getEventHeaderImageDataUrl } from "@/lib/data/event-header-image";
 import { CHAT_ENABLED } from "@/lib/feature-flags";
 import styles from "@/styles/admin-shared.module.css";
 
-// RLS (staff_select_visible_forms -> can_staff_view_form) only ever returns
-// rows this staff member is entitled to see: staff_visible Forms on an
-// Event they're rostered on. No app-level filtering needed.
-async function getVisibleEventForms(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  eventId: string
-) {
-  const { data } = await supabase
-    .from("forms")
-    .select("id, name")
-    .eq("target_type", "event")
-    .eq("target_id", eventId);
-
-  return (data ?? []).map((f) => ({ id: f.id, name: f.name }));
-}
-
 export default async function StaffEventDetailPage({
   params,
 }: {
@@ -43,7 +27,6 @@ export default async function StaffEventDetailPage({
   if (!event) notFound();
 
   const clientName = event.client?.company_name || event.client?.contacts?.name || "—";
-  const visibleForms = await getVisibleEventForms(supabase, event.id);
   const headerImageUrl = await getEventHeaderImageDataUrl(event.header_image_path);
 
   return (
@@ -71,6 +54,12 @@ export default async function StaffEventDetailPage({
             className={styles.secondaryButton}
           >
             View Assignments
+          </Link>
+          <Link
+            href={`/portal/staff/events/${event.id}/tasks`}
+            className={styles.secondaryButton}
+          >
+            View Tasks For Event The Client Is Shown
           </Link>
           {CHAT_ENABLED && (
             <Link
@@ -108,23 +97,6 @@ export default async function StaffEventDetailPage({
           </tbody>
         </table>
       </div>
-
-      {visibleForms.length > 0 && (
-        <div className={styles.card}>
-          <h2 className={styles.cardTitle}>Forms</h2>
-          <div className={styles.metaRow}>
-            {visibleForms.map((form) => (
-              <Link
-                key={form.id}
-                href={`/portal/staff/form-results/${form.id}`}
-                className={styles.pill}
-              >
-                {form.name} — View results
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

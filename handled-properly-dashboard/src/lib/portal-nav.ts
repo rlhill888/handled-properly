@@ -10,7 +10,6 @@ export const ADMIN_LINKS: PortalNavLink[] = [
   { label: "Events", href: "/portal/admin/event-tracker" },
   { label: "Clients", href: "/portal/admin/clients" },
   { label: "Staff", href: "/portal/admin/staff" },
-  { label: "Vendors", href: "/portal/admin/vendors" },
   { label: "Contacts", href: "/portal/admin/contacts" },
   { label: "Communication", href: "/portal/admin/communication" },
 ];

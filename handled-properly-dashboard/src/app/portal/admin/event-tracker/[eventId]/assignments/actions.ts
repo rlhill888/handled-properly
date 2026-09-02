@@ -71,6 +71,44 @@ async function syncAssignmentDependencies(
   return {};
 }
 
+// Replaces an assignment's Event Task association with a single one (or
+// clears it if eventTaskId is null) — the underlying event_task_assignments
+// table is many-to-many, but from the Assignment's own create/edit form
+// this is a single-select convenience, not the full picker the Event Task
+// side gets. Re-validates the Event Task belongs to this same Event
+// server-side, not just via the picker's options.
+async function syncAssignmentEventTask(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  eventId: string,
+  assignmentId: string,
+  eventTaskId: string | null
+): Promise<{ error?: string }> {
+  const { error: deleteError } = await supabase
+    .from("event_task_assignments")
+    .delete()
+    .eq("assignment_id", assignmentId);
+  if (deleteError) return { error: deleteError.message };
+
+  if (eventTaskId) {
+    const { data: task, error: fetchError } = await supabase
+      .from("event_tasks")
+      .select("id, event_id")
+      .eq("id", eventTaskId)
+      .maybeSingle();
+    if (fetchError) return { error: fetchError.message };
+    if (!task || task.event_id !== eventId) {
+      return { error: "Event task must belong to the same event as this assignment." };
+    }
+
+    const { error: insertError } = await supabase
+      .from("event_task_assignments")
+      .insert({ event_task_id: eventTaskId, assignment_id: assignmentId });
+    if (insertError) return { error: insertError.message };
+  }
+
+  return {};
+}
+
 export async function createAssignment(
   eventId: string,
   parentAssignmentId: string | null,
@@ -87,6 +125,7 @@ export async function createAssignment(
   const pickupSetting = String(formData.get("pickup_setting") ?? "admin_only") as PickupSetting;
   const assigneeIds = formData.getAll("assignee_ids").map(String);
   const dependsOnIds = formData.getAll("depends_on_ids").map(String);
+  const eventTaskId = String(formData.get("event_task_id") ?? "") || null;
 
   if (!title) return { error: "Title is required." };
 
@@ -125,6 +164,9 @@ export async function createAssignment(
   const dependenciesResult = await syncAssignmentDependencies(supabase, assignment.id, dependsOnIds);
   if (dependenciesResult.error) return { error: dependenciesResult.error };
 
+  const eventTaskResult = await syncAssignmentEventTask(supabase, eventId, assignment.id, eventTaskId);
+  if (eventTaskResult.error) return { error: eventTaskResult.error };
+
   revalidatePath(`/portal/admin/event-tracker/${eventId}`);
   revalidatePath(`/portal/admin/event-tracker/${eventId}/assignments`);
   return null;
@@ -147,6 +189,7 @@ export async function updateAssignment(
   const pickupSetting = String(formData.get("pickup_setting") ?? "admin_only") as PickupSetting;
   const assigneeIds = formData.getAll("assignee_ids").map(String);
   const dependsOnIds = formData.getAll("depends_on_ids").map(String);
+  const eventTaskId = String(formData.get("event_task_id") ?? "") || null;
 
   if (!title) return { error: "Title is required." };
 
@@ -188,6 +231,9 @@ export async function updateAssignment(
 
   const dependenciesResult = await syncAssignmentDependencies(supabase, assignmentId, dependsOnIds);
   if (dependenciesResult.error) return { error: dependenciesResult.error };
+
+  const eventTaskResult = await syncAssignmentEventTask(supabase, eventId, assignmentId, eventTaskId);
+  if (eventTaskResult.error) return { error: eventTaskResult.error };
 
   revalidatePath(`/portal/admin/event-tracker/${eventId}`);
   revalidatePath(`/portal/admin/event-tracker/${eventId}/assignments`);

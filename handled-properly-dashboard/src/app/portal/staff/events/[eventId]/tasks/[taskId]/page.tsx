@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import EventTaskUpdatesList from "@/components/portal/EventTaskUpdatesList";
+import TaskAssignmentCards from "./TaskAssignmentCards";
 import styles from "@/styles/admin-shared.module.css";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -11,7 +12,7 @@ const STATUS_LABEL: Record<string, string> = {
   done: "Done",
 };
 
-export default async function ClientEventTaskDetailPage({
+export default async function StaffEventTaskDetailPage({
   params,
 }: {
   params: Promise<{ eventId: string; taskId: string }>;
@@ -19,8 +20,9 @@ export default async function ClientEventTaskDetailPage({
   const { eventId, taskId } = await params;
   const supabase = await createSupabaseServerClient();
 
-  // RLS (client_select_own_event_tasks) scopes this — no row means either
-  // the task doesn't exist or it isn't on one of this client's events.
+  // RLS (staff_select_rostered_event_tasks) scopes this — no row means
+  // either the task doesn't exist or this staff member isn't rostered on
+  // its event.
   const { data: task } = await supabase
     .from("event_tasks")
     .select("id, title, description, status")
@@ -38,32 +40,44 @@ export default async function ClientEventTaskDetailPage({
 
   const updates = (updateRows ?? []).map((u) => ({ id: u.id, body: u.body, createdAt: u.created_at }));
 
-  // RLS (client_select_own_request_dependencies) scopes this to this
-  // client's own event tasks — shows which Requests are still blocking this
-  // one from moving forward.
-  const { data: dependencyRows } = await supabase
-    .from("request_dependencies")
-    .select("requests(id, title, fulfilled_at)")
+  // RLS (staff_select_rostered_event_task_assignments) scopes this to this
+  // task's own event — shows the staff-side work behind it.
+  const { data: linkRows } = await supabase
+    .from("event_task_assignments")
+    .select(
+      "assignments(id, title, description, status, tags, due_date, priority, assignment_assignees(event_staff(contacts(name))))"
+    )
     .eq("event_task_id", taskId);
 
-  const blockingRequests = (dependencyRows ?? [])
-    .map((row) => row.requests)
-    .filter((r): r is { id: string; title: string; fulfilled_at: string | null } => r !== null)
-    .filter((r) => r.fulfilled_at === null);
+  const linkedAssignments = (linkRows ?? [])
+    .map((row) => row.assignments)
+    .filter((a): a is NonNullable<typeof a> => a !== null)
+    .map((a) => ({
+      id: a.id,
+      title: a.title,
+      description: a.description,
+      status: a.status,
+      tags: a.tags,
+      dueDate: a.due_date,
+      priority: a.priority,
+      assigneeNames: (a.assignment_assignees ?? [])
+        .map((aa) => aa.event_staff?.contacts?.name)
+        .filter((name): name is string => Boolean(name)),
+    }));
 
   return (
     <div className={styles.page}>
       <Link
-        href={`/portal/client/events/${eventId}`}
+        href={`/portal/staff/events/${eventId}/tasks`}
         className={styles.backLink}
-        aria-label="Back to Event"
+        aria-label="Back to Event Tasks"
       >
         ←
       </Link>
 
       <div className={styles.header}>
         <div>
-          <span className={styles.eyebrow}>Client · Event Task</span>
+          <span className={styles.eyebrow}>Event Staff · Event Task</span>
           <h1 className={styles.title}>{task.title}</h1>
           <div className={styles.metaRow} style={{ marginTop: 8 }}>
             <span className={task.status === "done" ? styles.badge : styles.badgeMuted}>
@@ -80,20 +94,10 @@ export default async function ClientEventTaskDetailPage({
         </div>
       )}
 
-      {blockingRequests.length > 0 && (
+      {linkedAssignments.length > 0 && (
         <div className={styles.card}>
-          <h2 className={styles.cardTitle}>Blocked On</h2>
-          <div className={styles.metaRow}>
-            {blockingRequests.map((r) => (
-              <Link
-                key={r.id}
-                href={`/portal/client/events/${eventId}/requests/${r.id}`}
-                className={styles.pill}
-              >
-                {r.title} — not yet fulfilled
-              </Link>
-            ))}
-          </div>
+          <h2 className={styles.cardTitle}>Staff Assignments Related To This Task</h2>
+          <TaskAssignmentCards assignments={linkedAssignments} />
         </div>
       )}
 

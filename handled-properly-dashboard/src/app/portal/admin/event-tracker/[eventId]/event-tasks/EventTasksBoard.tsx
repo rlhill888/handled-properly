@@ -13,21 +13,42 @@ export default async function EventTasksBoard({
 }) {
   const supabase = await createSupabaseServerClient();
 
-  const [{ data: taskRows }, { data: requestRows }, { data: dependencyRows }] = await Promise.all([
-    supabase
-      .from("event_tasks")
-      .select("id, title, description, status, event_task_updates(id, body, created_at)")
-      .eq("event_id", eventId)
-      .order("created_at", { ascending: true }),
-    supabase.from("requests").select("id, title").eq("event_id", eventId).order("created_at", { ascending: true }),
-    supabase.from("request_dependencies").select("event_task_id, request_id"),
-  ]);
+  const [{ data: taskRows }, { data: requestRows }, { data: dependencyRows }, { data: assignmentRows }, { data: taskAssignmentRows }] =
+    await Promise.all([
+      supabase
+        .from("event_tasks")
+        .select("id, title, description, status, event_task_updates(id, body, created_at)")
+        .eq("event_id", eventId)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("requests")
+        .select("id, title, fulfilled_at")
+        .eq("event_id", eventId)
+        .order("created_at", { ascending: true }),
+      supabase.from("request_dependencies").select("event_task_id, request_id"),
+      supabase
+        .from("assignments")
+        .select("id, title, status")
+        .eq("event_id", eventId)
+        .order("created_at", { ascending: true }),
+      supabase.from("event_task_assignments").select("event_task_id, assignment_id"),
+    ]);
+
+  const requestsById = new Map((requestRows ?? []).map((r) => [r.id, r]));
+  const assignmentsById = new Map((assignmentRows ?? []).map((a) => [a.id, a]));
 
   const blockingByTask = new Map<string, string[]>();
   for (const dep of dependencyRows ?? []) {
     const list = blockingByTask.get(dep.event_task_id) ?? [];
     list.push(dep.request_id);
     blockingByTask.set(dep.event_task_id, list);
+  }
+
+  const assignmentsByTask = new Map<string, string[]>();
+  for (const link of taskAssignmentRows ?? []) {
+    const list = assignmentsByTask.get(link.event_task_id) ?? [];
+    list.push(link.assignment_id);
+    assignmentsByTask.set(link.event_task_id, list);
   }
 
   const tasks: EventTaskData[] = (taskRows ?? []).map((row) => ({
@@ -38,10 +59,18 @@ export default async function EventTasksBoard({
     updates: (row.event_task_updates ?? [])
       .map((u) => ({ id: u.id, body: u.body, createdAt: u.created_at }))
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
-    blockingRequestIds: blockingByTask.get(row.id) ?? [],
+    blockingRequests: (blockingByTask.get(row.id) ?? [])
+      .map((requestId) => requestsById.get(requestId))
+      .filter((r): r is NonNullable<typeof r> => r !== undefined)
+      .map((r) => ({ id: r.id, title: r.title, fulfilledAt: r.fulfilled_at })),
+    linkedAssignments: (assignmentsByTask.get(row.id) ?? [])
+      .map((assignmentId) => assignmentsById.get(assignmentId))
+      .filter((a): a is NonNullable<typeof a> => a !== undefined)
+      .map((a) => ({ id: a.id, title: a.title, status: a.status })),
   }));
 
   const requestOptions = (requestRows ?? []).map((r) => ({ id: r.id, label: r.title }));
+  const assignmentOptions = (assignmentRows ?? []).map((a) => ({ id: a.id, label: a.title }));
 
   return (
     <div className={styles.card}>
@@ -60,6 +89,7 @@ export default async function EventTasksBoard({
         eventId={eventId}
         tasks={tasks}
         requestOptions={requestOptions}
+        assignmentOptions={assignmentOptions}
         isLocked={isLocked}
       />
     </div>

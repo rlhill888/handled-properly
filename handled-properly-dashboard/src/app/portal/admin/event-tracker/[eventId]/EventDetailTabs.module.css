@@ -1,0 +1,43 @@
+.tabRow {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.tabActive {
+  composes: tab;
+  color: #ffffff;
+  background: #0a0a0a;
+}
+
+.panels {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+/* Beats the .panels rule above on specificity (0,2,0 vs 0,1,0) so the
+   native hidden attribute's display:none actually wins instead of being
+   silently overridden by our own display:flex. */
+.panels[hidden] {
+  display: none;
+}

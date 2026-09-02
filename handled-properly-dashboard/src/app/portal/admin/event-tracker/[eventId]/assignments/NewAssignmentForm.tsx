@@ -4,6 +4,7 @@ import { useActionState, useRef, useEffect, useState } from "react";
 import { createAssignment, type ActionState } from "./actions";
 import SubmitButton from "@/components/portal/SubmitButton";
 import MultiSelectField from "@/components/portal/MultiSelectField";
+import SingleSelectField from "@/components/portal/SingleSelectField";
 import styles from "@/styles/admin-shared.module.css";
 
 export type StaffOption = {
@@ -17,6 +18,7 @@ export default function NewAssignmentForm({
   eventId,
   rosterStaff,
   existingAssignments = [],
+  eventTasks = [],
   parentAssignmentId = null,
   submitLabel = "Create Assignment",
   onCreated,
@@ -24,6 +26,7 @@ export default function NewAssignmentForm({
   eventId: string;
   rosterStaff: StaffOption[];
   existingAssignments?: { id: string; title: string }[];
+  eventTasks?: { id: string; title: string }[];
   parentAssignmentId?: string | null;
   submitLabel?: string;
   onCreated?: () => void;
@@ -133,6 +136,18 @@ export default function NewAssignmentForm({
           options={existingAssignments.map((a) => ({ id: a.id, label: a.title }))}
           placeholder="Add a dependency…"
           searchPlaceholder="Search assignments…"
+        />
+      )}
+
+      {eventTasks.length > 0 && (
+        <SingleSelectField
+          key={`event-task-${fieldsResetKey}`}
+          name="event_task_id"
+          label="Event Task"
+          helperText="(optional)"
+          options={eventTasks.map((task) => ({ id: task.id, label: task.title }))}
+          placeholder="Associate with an event task…"
+          searchPlaceholder="Search event tasks…"
         />
       )}
 

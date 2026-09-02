@@ -38,25 +38,6 @@ export default async function StaffEventAssignmentsPage({
     .order("created_at", { ascending: true });
 
   const assignmentIds = (assignmentRows ?? []).map((row) => row.id);
-  // RLS (staff_select_visible_forms) already limits this to staff_visible
-  // Forms on assignments this staff member is rostered for — no extra
-  // filtering needed here.
-  const { data: assignmentForms } =
-    assignmentIds.length > 0
-      ? await supabase
-          .from("forms")
-          .select("id, name, target_id")
-          .eq("target_type", "assignment")
-          .in("target_id", assignmentIds)
-      : { data: [] };
-
-  const visibleFormsByAssignment = new Map<string, { id: string; name: string }[]>();
-  for (const f of assignmentForms ?? []) {
-    if (!f.target_id) continue;
-    const list = visibleFormsByAssignment.get(f.target_id) ?? [];
-    list.push({ id: f.id, name: f.name });
-    visibleFormsByAssignment.set(f.target_id, list);
-  }
 
   const commentsByAssignment = await getCommentsByAssignment(supabase, assignmentIds);
 
@@ -81,7 +62,6 @@ export default async function StaffEventAssignmentsPage({
     assigneeNames: row.assignment_assignees
       .map((a) => a.event_staff?.contacts?.name)
       .filter((name): name is string => Boolean(name)),
-    visibleForms: visibleFormsByAssignment.get(row.id) ?? [],
     comments: commentsByAssignment.get(row.id) ?? [],
     dependsOn: dependsOnByAssignment.get(row.id) ?? [],
     blocks: blocksByAssignment.get(row.id) ?? [],

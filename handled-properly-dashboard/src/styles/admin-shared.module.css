@@ -206,6 +206,15 @@
   color: #0a0a0a;
 }
 
+.iconButtonDanger {
+  composes: iconButton;
+}
+
+.iconButtonDanger:hover {
+  border-color: #b3261e;
+  color: #b3261e;
+}
+
 .primaryButton {
   display: inline-flex;
   align-items: center;

@@ -1,77 +1,162 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useOptimistic, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { addEventTaskUpdate, setEventTaskStatus, syncEventTaskDependencies } from "./actions";
-import MultiSelectField from "@/components/portal/MultiSelectField";
+import { setEventTaskStatus } from "./actions";
+import EventTaskCard from "./EventTaskCard";
+import Modal from "@/components/portal/Modal";
+import LockIcon from "@/components/portal/LockIcon";
 import styles from "@/styles/admin-shared.module.css";
-import commentStyles from "@/components/portal/CommentsSection.module.css";
-
-const STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: "not_started", label: "Not Started" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "blocked", label: "Blocked" },
-  { value: "done", label: "Done" },
-];
+import boardStyles from "@/styles/assignments-board.module.css";
 
 export type EventTaskUpdateData = { id: string; body: string; createdAt: string };
+export type BlockingRequest = { id: string; title: string; fulfilledAt: string | null };
+export type LinkedAssignment = {
+  id: string;
+  title: string;
+  status: "ready" | "in_progress" | "blocked" | "done";
+};
 export type EventTaskData = {
   id: string;
   title: string;
   description: string | null;
-  status: string;
+  status: "not_started" | "in_progress" | "blocked" | "done";
   updates: EventTaskUpdateData[];
-  blockingRequestIds: string[];
+  blockingRequests: BlockingRequest[];
+  linkedAssignments: LinkedAssignment[];
 };
 export type RequestOption = { id: string; label: string };
+export type AssignmentOption = { id: string; label: string };
+
+// An Event Task with an unmet Request Dependency can't move on the board at
+// all — mirrors isBlocked on the Assignments board (AssignmentBoardClient),
+// which disables dragging entirely rather than only blocking the specific
+// in_progress/done transitions the set_event_task_status RPC gates.
+function isBlocked(task: EventTaskData): boolean {
+  return task.blockingRequests.some((r) => !r.fulfilledAt);
+}
+
+const COLUMNS: { status: EventTaskData["status"]; label: string }[] = [
+  { status: "not_started", label: "Not Started" },
+  { status: "in_progress", label: "In Progress" },
+  { status: "blocked", label: "Blocked" },
+  { status: "done", label: "Done" },
+];
+
+// How far the pointer has to move before a press becomes a drag, so a
+// simple tap doesn't get mistaken for a drag attempt.
+const DRAG_THRESHOLD_PX = 8;
 
 export default function EventTasksBoardClient({
   eventId,
   tasks,
   requestOptions,
+  assignmentOptions,
   isLocked,
 }: {
   eventId: string;
   tasks: EventTaskData[];
   requestOptions: RequestOption[];
+  assignmentOptions: AssignmentOption[];
   isLocked: boolean;
 }) {
   const router = useRouter();
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
-  const [draftById, setDraftById] = useState<Record<string, string>>({});
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null);
+  const [dragOverStatus, setDragOverStatus] = useState<EventTaskData["status"] | null>(null);
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+  // Drops need to show the card in its new column right away — the write +
+  // revalidatePath/router.refresh() round trip is slow enough that without
+  // this, the card visibly snaps back to its old column and then jumps to
+  // the new one once the server data catches up.
+  const [optimisticTasks, setOptimisticStatus] = useOptimistic(
+    tasks,
+    (state, update: { id: string; status: EventTaskData["status"] }) =>
+      state.map((t) => (t.id === update.id ? { ...t, status: update.status } : t))
+  );
 
-  const handleStatusChange = (taskId: string, status: string) => {
-    setError(null);
+  const columnRefs = useRef(new Map<string, HTMLDivElement>());
+  const pointerState = useRef<{
+    taskId: string;
+    pointerId: number;
+    startX: number;
+    startY: number;
+    dragging: boolean;
+  } | null>(null);
+
+  const openTask = tasks.find((t) => t.id === openTaskId) ?? null;
+  const isModalOpen = openTaskId !== null && openTask !== null;
+
+  // Pointer Events fire uniformly for mouse, touch, and pen — hit-testing
+  // columns manually is what lets this same code drive both, same as the
+  // Assignments board.
+  const statusAtPoint = useCallback((x: number, y: number): EventTaskData["status"] | null => {
+    for (const [status, el] of columnRefs.current) {
+      const rect = el.getBoundingClientRect();
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+        return status as EventTaskData["status"];
+      }
+    }
+    return null;
+  }, []);
+
+  const commitDrop = (id: string, status: EventTaskData["status"]) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task || task.status === status) return;
     startTransition(async () => {
-      const result = await setEventTaskStatus(taskId, eventId, status as never);
-      if (result?.error) setError(result.error);
+      setOptimisticStatus({ id, status });
+      const result = await setEventTaskStatus(id, eventId, status);
+      if (result?.error) alert(result.error);
       router.refresh();
     });
   };
 
-  const handlePostUpdate = (taskId: string) => {
-    const body = draftById[taskId] ?? "";
-    if (!body.trim()) return;
-    setError(null);
-    startTransition(async () => {
-      const result = await addEventTaskUpdate(taskId, eventId, body);
-      if (result?.error) setError(result.error);
-      else setDraftById((current) => ({ ...current, [taskId]: "" }));
-      router.refresh();
-    });
+  const handlePointerDown = (taskId: string) => (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isLocked) return;
+    const task = optimisticTasks.find((t) => t.id === taskId);
+    if (task && isBlocked(task)) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    pointerState.current = {
+      taskId,
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      dragging: false,
+    };
   };
 
-  const handleDependenciesSubmit = (taskId: string, e: React.FormEvent<HTMLFormElement>) => {
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const state = pointerState.current;
+    if (!state || state.pointerId !== e.pointerId) return;
+
+    const dx = e.clientX - state.startX;
+    const dy = e.clientY - state.startY;
+
+    if (!state.dragging) {
+      if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
+      state.dragging = true;
+      setDraggingId(state.taskId);
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
+
     e.preventDefault();
-    const requestIds = new FormData(e.currentTarget).getAll("request_ids") as string[];
-    setError(null);
-    startTransition(async () => {
-      const result = await syncEventTaskDependencies(taskId, eventId, requestIds);
-      if (result?.error) setError(result.error);
-      router.refresh();
-    });
+    setDragOffset({ x: dx, y: dy });
+    setDragOverStatus(statusAtPoint(e.clientX, e.clientY));
+  };
+
+  const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    const state = pointerState.current;
+    pointerState.current = null;
+    if (!state || state.pointerId !== e.pointerId) return;
+
+    if (state.dragging) {
+      const status = statusAtPoint(e.clientX, e.clientY);
+      if (status) commitDrop(state.taskId, status);
+    }
+    setDraggingId(null);
+    setDragOffset(null);
+    setDragOverStatus(null);
   };
 
   if (tasks.length === 0) {
@@ -79,116 +164,76 @@ export default function EventTasksBoardClient({
   }
 
   return (
-    <div className={styles.form}>
-      {error && <p className={styles.error}>{error}</p>}
-
-      <div className={styles.accordionList}>
-        {tasks.map((task) => {
-          const expanded = expandedId === task.id;
-          return (
-            <div key={task.id} className={styles.accordionItem}>
-              <button
-                type="button"
-                className={styles.accordionHeader}
-                onClick={() => setExpandedId(expanded ? null : task.id)}
-                aria-expanded={expanded}
-              >
-                <span className={styles.accordionTitle}>{task.title}</span>
-                <span className={task.status === "done" ? styles.badge : styles.badgeMuted}>
-                  {STATUS_OPTIONS.find((o) => o.value === task.status)?.label ?? task.status}
-                </span>
-                <span
-                  className={`${styles.accordionChevron} ${expanded ? styles.accordionChevronOpen : ""}`}
-                  aria-hidden="true"
-                >
-                  ▾
-                </span>
-              </button>
-
-              {expanded && (
-                <div className={styles.accordionBody}>
-                  {task.description && <p>{task.description}</p>}
-
-                  <div className={styles.field}>
-                    <label className={styles.label} htmlFor={`status-${task.id}`}>
-                      Status
-                    </label>
-                    <select
-                      id={`status-${task.id}`}
-                      className={styles.select}
-                      value={task.status}
-                      disabled={isLocked || isPending}
-                      onChange={(e) => handleStatusChange(task.id, e.target.value)}
-                    >
-                      {STATUS_OPTIONS.map((o) => (
-                        <option key={o.value} value={o.value}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <form
-                    className={styles.form}
-                    onSubmit={(e) => handleDependenciesSubmit(task.id, e)}
-                  >
-                    <MultiSelectField
-                      name="request_ids"
-                      label="Blocked on Requests"
-                      helperText="won't let this task move to In Progress/Done until fulfilled"
-                      options={requestOptions.map((r) => ({ id: r.id, label: r.label }))}
-                      initialSelectedIds={task.blockingRequestIds}
-                      placeholder="Add a blocking request…"
-                      searchPlaceholder="Search requests…"
-                    />
-                    <div className={styles.actions}>
-                      <button type="submit" className={styles.secondaryButton} disabled={isLocked || isPending}>
-                        Save Dependencies
-                      </button>
-                    </div>
-                  </form>
-
-                  <div className={styles.card}>
-                    <h2 className={styles.cardTitle}>Updates</h2>
-                    <div className={commentStyles.list}>
-                      {task.updates.length === 0 && <p className={styles.emptyState}>No updates yet.</p>}
-                      {task.updates.map((update) => (
-                        <div key={update.id} className={commentStyles.comment}>
-                          <div className={commentStyles.commentMeta}>
-                            <span className={commentStyles.commentTime}>
-                              {new Date(update.createdAt).toLocaleString()}
-                            </span>
-                          </div>
-                          <p className={commentStyles.commentBody}>{update.body}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <div className={commentStyles.composer}>
-                      <textarea
-                        className={styles.textarea}
-                        rows={2}
-                        placeholder="Post an update…"
-                        value={draftById[task.id] ?? ""}
-                        onChange={(e) =>
-                          setDraftById((current) => ({ ...current, [task.id]: e.target.value }))
-                        }
-                      />
-                      <button
-                        type="button"
-                        className={styles.primaryButton}
-                        disabled={isPending || !(draftById[task.id] ?? "").trim()}
-                        onClick={() => handlePostUpdate(task.id)}
-                      >
-                        Post
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+    <>
+      <div className={boardStyles.board}>
+        {COLUMNS.map((column) => (
+          <div
+            key={column.status}
+            ref={(el) => {
+              if (el) columnRefs.current.set(column.status, el);
+              else columnRefs.current.delete(column.status);
+            }}
+            className={`${boardStyles.column} ${
+              dragOverStatus === column.status ? boardStyles.columnDragOver : ""
+            }`}
+          >
+            <div className={boardStyles.columnHeader}>
+              <span>{column.label}</span>
+              <span>{optimisticTasks.filter((t) => t.status === column.status).length}</span>
             </div>
-          );
-        })}
+
+            {optimisticTasks
+              .filter((t) => t.status === column.status)
+              .map((task) => (
+                <div
+                  key={task.id}
+                  className={`${boardStyles.titleCard} ${
+                    draggingId === task.id ? boardStyles.titleCardDragging : ""
+                  } ${isBlocked(task) ? boardStyles.titleCardBlocked : ""}`}
+                  style={
+                    draggingId === task.id && dragOffset
+                      ? { transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)` }
+                      : undefined
+                  }
+                  onPointerDown={handlePointerDown(task.id)}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={endDrag}
+                  onPointerCancel={endDrag}
+                >
+                  <span className={boardStyles.titleCardText}>
+                    {isBlocked(task) && (
+                      <span className={boardStyles.titleCardBlockedIcon} aria-label="Blocked">
+                        <LockIcon size={12} />
+                      </span>
+                    )}
+                    {task.title}
+                  </span>
+                  <button
+                    type="button"
+                    className={boardStyles.titleCardToggle}
+                    aria-label={`View details for ${task.title}`}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={() => setOpenTaskId(task.id)}
+                  >
+                    ▾
+                  </button>
+                </div>
+              ))}
+          </div>
+        ))}
       </div>
-    </div>
+
+      <Modal open={isModalOpen} onClose={() => setOpenTaskId(null)} title="Event Task">
+        {openTask && (
+          <EventTaskCard
+            eventId={eventId}
+            task={openTask}
+            requestOptions={requestOptions}
+            assignmentOptions={assignmentOptions}
+            isLocked={isLocked}
+          />
+        )}
+      </Modal>
+    </>
   );
 }

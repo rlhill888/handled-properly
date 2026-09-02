@@ -19,17 +19,17 @@ export default async function ClientVendorsPage({
 
   if (!event) notFound();
 
-  // RLS (client_select_event_vendors / client_select_own_vendors /
-  // client_select_vendor_contacts) already limits this to this event's
-  // Vendor list — no extra filter needed.
+  // RLS (client_select_event_vendors / client_select_vendor_contacts)
+  // already limits this to this event's Vendor list — no extra filter
+  // needed.
   const { data: eventVendors } = await supabase
     .from("event_vendors")
-    .select("vendors(id, category, contacts(name, email, phone))")
+    .select("contacts(id, name, email, phone)")
     .eq("event_id", eventId);
 
   const vendors = (eventVendors ?? [])
-    .map((row) => row.vendors)
-    .filter((v): v is NonNullable<typeof v> => v !== null);
+    .map((row) => row.contacts)
+    .filter((c): c is NonNullable<typeof c> => c !== null);
 
   return (
     <div className={styles.page}>
@@ -51,22 +51,18 @@ export default async function ClientVendorsPage({
           <thead>
             <tr>
               <th>Name</th>
-              <th>Category</th>
               <th>Email</th>
               <th>Phone</th>
             </tr>
           </thead>
           <tbody>
-            {vendors.map((vendor) => (
-              <tr key={vendor.id}>
+            {vendors.map((contact) => (
+              <tr key={contact.id}>
                 <td data-label="Name" className={styles.cardPrimaryCell}>
-                  {vendor.contacts?.name ?? "—"}
+                  {contact.name}
                 </td>
-                <td data-label="Category">
-                  <span className={styles.pill}>{vendor.category}</span>
-                </td>
-                <td data-label="Email">{vendor.contacts?.email ?? "—"}</td>
-                <td data-label="Phone">{vendor.contacts?.phone || "—"}</td>
+                <td data-label="Email">{contact.email}</td>
+                <td data-label="Phone">{contact.phone || "—"}</td>
               </tr>
             ))}
           </tbody>

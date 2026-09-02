@@ -17,11 +17,9 @@ export async function createRequest(
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const dueDate = String(formData.get("due_date") ?? "").trim();
-  const requiresFile = formData.get("requires_file") === "on";
-  // 'auto' only makes sense when a file is required — the DB CHECK
-  // constraint (requests_auto_requires_file) enforces this too, but we
-  // normalize here so a stray form value never trips it.
-  const fulfillmentSetting = requiresFile && formData.get("fulfillment_setting") === "auto" ? "auto" : "manual_review";
+  const requestTypeRaw = String(formData.get("request_type") ?? "");
+  const requestType = requestTypeRaw === "text" || requestTypeRaw === "checkbox" ? requestTypeRaw : "file";
+  const fulfillmentSetting = formData.get("fulfillment_setting") === "auto" ? "auto" : "manual_review";
 
   if (!title) return { error: "Title is required." };
 
@@ -31,7 +29,7 @@ export async function createRequest(
     title,
     description: description || null,
     due_date: dueDate || null,
-    requires_file: requiresFile,
+    request_type: requestType,
     fulfillment_setting: fulfillmentSetting,
   });
   if (error) return { error: error.message };
@@ -52,6 +50,27 @@ export async function markRequestFulfilled(
     .from("requests")
     .update({ fulfilled_at: new Date().toISOString() })
     .eq("id", requestId);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/portal/admin/event-tracker/${eventId}`);
+  return {};
+}
+
+// Reverses markRequestFulfilled — an admin override available regardless of
+// Fulfillment Setting, since a Request that auto-fulfilled from the
+// Client's action (an upload, a text submission, a checkbox) can still turn
+// out to need another look. This only clears Fulfilled At; it doesn't touch
+// the Client's submitted file/text/checked state, so reopening a Request
+// doesn't erase what they already sent in.
+export async function markRequestNotFulfilled(
+  requestId: string,
+  eventId: string
+): Promise<{ error?: string }> {
+  const actor = await getCurrentActor();
+  if (actor?.role !== "admin") return { error: "Not authorized." };
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.from("requests").update({ fulfilled_at: null }).eq("id", requestId);
   if (error) return { error: error.message };
 
   revalidatePath(`/portal/admin/event-tracker/${eventId}`);

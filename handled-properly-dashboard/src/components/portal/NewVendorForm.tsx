@@ -1,12 +1,19 @@
 "use client";
 
 import { useActionState, useRef, useEffect } from "react";
-import { createVendor, type ActionState } from "./actions";
-import SubmitButton from "@/components/portal/SubmitButton";
+import { createVendor, type ActionState } from "@/lib/actions/vendors";
+import SubmitButton from "./SubmitButton";
 import styles from "@/styles/admin-shared.module.css";
 
-export default function NewVendorForm({ onCreated }: { onCreated?: () => void } = {}) {
-  const [state, formAction] = useActionState<ActionState, FormData>(createVendor, null);
+export default function NewVendorForm({
+  eventId,
+  onCreated,
+}: {
+  eventId: string;
+  onCreated?: () => void;
+}) {
+  const boundAction = createVendor.bind(null, eventId);
+  const [state, formAction] = useActionState<ActionState, FormData>(boundAction, null);
   const formRef = useRef<HTMLFormElement>(null);
   const previousState = useRef<ActionState>(null);
 
@@ -38,19 +45,11 @@ export default function NewVendorForm({ onCreated }: { onCreated?: () => void } 
         </div>
       </div>
 
-      <div className={styles.formRow}>
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="vendor-phone">
-            Phone <span className={styles.optional}>optional</span>
-          </label>
-          <input id="vendor-phone" name="phone" className={styles.input} />
-        </div>
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="vendor-category">
-            Category
-          </label>
-          <input id="vendor-category" name="category" required className={styles.input} placeholder="Caterer" />
-        </div>
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="vendor-phone">
+          Phone <span className={styles.optional}>optional</span>
+        </label>
+        <input id="vendor-phone" name="phone" className={styles.input} />
       </div>
 
       <div className={styles.actions}>

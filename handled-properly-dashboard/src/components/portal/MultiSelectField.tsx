@@ -19,6 +19,7 @@ export default function MultiSelectField({
   initialSelectedIds = [],
   placeholder,
   searchPlaceholder = "Search…",
+  onSelectionChange,
 }: {
   name: string;
   label: string;
@@ -27,14 +28,29 @@ export default function MultiSelectField({
   initialSelectedIds?: string[];
   placeholder: string;
   searchPlaceholder?: string;
+  // Fires with the full new selection on every add/remove — for callers
+  // that want to persist immediately (no separate Save step) instead of
+  // relying on this field's hidden inputs being read from a surrounding
+  // <form> on submit.
+  onSelectionChange?: (selectedIds: string[]) => void;
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>(initialSelectedIds);
 
-  const remove = (id: string) => setSelectedIds((current) => current.filter((i) => i !== id));
+  const remove = (id: string) => {
+    setSelectedIds((current) => {
+      const next = current.filter((i) => i !== id);
+      onSelectionChange?.(next);
+      return next;
+    });
+  };
 
   const add = (id: string) => {
     if (selectedIds.includes(id)) return;
-    setSelectedIds((current) => [...current, id]);
+    setSelectedIds((current) => {
+      const next = [...current, id];
+      onSelectionChange?.(next);
+      return next;
+    });
   };
 
   return (
