@@ -64,16 +64,6 @@ const AiFormDesignSchema = z.object({
 });
 export type AiFormDesign = z.infer<typeof AiFormDesignSchema>;
 
-const AiReviewResultSchema = z.object({
-  approved: z.boolean(),
-  feedback: z.string(),
-  // Always present, even when approved:true (the model echoes the same
-  // design back), so the structured-output schema stays a plain object
-  // rather than a discriminated union.
-  revisedDesign: AiFormDesignSchema,
-});
-export type AiReviewResult = z.infer<typeof AiReviewResultSchema>;
-
 function buildDesignSystemPrompt(bannerImageAvailable: boolean, isEditing: boolean): string {
   const imageGuidance = bannerImageAvailable
     ? `A background/banner image is available for use this round. If a photo
@@ -232,47 +222,3 @@ export async function findBannerImageUrl(prompt: string): Promise<string | null>
   }
 }
 
-const REVIEW_SYSTEM_PROMPT = `You review a screenshot of a rendered form against
-the admin's original brief and the JSON design that produced it. Judge layout,
-color/contrast, spacing, and whether the questions match what was asked for.
-If it looks good and matches the brief, set approved:true and echo the same
-design back unchanged in revisedDesign. If not, set approved:false, explain why
-in feedback, and return a corrected design in revisedDesign using the same
-field/theme constraints you were given when designing forms from scratch
-(including: every "select" field must carry a non-empty "options" array).`;
-
-export async function reviewFormScreenshot(
-  prompt: string,
-  screenshotBase64: string,
-  currentDesign: AiFormDesign,
-): Promise<AiReviewResult> {
-  const response = await client.messages.parse({
-    model: "claude-opus-5",
-    max_tokens: 4096,
-    system: REVIEW_SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: { type: "base64", media_type: "image/jpeg", data: screenshotBase64 },
-          },
-          {
-            type: "text",
-            text:
-              `Original brief: ${prompt}\n\n` +
-              `Design JSON that produced this screenshot:\n${JSON.stringify(currentDesign)}`,
-          },
-        ],
-      },
-    ],
-    output_config: { format: zodOutputFormat(AiReviewResultSchema) },
-  });
-
-  if (!response.parsed_output) {
-    throw new Error("The model's response couldn't be parsed as a review result.");
-  }
-
-  return response.parsed_output;
-}

@@ -5,7 +5,7 @@ import Modal from "@/components/portal/Modal";
 import AiGeneratingOverlay from "@/components/AiGeneratingOverlay";
 import FormRenderSurface, { type RenderSurfaceField } from "@/components/FormRenderSurface";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
-import { generateFormWithAI, reviewFormScreenshotAction } from "@/app/portal/admin/form/ai-actions";
+import { generateFormWithAI } from "@/app/portal/admin/form/ai-actions";
 import type { AiFormDesign } from "@/lib/ai-form-design";
 import {
   DEFAULT_THEME,
@@ -19,14 +19,6 @@ import styles from "./FormBuilder.module.css";
 import sharedStyles from "@/styles/admin-shared.module.css";
 
 export { DEFAULT_THEME, type FormTheme } from "@/lib/form-theme";
-
-const MAX_REVISION_ROUNDS = 3;
-
-function waitForPaint(): Promise<void> {
-  return new Promise((resolve) => {
-    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-  });
-}
 
 export type FormFieldType =
   | "text"
@@ -165,10 +157,7 @@ export default function FormBuilder({
   const previewRef = useRef<HTMLDivElement>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
-  const [aiStage, setAiStage] = useState<"idle" | "generating" | "reviewing" | "revising">(
-    "idle",
-  );
-  const [aiRound, setAiRound] = useState(0);
+  const [aiStage, setAiStage] = useState<"idle" | "generating">("idle");
   const [aiError, setAiError] = useState<string | null>(null);
   const aiRegionRef = useRef<HTMLDivElement>(null);
   useFocusTrap(aiOpen, aiRegionRef);
@@ -374,24 +363,12 @@ export default function FormBuilder({
       });
     });
     setSelectedId(null);
-    setViewMode("preview"); // must be mounted to be screenshotted
-    setFullScreenPreviewOpen(false); // don't let a revision land silently under an open overlay
-  };
-
-  const captureScreenshot = async (): Promise<string | null> => {
-    if (!previewRef.current) return null;
-    const { default: html2canvas } = await import("html2canvas");
-    const canvas = await html2canvas(previewRef.current, {
-      backgroundColor: null,
-      useCORS: true,
-      scale: 1,
-    });
-    return canvas.toDataURL("image/jpeg", 0.85).split(",")[1] ?? null;
+    setViewMode("preview");
+    setFullScreenPreviewOpen(false);
   };
 
   const handleGenerateWithAI = async () => {
     setAiError(null);
-    setAiRound(0);
     setAiStage("generating");
 
     const priorDesign: FormBuilderSaveData | null = isFormEmpty
@@ -406,34 +383,6 @@ export default function FormBuilder({
     }
 
     applyAiDesign(genResult);
-    await waitForPaint();
-
-    let currentDesign: AiFormDesign = genResult;
-
-    for (let round = 0; round < MAX_REVISION_ROUNDS; round++) {
-      setAiStage("reviewing");
-      const screenshot = await captureScreenshot();
-      if (!screenshot) {
-        setAiError("Couldn't capture a preview of the form to review.");
-        setAiStage("idle");
-        return;
-      }
-
-      const reviewResult = await reviewFormScreenshotAction(aiPrompt, screenshot, currentDesign);
-      if ("error" in reviewResult) {
-        setAiError(reviewResult.error);
-        setAiStage("idle");
-        return;
-      }
-
-      if (reviewResult.approved) break;
-
-      currentDesign = reviewResult.revisedDesign;
-      setAiStage("revising");
-      applyAiDesign(currentDesign);
-      await waitForPaint();
-      setAiRound(round + 1);
-    }
 
     setAiStage("idle");
     setAiOpen(false);
@@ -1244,15 +1193,7 @@ export default function FormBuilder({
 
         {aiStage !== "idle" && (
           <AiGeneratingOverlay
-            message={
-              aiStage === "generating"
-                ? isFormEmpty
-                  ? "Designing your form…"
-                  : "Updating your form…"
-                : aiStage === "reviewing"
-                  ? "Checking how it looks…"
-                  : `Refining the design… (round ${aiRound} of ${MAX_REVISION_ROUNDS})`
-            }
+            message={isFormEmpty ? "Designing your form…" : "Updating your form…"}
           />
         )}
       </div>
