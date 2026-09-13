@@ -1,3 +1,4 @@
+import DownloadIcon from "@/components/portal/DownloadIcon";
 import styles from "@/styles/admin-shared.module.css";
 
 export type ClientEventDocumentationData = {
@@ -20,15 +21,24 @@ export default function ClientEventDocumentationList({
     <div className={styles.accordionList}>
       {docs.map((doc) => (
         <div key={doc.id} className={styles.card}>
-          <h2 className={styles.cardTitle}>{doc.title}</h2>
-          {doc.description && <p>{doc.description}</p>}
-          {doc.downloadUrl && (
-            <p>
-              <a href={doc.downloadUrl} target="_blank" rel="noreferrer" className={styles.link}>
-                Download
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+            <h2 className={styles.cardTitle} style={{ marginBottom: doc.description ? 8 : 0 }}>
+              {doc.title}
+            </h2>
+            {doc.downloadUrl && (
+              <a
+                href={doc.downloadUrl}
+                download
+                rel="noreferrer"
+                className={styles.secondaryButton}
+                style={{ flexShrink: 0 }}
+              >
+                <DownloadIcon size={14} />
+                <span style={{ marginLeft: 6 }}>Download</span>
               </a>
-            </p>
-          )}
+            )}
+          </div>
+          {doc.description && <p>{doc.description}</p>}
         </div>
       ))}
     </div>

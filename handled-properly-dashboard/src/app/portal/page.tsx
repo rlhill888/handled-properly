@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentActor } from "@/lib/auth/get-current-actor";
+import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import PortalSidebar from "@/components/PortalSidebar";
 import ActiveEventsList from "@/components/portal/ActiveEventsList";
-import MyAssignmentsRow from "@/components/portal/MyAssignmentsRow";
-import { ADMIN_LINKS, STAFF_LINKS, CLIENT_LINKS } from "@/lib/portal-nav";
+import { ADMIN_LINKS, STAFF_LINKS } from "@/lib/portal-nav";
+import { getClientLinksWithBadges } from "@/lib/data/client-nav-links";
 import shellStyles from "./portal-shell.module.css";
 import pageStyles from "@/styles/admin-shared.module.css";
 
@@ -12,9 +13,18 @@ export default async function PortalIndexPage() {
   const actor = await getCurrentActor();
   if (!actor) redirect("/portal/signin");
 
-  const roleLabel =
-    actor.role === "admin" ? "Admin" : actor.role === "client" ? "Client" : "Event Staff";
-  const links = actor.role === "admin" ? ADMIN_LINKS : actor.role === "client" ? CLIENT_LINKS : STAFF_LINKS;
+  // Event Staff has no dashboard of its own here — send it straight to its
+  // events list instead of building a "Welcome back" home screen.
+  if (actor.role === "event_staff") redirect("/portal/staff/events");
+
+  // Omitted for the Client portal — see PortalSidebar's roleLabel prop.
+  const roleLabel = actor.role === "admin" ? "Admin" : undefined;
+
+  let links = actor.role === "admin" ? ADMIN_LINKS : STAFF_LINKS;
+  if (actor.role === "client") {
+    const supabase = await createSupabaseServerClient();
+    links = await getClientLinksWithBadges(supabase);
+  }
 
   return (
     <div className={shellStyles.shell}>
@@ -36,11 +46,10 @@ export default async function PortalIndexPage() {
             <h2 className={pageStyles.cardTitle}>Active Events</h2>
             <ActiveEventsList linkBase="/portal/admin/event-tracker" />
           </div>
-        ) : actor.role === "client" ? (
+        ) : (
           <div className={pageStyles.page}>
             <div className={pageStyles.header}>
               <div>
-                <span className={pageStyles.eyebrow}>Client</span>
                 <h1 className={pageStyles.title}>Welcome back</h1>
                 <p className={pageStyles.description}>Your active events.</p>
               </div>
@@ -51,25 +60,6 @@ export default async function PortalIndexPage() {
 
             <h2 className={pageStyles.cardTitle}>Active Events</h2>
             <ActiveEventsList linkBase="/portal/client/events" />
-          </div>
-        ) : (
-          <div className={pageStyles.page}>
-            <div className={pageStyles.header}>
-              <div>
-                <span className={pageStyles.eyebrow}>Event Staff</span>
-                <h1 className={pageStyles.title}>Welcome back</h1>
-                <p className={pageStyles.description}>Events you&apos;re currently on the roster for.</p>
-              </div>
-              <Link href="/portal/staff/events" className={pageStyles.secondaryButton}>
-                View All Events
-              </Link>
-            </div>
-
-            <h2 className={pageStyles.cardTitle}>Your Assignments</h2>
-            <MyAssignmentsRow currentStaffId={actor.eventStaffId} />
-
-            <h2 className={pageStyles.cardTitle}>Active Events</h2>
-            <ActiveEventsList linkBase="/portal/staff/events" />
           </div>
         )}
       </main>

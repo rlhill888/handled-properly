@@ -1,0 +1,212 @@
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.breadcrumbLink {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.breadcrumbLink:hover {
+  color: var(--foreground);
+  text-decoration: underline;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.headerRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.title {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--foreground);
+}
+
+.titleDone {
+  composes: title;
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.description {
+  font-size: 14px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.priorityPill {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--foreground);
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 8px 16px;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fieldLabel {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.dueDateBox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.dueDateBox svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.avatarRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.avatarChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px 6px 6px;
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.avatarCircle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #e5e5e5;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.avatarName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.linkRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s ease;
+}
+
+.linkRow:hover {
+  border-color: #0a0a0a;
+}
+
+.linkRowLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--foreground);
+  min-width: 0;
+}
+
+.linkRowLabel svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.linkRowLabelDone {
+  composes: linkRowLabel;
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.linkRowChevron {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 24px 20px;
+    border-radius: 12px;
+  }
+
+  .fieldGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .headerRow {
+    flex-direction: column;
+  }
+}

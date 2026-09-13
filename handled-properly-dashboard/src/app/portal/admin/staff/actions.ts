@@ -80,10 +80,7 @@ export async function inviteEventStaff(
   return null;
 }
 
-// Free-text notes on a staff member. "Tags" (see StaffList) are read-only —
-// derived from roster_categories this person has ever been assigned across
-// any event's roster, not a separately managed field, so there's no
-// create/set action for them here.
+// Free-text notes on a staff member.
 export async function updateStaffNotes(
   eventStaffId: string,
   notes: string

@@ -8,6 +8,11 @@ import { generateApplicationSummary } from "@/lib/ai-application-summary";
 
 export type ActionState = { error: string } | null;
 
+export type ConvertApplicationState =
+  | { error: string }
+  | { client: { id: string; name: string } }
+  | null;
+
 // Lazily generates and caches the AI summary the first time an admin opens
 // an Application — see docs/adr/0011-client-applications-are-not-forms.md.
 export async function getOrGenerateApplicationSummary(
@@ -50,7 +55,9 @@ export async function getOrGenerateApplicationSummary(
   return { summary };
 }
 
-export async function convertApplicationToClient(applicationId: string): Promise<ActionState> {
+export async function convertApplicationToClient(
+  applicationId: string
+): Promise<ConvertApplicationState> {
   const actor = await getCurrentActor();
   if (actor?.role !== "admin") return { error: "Not authorized." };
 
@@ -74,10 +81,14 @@ export async function convertApplicationToClient(applicationId: string): Promise
       });
   if ("error" in contact) return { error: contact.error };
 
-  const { error: clientError } = await supabase.from("clients").insert({
-    contact_id: contact.id,
-    company_name: application.company_name,
-  });
+  const { data: client, error: clientError } = await supabase
+    .from("clients")
+    .insert({
+      contact_id: contact.id,
+      company_name: application.company_name,
+    })
+    .select("id")
+    .single();
 
   if (clientError) {
     if (clientError.code === "23505") {
@@ -93,7 +104,7 @@ export async function convertApplicationToClient(applicationId: string): Promise
   if (updateError) return { error: updateError.message };
 
   revalidatePath("/portal/admin/clients");
-  return null;
+  return { client: { id: client.id, name: application.company_name || application.name } };
 }
 
 export async function declineApplication(applicationId: string): Promise<ActionState> {

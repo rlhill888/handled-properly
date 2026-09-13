@@ -57,6 +57,7 @@ export default async function StaffEventConversationsPage({
       {event.staff_can_start_conversations ? (
         <div className={styles.card}>
           <h2 className={styles.cardTitle}>Start Conversation</h2>
+          <p className={styles.description}>Send a message to staff on this event.</p>
           <NewConversationForm
             eventId={eventId}
             basePath={`/portal/staff/events/${eventId}/conversations`}
@@ -65,15 +66,15 @@ export default async function StaffEventConversationsPage({
         </div>
       ) : (
         <p className={styles.description}>
-          Only the admin can start new conversations for this event. You can still participate in
-          any you're added to below.
+          Only the admin can start a chat here. You can still join ones you&apos;re added to.
         </p>
       )}
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Your Conversations ({conversations?.length ?? 0})</h2>
+        <p className={styles.description}>Chats for this event that you&apos;re in.</p>
         {!conversations || conversations.length === 0 ? (
-          <p className={styles.emptyState}>You're not part of any conversations for this event yet.</p>
+          <p className={styles.emptyState}>You&apos;re not part of any conversations for this event yet.</p>
         ) : (
           <table className={`${styles.table} ${styles.cardRows}`}>
             <thead>

@@ -14,6 +14,7 @@ import EventVendorsPanel from "./event-vendors/EventVendorsPanel";
 import SettingsModalButton from "@/components/portal/SettingsModalButton";
 import EventHeaderImage from "@/components/portal/EventHeaderImage";
 import { getEventHeaderImageDataUrl } from "@/lib/data/event-header-image";
+import { formatEventDate } from "@/lib/format-event-date";
 import { CHAT_ENABLED } from "@/lib/feature-flags";
 import styles from "@/styles/admin-shared.module.css";
 
@@ -28,7 +29,7 @@ export default async function EventDetailPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, name, starts_at, location, status, completed_at, staff_can_start_conversations, header_image_path, client:clients(company_name,contacts(name)), series:event_series(id, label)"
+      "id, name, starts_at, ends_at, location, status, completed_at, staff_can_start_conversations, header_image_path, client:clients(company_name,contacts(name))"
     )
     .eq("id", eventId)
     .maybeSingle();
@@ -38,50 +39,13 @@ export default async function EventDetailPage({
   const clientName = event.client?.company_name || event.client?.contacts?.name || "—";
   const headerImageUrl = await getEventHeaderImageDataUrl(event.header_image_path);
 
-  const [
-    { data: rosterRows },
-    { data: allStaff },
-    { data: rosterCategoryRows },
-    { data: allCategoryLinkRows },
-  ] = await Promise.all([
+  const [{ data: rosterRows }, { data: allStaff }] = await Promise.all([
     supabase
       .from("roster_entries")
       .select("event_staff_id, event_staff(id, contacts(name, email))")
       .eq("event_id", eventId),
     supabase.from("event_staff").select("id, contacts(name, email)"),
-    supabase
-      .from("roster_categories")
-      .select("id, name, roster_entry_categories(event_staff_id)")
-      .eq("event_id", eventId)
-      .order("name", { ascending: true }),
-    // Every roster-category a staff member has ever been assigned, across
-    // ALL events (no event_id filter here, unlike the query above) — lets
-    // the "add staff to roster" picker below match a search term like
-    // "Catering" against a staff member's history, not just this event.
-    supabase.from("roster_entry_categories").select("event_staff_id, roster_categories(name)"),
   ]);
-
-  const rosterCategories = (rosterCategoryRows ?? []).map((row) => ({
-    id: row.id,
-    name: row.name,
-  }));
-
-  const categoryIdsByStaff = new Map<string, string[]>();
-  for (const row of rosterCategoryRows ?? []) {
-    for (const entry of row.roster_entry_categories) {
-      const list = categoryIdsByStaff.get(entry.event_staff_id) ?? [];
-      list.push(row.id);
-      categoryIdsByStaff.set(entry.event_staff_id, list);
-    }
-  }
-
-  const tagNamesByStaff = new Map<string, string[]>();
-  for (const link of allCategoryLinkRows ?? []) {
-    if (!link.roster_categories) continue;
-    const list = tagNamesByStaff.get(link.event_staff_id) ?? [];
-    list.push(link.roster_categories.name);
-    tagNamesByStaff.set(link.event_staff_id, list);
-  }
 
   const rosterMembers = (rosterRows ?? [])
     .filter((row) => row.event_staff?.contacts)
@@ -89,8 +53,6 @@ export default async function EventDetailPage({
       id: row.event_staff!.id,
       name: row.event_staff!.contacts!.name,
       email: row.event_staff!.contacts!.email,
-      categoryIds: categoryIdsByStaff.get(row.event_staff!.id) ?? [],
-      tagNames: tagNamesByStaff.get(row.event_staff!.id) ?? [],
     }));
 
   const rosterIds = new Set(rosterMembers.map((m) => m.id));
@@ -100,13 +62,13 @@ export default async function EventDetailPage({
       id: staff.id,
       name: staff.contacts!.name,
       email: staff.contacts!.email,
-      tagNames: tagNamesByStaff.get(staff.id) ?? [],
     }));
 
   // Shown on both tabs — see EventDetailTabs.
   const detailsCard = (
     <div className={styles.card}>
       <h2 className={styles.cardTitle}>Details</h2>
+      <p className={styles.description}>Basic info about this event.</p>
       <table className={`${styles.table} ${styles.keyValueTable}`}>
         <tbody>
           <tr>
@@ -115,7 +77,7 @@ export default async function EventDetailPage({
           </tr>
           <tr>
             <td>Date &amp; time</td>
-            <td>{event.starts_at ? new Date(event.starts_at).toLocaleString() : "—"}</td>
+            <td>{formatEventDate(event.starts_at, event.ends_at)}</td>
           </tr>
           <tr>
             <td>Location</td>
@@ -148,7 +110,6 @@ export default async function EventDetailPage({
             <span className={event.status === "completed" ? styles.badgeMuted : styles.badge}>
               {event.status === "completed" ? "Completed" : "Active"}
             </span>
-            {event.series && <span className={styles.pill}>Series: {event.series.label}</span>}
           </div>
         </div>
         <div className={styles.actions}>
@@ -214,11 +175,11 @@ export default async function EventDetailPage({
 
             <div className={styles.card}>
               <h2 className={styles.cardTitle}>Roster</h2>
+              <p className={styles.description}>The staff working this event.</p>
               <RosterManager
                 eventId={event.id}
                 rosterMembers={rosterMembers}
                 availableStaff={availableStaff}
-                categories={rosterCategories}
                 isLocked={event.status === "completed"}
               />
             </div>

@@ -8,11 +8,17 @@ export default function Modal({
   onClose,
   title,
   children,
+  titleVariant = "eyebrow",
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  // "eyebrow" (default, unchanged) is the small uppercase label every
+  // existing modal uses. "heading" renders `title` as a large heading
+  // instead — for a caller presenting the modal as a full detail view
+  // (e.g. the staff Event Task modal) rather than a small dialog.
+  titleVariant?: "eyebrow" | "heading";
 }) {
   useEffect(() => {
     if (!open) return;
@@ -35,7 +41,9 @@ export default function Modal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className={styles.dialogHeader}>
-          <h2 className={styles.dialogTitle}>{title}</h2>
+          <h2 className={titleVariant === "heading" ? styles.dialogTitleHeading : styles.dialogTitle}>
+            {title}
+          </h2>
           <button type="button" className={styles.closeButton} aria-label="Close" onClick={onClose}>
             ×
           </button>

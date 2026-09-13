@@ -74,6 +74,7 @@ export default async function ContactsPage({
             <NewCategoryForm />
           </AddModalButton>
         </div>
+        <p className={styles.description}>Labels you can put on any contact.</p>
         <CategoryManager categories={categoryOptions} />
       </div>
 
@@ -98,6 +99,7 @@ export default async function ContactsPage({
             ))}
           </div>
         </div>
+        <p className={styles.description}>Everyone in the system. Filter by category.</p>
 
         <ContactsList contacts={rows} allCategories={categoryOptions} />
       </div>

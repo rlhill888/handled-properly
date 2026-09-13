@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { CommentData } from "@/lib/actions/assignment-comments";
+import CommentIcon from "./CommentIcon";
+import ChevronRightIcon from "./ChevronRightIcon";
 import styles from "@/styles/admin-shared.module.css";
 import cardStyles from "@/styles/assignments-board.module.css";
 import commentStyles from "./CommentsSection.module.css";
@@ -19,6 +21,7 @@ export default function CommentsSection({
   initialComments,
   onPost,
   defaultOpen = false,
+  variant = "compact",
 }: {
   initialComments: CommentData[];
   onPost: (body: string) => Promise<{ comment: CommentData } | { error: string }>;
@@ -27,6 +30,11 @@ export default function CommentsSection({
   // nested collapse toggle there would just be friction. Every other
   // caller (Assignment cards) keeps the default collapsed-by-default.
   defaultOpen?: boolean;
+  // "compact" (default) is the small inline toggle used inside denser
+  // cards. "row" is a full-width space-between row with a chevron, for a
+  // caller presenting Comments as its own bordered section — currently
+  // just the staff assignment detail page.
+  variant?: "compact" | "row";
 }) {
   const [expanded, setExpanded] = useState(defaultOpen);
   const [comments, setComments] = useState<CommentData[]>(initialComments);
@@ -51,9 +59,26 @@ export default function CommentsSection({
 
   return (
     <div className={cardStyles.subSection}>
-      <button type="button" className={cardStyles.subToggle} onClick={() => setExpanded((e) => !e)}>
-        {expanded ? "▾" : "▸"} Comments{comments.length > 0 ? ` (${comments.length})` : ""}
-      </button>
+      {variant === "row" ? (
+        <button type="button" className={commentStyles.rowToggle} onClick={() => setExpanded((e) => !e)}>
+          <span className={commentStyles.rowToggleLabel}>
+            <CommentIcon size={16} />
+            Comments
+            {comments.length > 0 && <span className={styles.countBubble}>{comments.length}</span>}
+          </span>
+          <ChevronRightIcon
+            size={16}
+            className={`${commentStyles.rowToggleChevron} ${expanded ? commentStyles.rowToggleChevronOpen : ""}`}
+          />
+        </button>
+      ) : (
+        <button type="button" className={cardStyles.subToggleWithIcon} onClick={() => setExpanded((e) => !e)}>
+          <CommentIcon size={14} />
+          Comments
+          {comments.length > 0 && <span className={styles.countBubble}>{comments.length}</span>}
+          <span aria-hidden="true">{expanded ? "▾" : "▸"}</span>
+        </button>
+      )}
 
       {expanded && (
         <div className={commentStyles.panel}>

@@ -32,17 +32,10 @@ export default function StaffList({ staff }: { staff: StaffMemberData[] }) {
     });
   };
 
-  // Search matches name, email, or any roster category this person has
-  // ever been tagged with (across every event) — e.g. "Catering" surfaces
-  // anyone who's ever been assigned that roster category.
   const q = query.trim().toLowerCase();
   const matches = (member: StaffMemberData) => {
     if (!q) return true;
-    return (
-      member.name.toLowerCase().includes(q) ||
-      member.email.toLowerCase().includes(q) ||
-      member.categoryNames.some((name) => name.toLowerCase().includes(q))
-    );
+    return member.name.toLowerCase().includes(q) || member.email.toLowerCase().includes(q);
   };
 
   const activeStaff = staff.filter((m) => m.isActive && matches(m));
@@ -59,7 +52,6 @@ export default function StaffList({ staff }: { staff: StaffMemberData[] }) {
             <th>Email</th>
             <th>Phone</th>
             <th>Status</th>
-            <th>Tags</th>
             <th></th>
           </tr>
         </thead>
@@ -75,19 +67,6 @@ export default function StaffList({ staff }: { staff: StaffMemberData[] }) {
                 <span className={member.inviteStatus === "active" ? styles.badge : styles.badgeMuted}>
                   {member.inviteStatus}
                 </span>
-              </td>
-              <td data-label="Tags">
-                {member.categoryNames.length === 0 ? (
-                  "—"
-                ) : (
-                  <div className={styles.metaRow}>
-                    {member.categoryNames.map((name) => (
-                      <span key={name} className={styles.pill}>
-                        {name}
-                      </span>
-                    ))}
-                  </div>
-                )}
               </td>
               <td className={styles.cardActionCell}>
                 <button
@@ -116,7 +95,7 @@ export default function StaffList({ staff }: { staff: StaffMemberData[] }) {
           id="staff-search"
           type="search"
           className={styles.input}
-          placeholder="Search by name, email, or tag…"
+          placeholder="Search by name or email…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -124,13 +103,13 @@ export default function StaffList({ staff }: { staff: StaffMemberData[] }) {
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Active ({activeStaff.length})</h2>
-        <p className={styles.description}>Currently on the roster of at least one active event.</p>
+        <p className={styles.description}>Staff working an event right now.</p>
         {renderTable(activeStaff, "No staff currently on an active event.")}
       </div>
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Past ({pastStaff.length})</h2>
-        <p className={styles.description}>Not currently on any active event&apos;s roster.</p>
+        <p className={styles.description}>Staff not working any event right now.</p>
         {renderTable(pastStaff, "No past staff.")}
       </div>
 

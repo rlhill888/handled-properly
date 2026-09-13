@@ -59,6 +59,7 @@ export default async function RequestsPanel({
           </AddModalButton>
         )}
       </div>
+      <p className={styles.description}>Things you&apos;re asking the client to do.</p>
 
       <RequestsPanelClient eventId={eventId} requests={requests} />
     </div>

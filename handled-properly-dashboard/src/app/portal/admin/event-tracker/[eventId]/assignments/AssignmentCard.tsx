@@ -9,6 +9,7 @@ import CommentsSection from "@/components/portal/CommentsSection";
 import MultiSelectField from "@/components/portal/MultiSelectField";
 import SingleSelectField from "@/components/portal/SingleSelectField";
 import LockIcon from "@/components/portal/LockIcon";
+import CalendarIcon from "@/components/portal/CalendarIcon";
 import { addAssignmentComment, type CommentData } from "@/lib/actions/assignment-comments";
 import type { DependencyRef } from "@/lib/data/assignment-dependencies";
 import styles from "@/styles/admin-shared.module.css";
@@ -18,8 +19,7 @@ export type AssignmentData = {
   id: string;
   title: string;
   description: string | null;
-  status: "ready" | "in_progress" | "blocked" | "done";
-  tags: string[];
+  status: "in_progress" | "blocked" | "done";
   dueDate: string | null;
   priority: "low" | "medium" | "high";
   pickupSetting: "admin_only" | "open_pickup";
@@ -86,13 +86,13 @@ export default function AssignmentCard({
   const [completeError, setCompleteError] = useState<string | null>(null);
 
   // A plain checkbox toggle, distinct from the Status dropdown in the edit
-  // form — this only ever moves between "done" and "ready" (unchecking a
-  // completed item resets it to Ready to Work, not back to whatever
-  // in-progress/blocked state it might have had before). Uses the same
+  // form — this only ever moves between "done" and "in_progress"
+  // (unchecking a completed item resets it to In Progress, not back to
+  // whatever blocked state it might have had before). Uses the same
   // updateAssignmentStatus the drag-and-drop board already calls, so it's
   // unaffected by the dependency gate the same way admin drags already are.
   const handleToggleComplete = () => {
-    const nextStatus = assignment.status === "done" ? "ready" : "done";
+    const nextStatus = assignment.status === "done" ? "in_progress" : "done";
     setCompleteError(null);
     startToggleComplete(async () => {
       const result = await updateAssignmentStatus(eventId, assignment.id, nextStatus);
@@ -248,23 +248,8 @@ export default function AssignmentCard({
         {completeError && <p className={styles.error}>{completeError}</p>}
         {assignment.description && <p className={cardStyles.cardDescription}>{assignment.description}</p>}
 
-        {assignment.tags.length > 0 && (
-          <div className={styles.metaRow}>
-            {assignment.tags.map((tag) => (
-              <span key={tag} className={styles.pill}>
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-
         <span className={cardStyles.cardMeta}>
-          {[
-            assignment.dueDate && `Due ${new Date(assignment.dueDate).toLocaleDateString()}`,
-            assignment.pickupSetting === "open_pickup" ? "Open pickup" : "Assigned",
-          ]
-            .filter(Boolean)
-            .join(" · ")}
+          {assignment.pickupSetting === "open_pickup" ? "Open pickup" : "Assigned"}
         </span>
 
         <div className={cardStyles.assigneesBlock}>
@@ -304,6 +289,15 @@ export default function AssignmentCard({
         {dependenciesDisplay}
         {subtasksSection}
         {commentsSection}
+        {assignment.dueDate && (
+          <div className={cardStyles.assigneesBlock}>
+            <span className={cardStyles.metaLabel}>Due date</span>
+            <div className={cardStyles.dueDateBox}>
+              <CalendarIcon size={14} />
+              {new Date(assignment.dueDate).toLocaleDateString()}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -327,11 +321,6 @@ export default function AssignmentCard({
           />
         </div>
 
-        <div className={styles.field}>
-          <label className={styles.label}>Tags</label>
-          <input name="tags" defaultValue={assignment.tags.join(", ")} className={styles.input} />
-        </div>
-
         <div className={styles.formRow}>
           <div className={styles.field}>
             <label className={styles.label}>Due date</label>
@@ -353,7 +342,6 @@ export default function AssignmentCard({
           <div className={styles.field}>
             <label className={styles.label}>Status</label>
             <select name="status" defaultValue={assignment.status} className={styles.select}>
-              <option value="ready">Ready to Work</option>
               <option value="in_progress">In Progress</option>
               <option value="blocked">Blocked</option>
               <option value="done">Done</option>
@@ -394,11 +382,10 @@ export default function AssignmentCard({
             options={rosterStaff.map((staff) => ({
               id: staff.id,
               label: staff.name,
-              searchText: [...staff.categoryNames, ...staff.globalTagNames].join(" "),
             }))}
             initialSelectedIds={assignment.assigneeIds}
             placeholder="Add an assignee…"
-            searchPlaceholder="Search staff or tag…"
+            searchPlaceholder="Search staff…"
           />
         )}
 
@@ -465,7 +452,7 @@ function SubtaskAccordion({
   const [error, setError] = useState<string | null>(null);
 
   const handleToggleComplete = () => {
-    const nextStatus = assignment.status === "done" ? "ready" : "done";
+    const nextStatus = assignment.status === "done" ? "in_progress" : "done";
     setError(null);
     startToggle(async () => {
       const result = await updateAssignmentStatus(eventId, assignment.id, nextStatus);

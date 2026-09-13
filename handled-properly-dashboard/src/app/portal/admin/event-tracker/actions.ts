@@ -19,38 +19,23 @@ export async function createEvent(
   const clientId = String(formData.get("client_id") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const startsAt = String(formData.get("starts_at") ?? "");
+  const endsAt = String(formData.get("ends_at") ?? "");
   const location = String(formData.get("location") ?? "").trim();
-  const seriesMode = String(formData.get("series_mode") ?? "one_time");
-  const existingSeriesId = String(formData.get("existing_series_id") ?? "");
-  const newSeriesLabel = String(formData.get("new_series_label") ?? "").trim();
 
   if (!clientId || !name) return { error: "Client and event name are required." };
+  if (startsAt && endsAt && new Date(endsAt) < new Date(startsAt)) {
+    return { error: "End date must be on or after the start date." };
+  }
 
   const supabase = await createSupabaseServerClient();
-
-  let seriesId: string | null = null;
-
-  if (seriesMode === "existing_series") {
-    if (!existingSeriesId) return { error: "Choose a series." };
-    seriesId = existingSeriesId;
-  } else if (seriesMode === "new_series") {
-    if (!newSeriesLabel) return { error: "Name the new series." };
-    const { data: series, error: seriesError } = await supabase
-      .from("event_series")
-      .insert({ client_id: clientId, label: newSeriesLabel })
-      .select("id")
-      .single();
-    if (seriesError) return { error: seriesError.message };
-    seriesId = series.id;
-  }
 
   const { data: event, error: eventError } = await supabase
     .from("events")
     .insert({
       client_id: clientId,
-      series_id: seriesId,
       name,
       starts_at: startsAt || null,
+      ends_at: endsAt || null,
       location: location || null,
     })
     .select("id")
@@ -119,74 +104,6 @@ export async function removeFromRoster(
     .eq("event_staff_id", eventStaffId);
 
   if (error) return { error: error.message };
-
-  revalidatePath(`/portal/admin/event-tracker/${eventId}`);
-  return {};
-}
-
-export async function createRosterCategory(
-  eventId: string,
-  _prevState: ActionState,
-  formData: FormData
-): Promise<ActionState> {
-  const actor = await getCurrentActor();
-  if (actor?.role !== "admin") return { error: "Not authorized." };
-
-  const name = String(formData.get("name") ?? "").trim();
-  if (!name) return { error: "Category name is required." };
-
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.from("roster_categories").insert({ event_id: eventId, name });
-
-  if (error) {
-    if (error.code === "23505") return { error: "That category already exists for this event." };
-    return { error: error.message };
-  }
-
-  revalidatePath(`/portal/admin/event-tracker/${eventId}`);
-  return null;
-}
-
-export async function deleteRosterCategory(
-  eventId: string,
-  categoryId: string
-): Promise<{ error?: string }> {
-  const actor = await getCurrentActor();
-  if (actor?.role !== "admin") return { error: "Not authorized." };
-
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.from("roster_categories").delete().eq("id", categoryId);
-  if (error) return { error: error.message };
-
-  revalidatePath(`/portal/admin/event-tracker/${eventId}`);
-  return {};
-}
-
-export async function setRosterEntryCategories(
-  eventId: string,
-  eventStaffId: string,
-  categoryIds: string[]
-): Promise<{ error?: string }> {
-  const actor = await getCurrentActor();
-  if (actor?.role !== "admin") return { error: "Not authorized." };
-
-  const supabase = await createSupabaseServerClient();
-
-  const { error: deleteError } = await supabase
-    .from("roster_entry_categories")
-    .delete()
-    .eq("event_staff_id", eventStaffId);
-  if (deleteError) return { error: deleteError.message };
-
-  if (categoryIds.length > 0) {
-    const { error: insertError } = await supabase.from("roster_entry_categories").insert(
-      categoryIds.map((categoryId) => ({
-        event_staff_id: eventStaffId,
-        category_id: categoryId,
-      }))
-    );
-    if (insertError) return { error: insertError.message };
-  }
 
   revalidatePath(`/portal/admin/event-tracker/${eventId}`);
   return {};

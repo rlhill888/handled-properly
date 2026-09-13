@@ -45,6 +45,7 @@ export default async function FormsPage() {
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>All Forms ({forms.length})</h2>
+        <p className={styles.description}>All the forms you&apos;ve made.</p>
         {forms.length === 0 ? (
           <p className={styles.emptyState}>No forms yet.</p>
         ) : (

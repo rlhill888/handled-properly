@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCommentsByRequestIds } from "@/lib/data/request-comments";
@@ -7,8 +6,67 @@ import { addRequestComment } from "@/lib/actions/request-comments";
 import RequestUploadForm from "./RequestUploadForm";
 import RequestTextForm from "./RequestTextForm";
 import RequestCheckOffButton from "./RequestCheckOffButton";
+import BackButton from "./BackButton";
 import CommentsSection from "@/components/portal/CommentsSection";
 import styles from "@/styles/admin-shared.module.css";
+import detailStyles from "./RequestDetail.module.css";
+
+function CalendarIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+    </svg>
+  );
+}
+
+function FileIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6" />
+    </svg>
+  );
+}
+
+function ExternalLinkIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <path d="M15 3h6v6M10 14 21 3" />
+    </svg>
+  );
+}
 
 export default async function ClientRequestDetailPage({
   params,
@@ -42,86 +100,99 @@ export default async function ClientRequestDetailPage({
 
   return (
     <div className={styles.page}>
-      <Link
-        href={`/portal/client/events/${eventId}`}
-        className={styles.backLink}
-        aria-label="Back to Event"
-      >
-        ←
-      </Link>
+      <BackButton fallbackHref={`/portal/client/events/${eventId}`} />
 
-      <div className={styles.header}>
-        <div>
-          <span className={styles.eyebrow}>Client · Request</span>
+      <div className={detailStyles.titleRow}>
+        <div className={detailStyles.titleGroup}>
           <h1 className={styles.title}>{request.title}</h1>
-          <div className={styles.metaRow} style={{ marginTop: 8 }}>
-            <span className={request.fulfilled_at ? styles.badge : styles.badgeMuted}>
-              {request.fulfilled_at ? "Fulfilled" : "Outstanding"}
-            </span>
+          <span className={request.fulfilled_at ? detailStyles.statusPillDone : detailStyles.statusPill}>
+            {request.fulfilled_at ? "Fulfilled" : "Outstanding"}
+          </span>
+        </div>
+        {request.due_date && (
+          <div className={detailStyles.dueDate}>
+            <CalendarIcon />
+            Due {new Date(request.due_date).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
           </div>
-        </div>
+        )}
       </div>
 
-      <div className={styles.card}>
-        <table className={`${styles.table} ${styles.keyValueTable}`}>
-          <tbody>
-            {request.description && (
-              <tr>
-                <td>Description</td>
-                <td>{request.description}</td>
-              </tr>
+      <div className={detailStyles.card}>
+        <div>
+          <h2 className={detailStyles.sectionTitle}>Instructions</h2>
+          <p className={detailStyles.sectionText}>
+            {request.description || "Please complete this request."}
+          </p>
+        </div>
+
+        <hr className={detailStyles.divider} />
+
+        {request.request_type === "file" && (
+          <>
+            {fileUrl && (
+              <div>
+                <h2 className={detailStyles.sectionTitle}>Your file</h2>
+                <div className={detailStyles.fileRow}>
+                  <span className={detailStyles.fileRowLabel}>
+                    <FileIcon />
+                    Uploaded file
+                  </span>
+                  <a href={fileUrl} target="_blank" rel="noreferrer" className={detailStyles.viewFileLink}>
+                    <ExternalLinkIcon />
+                    View file
+                  </a>
+                </div>
+              </div>
             )}
-            <tr>
-              <td>Due</td>
-              <td>{request.due_date ? new Date(request.due_date).toLocaleDateString() : "—"}</td>
-            </tr>
-            {request.fulfilled_at && (
-              <tr>
-                <td>Fulfilled</td>
-                <td>{new Date(request.fulfilled_at).toLocaleString()}</td>
-              </tr>
+
+            {showAction && (
+              <div>
+                <h2 className={detailStyles.sectionTitle}>Upload a file</h2>
+                <RequestUploadForm requestId={request.id} />
+              </div>
             )}
-          </tbody>
-        </table>
-      </div>
 
-      {request.request_type === "file" && (
-        <div className={styles.card}>
-          <h2 className={styles.cardTitle}>File</h2>
-          {fileUrl && (
-            <p>
-              <a href={fileUrl} target="_blank" rel="noreferrer" className={styles.link}>
-                View uploaded file
-              </a>
-            </p>
-          )}
-          {showAction && <RequestUploadForm requestId={request.id} />}
-        </div>
-      )}
+            <hr className={detailStyles.divider} />
+          </>
+        )}
 
-      {request.request_type === "text" && (
-        <div className={styles.card}>
-          <h2 className={styles.cardTitle}>Response</h2>
-          {request.response_text && !showAction && <p>{request.response_text}</p>}
-          {showAction && <RequestTextForm requestId={request.id} defaultValue={request.response_text} />}
-        </div>
-      )}
+        {request.request_type === "text" && (
+          <>
+            <div>
+              <h2 className={detailStyles.sectionTitle}>Your response</h2>
+              {request.response_text && !showAction ? (
+                <p className={detailStyles.sectionText}>{request.response_text}</p>
+              ) : (
+                showAction && <RequestTextForm requestId={request.id} defaultValue={request.response_text} />
+              )}
+            </div>
 
-      {request.request_type === "checkbox" && (
-        <div className={styles.card}>
-          <h2 className={styles.cardTitle}>Checkbox</h2>
-          {request.checked_at ? (
-            <p>
-              Checked {new Date(request.checked_at).toLocaleString()}
-              {showAction && " — waiting on admin confirmation."}
-            </p>
-          ) : (
-            showAction && <RequestCheckOffButton requestId={request.id} />
-          )}
-        </div>
-      )}
+            <hr className={detailStyles.divider} />
+          </>
+        )}
 
-      <div className={styles.card}>
+        {request.request_type === "checkbox" && (
+          <>
+            <div>
+              <h2 className={detailStyles.sectionTitle}>Mark as done</h2>
+              {request.checked_at ? (
+                <p className={detailStyles.sectionText}>
+                  Checked {new Date(request.checked_at).toLocaleString()}
+                  {showAction && " — waiting on admin confirmation."}
+                </p>
+              ) : (
+                showAction && <RequestCheckOffButton requestId={request.id} />
+              )}
+            </div>
+
+            <hr className={detailStyles.divider} />
+          </>
+        )}
+
         <CommentsSection
           initialComments={commentsByRequest.get(request.id) ?? []}
           onPost={addRequestComment.bind(null, request.id)}

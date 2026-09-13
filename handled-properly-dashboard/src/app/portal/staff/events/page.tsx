@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { getEventHeaderImageUrl } from "@/lib/data/event-header-image";
+import { formatEventDate } from "@/lib/format-event-date";
 import styles from "@/styles/admin-shared.module.css";
 
 export default async function StaffEventsPage() {
@@ -11,7 +12,7 @@ export default async function StaffEventsPage() {
   const { data: events, error } = await supabase
     .from("events")
     .select(
-      "id, name, starts_at, location, status, header_image_path, client:clients(company_name,contacts(name))"
+      "id, name, starts_at, ends_at, location, status, header_image_path, client:clients(company_name,contacts(name))"
     )
     .order("starts_at", { ascending: true, nullsFirst: false });
 
@@ -29,7 +30,7 @@ export default async function StaffEventsPage() {
         <div>
           <span className={styles.eyebrow}>Event Staff</span>
           <h1 className={styles.title}>My Events</h1>
-          <p className={styles.description}>Events you&apos;re currently on the roster for.</p>
+          <p className={styles.description}>Events you&apos;re working on.</p>
         </div>
       </div>
 
@@ -53,7 +54,7 @@ export default async function StaffEventsPage() {
                   {event.client?.company_name || event.client?.contacts?.name || "—"}
                 </span>
                 <span className={styles.eventCardMeta}>
-                  {event.starts_at ? new Date(event.starts_at).toLocaleString() : "—"}
+                  {formatEventDate(event.starts_at, event.ends_at)}
                 </span>
               </div>
             </Link>

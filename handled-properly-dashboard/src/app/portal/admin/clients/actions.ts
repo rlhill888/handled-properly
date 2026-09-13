@@ -9,10 +9,15 @@ import { sendEmail } from "@/lib/ses";
 
 export type ActionState = { error: string } | null;
 
+export type CreateClientState =
+  | { error: string }
+  | { client: { id: string; name: string } }
+  | null;
+
 export async function createClientRecord(
-  _prevState: ActionState,
+  _prevState: CreateClientState,
   formData: FormData
-): Promise<ActionState> {
+): Promise<CreateClientState> {
   const actor = await getCurrentActor();
   if (actor?.role !== "admin") return { error: "Not authorized." };
 
@@ -29,11 +34,15 @@ export async function createClientRecord(
   const contact = await findOrCreateContact(supabase, { name, email, phone });
   if ("error" in contact) return { error: contact.error };
 
-  const { error: clientError } = await supabase.from("clients").insert({
-    contact_id: contact.id,
-    company_name: companyName || null,
-    notes: notes || null,
-  });
+  const { data: client, error: clientError } = await supabase
+    .from("clients")
+    .insert({
+      contact_id: contact.id,
+      company_name: companyName || null,
+      notes: notes || null,
+    })
+    .select("id")
+    .single();
 
   if (clientError) {
     if (clientError.code === "23505") {
@@ -43,7 +52,7 @@ export async function createClientRecord(
   }
 
   revalidatePath("/portal/admin/clients");
-  return null;
+  return { client: { id: client.id, name: companyName || name } };
 }
 
 export async function updateClientRecord(

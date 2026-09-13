@@ -34,13 +34,6 @@ async function assertEventActive(
   return {};
 }
 
-function parseTags(raw: string): string[] {
-  return raw
-    .split(",")
-    .map((t) => t.trim())
-    .filter(Boolean);
-}
-
 // Replaces an assignment's full set of dependencies with `dependsOnIds`.
 // Self-dependency is filtered defensively (the picker never offers the
 // assignment itself, but this stays correct if that ever changes). Direct
@@ -119,7 +112,6 @@ export async function createAssignment(
 
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
-  const tags = parseTags(String(formData.get("tags") ?? ""));
   const dueDate = String(formData.get("due_date") ?? "");
   const priority = String(formData.get("priority") ?? "medium") as AssignmentPriority;
   const pickupSetting = String(formData.get("pickup_setting") ?? "admin_only") as PickupSetting;
@@ -140,7 +132,6 @@ export async function createAssignment(
       parent_assignment_id: parentAssignmentId,
       title,
       description: description || null,
-      tags,
       due_date: dueDate || null,
       priority,
       pickup_setting: pickupSetting,
@@ -182,10 +173,9 @@ export async function updateAssignment(
 
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
-  const tags = parseTags(String(formData.get("tags") ?? ""));
   const dueDate = String(formData.get("due_date") ?? "");
   const priority = String(formData.get("priority") ?? "medium") as AssignmentPriority;
-  const status = String(formData.get("status") ?? "ready") as AssignmentStatus;
+  const status = String(formData.get("status") ?? "in_progress") as AssignmentStatus;
   const pickupSetting = String(formData.get("pickup_setting") ?? "admin_only") as PickupSetting;
   const assigneeIds = formData.getAll("assignee_ids").map(String);
   const dependsOnIds = formData.getAll("depends_on_ids").map(String);
@@ -202,7 +192,6 @@ export async function updateAssignment(
     .update({
       title,
       description: description || null,
-      tags,
       due_date: dueDate || null,
       priority,
       status,

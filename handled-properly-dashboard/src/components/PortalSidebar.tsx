@@ -14,7 +14,9 @@ export default function PortalSidebar({
   roleLabel,
   links,
 }: {
-  roleLabel: string;
+  // Omitted entirely (not just blank) for the Client portal, at the
+  // Client's request — Admin and Event Staff still show theirs.
+  roleLabel?: string;
   links: PortalNavLink[];
 }) {
   const pathname = usePathname();
@@ -57,7 +59,7 @@ export default function PortalSidebar({
       </div>
 
       <div className={styles.panel}>
-        <span className={styles.roleLabel}>{roleLabel}</span>
+        {roleLabel && <span className={styles.roleLabel}>{roleLabel}</span>}
 
         <nav className={styles.nav}>
           <ul className={styles.navList}>
@@ -98,7 +100,7 @@ export default function PortalSidebar({
         aria-label="Menu"
       >
         <div className={styles.drawerHeader}>
-          <span className={styles.roleLabel}>{roleLabel}</span>
+          {roleLabel && <span className={styles.roleLabel}>{roleLabel}</span>}
           <button
             type="button"
             className={styles.drawerClose}

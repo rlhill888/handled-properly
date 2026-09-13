@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { getEventHeaderImageUrl } from "@/lib/data/event-header-image";
+import { formatEventDate } from "@/lib/format-event-date";
 import styles from "@/styles/admin-shared.module.css";
 
 export default async function ClientEventsPage() {
@@ -10,7 +11,7 @@ export default async function ClientEventsPage() {
   // client's own events — no extra filter needed here.
   const { data: events, error } = await supabase
     .from("events")
-    .select("id, name, starts_at, location, status, header_image_path")
+    .select("id, name, starts_at, ends_at, location, status, header_image_path")
     .order("starts_at", { ascending: true, nullsFirst: false });
 
   const activeEvents = (events ?? []).filter((e) => e.status === "active");
@@ -25,9 +26,8 @@ export default async function ClientEventsPage() {
     <div className={styles.page}>
       <div className={styles.header}>
         <div>
-          <span className={styles.eyebrow}>Client</span>
           <h1 className={styles.title}>My Events</h1>
-          <p className={styles.description}>Events you&apos;re the client for.</p>
+          <p className={styles.description}>Your events.</p>
         </div>
       </div>
 
@@ -48,7 +48,7 @@ export default async function ClientEventsPage() {
               <div className={styles.eventCardBody}>
                 <span className={styles.eventCardTitle}>{event.name}</span>
                 <span className={styles.eventCardMeta}>
-                  {event.starts_at ? new Date(event.starts_at).toLocaleString() : "—"}
+                  {formatEventDate(event.starts_at, event.ends_at)}
                 </span>
                 <span className={styles.eventCardMeta}>{event.location || "—"}</span>
               </div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { getEventHeaderImageUrl } from "@/lib/data/event-header-image";
+import { formatEventDate } from "@/lib/format-event-date";
 import styles from "@/styles/admin-shared.module.css";
 
 // Shared by the admin (Active Events on /portal/admin/event-tracker and the
@@ -14,10 +15,10 @@ export default async function ActiveEventsList({ linkBase }: { linkBase: string 
   const { data: events, error } = await supabase
     .from("events")
     .select(
-      "id, name, starts_at, location, status, header_image_path, client:clients(company_name,contacts(name))"
+      "id, name, starts_at, ends_at, location, status, header_image_path, client:clients(company_name,contacts(name))"
     )
     .eq("status", "active")
-    .order("created_at", { ascending: false });
+    .order("starts_at", { ascending: true, nullsFirst: false });
 
   if (error) {
     return <p className={styles.error}>Could not load events: {error.message}</p>;
@@ -46,7 +47,7 @@ export default async function ActiveEventsList({ linkBase }: { linkBase: string 
               {event.client?.company_name || event.client?.contacts?.name || "—"}
             </span>
             <span className={styles.eventCardMeta}>
-              {event.starts_at ? new Date(event.starts_at).toLocaleString() : "—"}
+              {formatEventDate(event.starts_at, event.ends_at)}
             </span>
             <span className={styles.eventCardMeta}>{event.location || "—"}</span>
           </div>

@@ -1,8 +1,7 @@
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import ClientRow, { type ClientRowData } from "./ClientRow";
-import NewClientForm from "./NewClientForm";
+import NewClientButton from "./NewClientButton";
 import ApplicationRow, { type ApplicationRowData } from "./ApplicationRow";
-import AddModalButton from "@/components/portal/AddModalButton";
 import styles from "@/styles/admin-shared.module.css";
 
 export default async function ClientsPage() {
@@ -58,9 +57,7 @@ export default async function ClientsPage() {
           <span className={styles.eyebrow}>Admin</span>
           <div className={styles.titleRow}>
             <h1 className={styles.title}>Clients</h1>
-            <AddModalButton label="Add Client" modalTitle="Add Client">
-              <NewClientForm />
-            </AddModalButton>
+            <NewClientButton />
           </div>
           <p className={styles.description}>
             People who hire Handled Properly for events. Add a client here before creating events
@@ -81,6 +78,7 @@ export default async function ClientsPage() {
           </h2>
           <span className={styles.badgeMuted}>{applications.length}</span>
         </div>
+        <p className={styles.description}>People who want to hire you. Check these before they become clients.</p>
         {applications.length === 0 ? (
           <p className={styles.emptyState}>
             No applications yet. People requesting your services through the get-started page will
@@ -97,6 +95,7 @@ export default async function ClientsPage() {
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>All Clients ({clients.length})</h2>
+        <p className={styles.description}>Everyone you work with right now.</p>
         {clients.length === 0 ? (
           <p className={styles.emptyState}>No clients yet.</p>
         ) : (

@@ -47,6 +47,7 @@ export default async function EmailSendDetailPage({
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Content</h2>
+        <p className={styles.description}>The email you sent.</p>
         {/* Admin-authored via the mass-email compose editor (ComposeForm's
             richBody), not user-submitted — safe to render directly, same
             trust boundary as the editor that produced it. */}
@@ -55,6 +56,7 @@ export default async function EmailSendDetailPage({
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Recipients ({recipients.length})</h2>
+        <p className={styles.description}>Everyone who got this email.</p>
         {recipients.length === 0 ? (
           <p className={styles.emptyState}>No recipients recorded.</p>
         ) : (

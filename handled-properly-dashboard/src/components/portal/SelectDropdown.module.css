@@ -48,6 +48,16 @@
   color: var(--muted);
 }
 
+.optionDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
 .chevron {
   flex-shrink: 0;
   font-size: 10px;

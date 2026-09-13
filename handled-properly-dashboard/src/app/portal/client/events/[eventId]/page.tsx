@@ -1,15 +1,17 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import EventHeaderImage from "@/components/portal/EventHeaderImage";
-import ClientEventTaskBoard from "@/components/portal/ClientEventTaskBoard";
+import ClientEventTaskBoard, { type ClientEventTaskData } from "@/components/portal/ClientEventTaskBoard";
 import ClientEventRequestsList from "@/components/portal/ClientEventRequestsList";
-import ClientEventDocumentationList from "@/components/portal/ClientEventDocumentationList";
 import CollapsibleCard from "@/components/portal/CollapsibleCard";
-import ModalButton from "@/components/portal/ModalButton";
-import InfoIcon from "@/components/portal/InfoIcon";
+import VendorContactsButton from "@/components/portal/VendorContactsButton";
+import CalendarIcon from "@/components/portal/CalendarIcon";
+import LocationIcon from "@/components/portal/LocationIcon";
+import FileIcon from "@/components/portal/FileIcon";
+import CommentIcon from "@/components/portal/CommentIcon";
 import { getEventHeaderImageDataUrl } from "@/lib/data/event-header-image";
+import { formatEventDate } from "@/lib/format-event-date";
 import styles from "@/styles/admin-shared.module.css";
 
 export default async function ClientEventDetailPage({
@@ -24,13 +26,13 @@ export default async function ClientEventDetailPage({
   // direct link to any other client's event id simply returns no row.
   const { data: event } = await supabase
     .from("events")
-    .select("id, name, starts_at, location, status, completed_at, header_image_path")
+    .select("id, name, starts_at, ends_at, location, status, completed_at, header_image_path")
     .eq("id", eventId)
     .maybeSingle();
 
   if (!event) notFound();
 
-  const [{ data: tasks }, { data: requests }, { data: docs }] = await Promise.all([
+  const [{ data: taskRows }, { data: requests }, { data: eventVendors }] = await Promise.all([
     supabase
       .from("event_tasks")
       .select("id, title, description, status")
@@ -41,17 +43,57 @@ export default async function ClientEventDetailPage({
       .select("id, title, due_date, fulfilled_at")
       .eq("event_id", eventId)
       .order("created_at", { ascending: true }),
-    supabase
-      .from("documentation")
-      .select("id, title, description, file_path")
-      .eq("event_id", eventId)
-      .order("created_at", { ascending: true }),
+    // RLS (client_select_event_vendors / client_select_vendor_contacts)
+    // already limits this to this event's Vendor list — no extra filter
+    // needed.
+    supabase.from("event_vendors").select("contacts(id, name, email, phone)").eq("event_id", eventId),
   ]);
 
-  const adminClient = createAdminClient();
-  const docUrls = await Promise.all(
-    (docs ?? []).map((d) => adminClient.storage.from("documentation-files").createSignedUrl(d.file_path, 60 * 60))
-  );
+  const vendors = (eventVendors ?? [])
+    .map((row) => row.contacts)
+    .filter((c): c is NonNullable<typeof c> => c !== null);
+
+  const taskIds = (taskRows ?? []).map((row) => row.id);
+
+  // Fetched up front (rather than on demand) so the Event Tasks board's
+  // modal can show full details instantly.
+  const { data: updateRows } = await supabase
+    .from("event_task_updates")
+    .select("id, event_task_id, body, created_at")
+    .in("event_task_id", taskIds)
+    .order("created_at", { ascending: true });
+
+  const updatesByTask = new Map<string, ClientEventTaskData["updates"]>();
+  for (const row of updateRows ?? []) {
+    const list = updatesByTask.get(row.event_task_id) ?? [];
+    list.push({ id: row.id, body: row.body, createdAt: row.created_at });
+    updatesByTask.set(row.event_task_id, list);
+  }
+
+  // RLS (client_select_own_request_dependencies) scopes this to this
+  // client's own event tasks — shows which Requests are still blocking each
+  // one from moving forward.
+  const { data: dependencyRows } = await supabase
+    .from("request_dependencies")
+    .select("event_task_id, requests(id, title, fulfilled_at)")
+    .in("event_task_id", taskIds);
+
+  const blockingRequestsByTask = new Map<string, ClientEventTaskData["blockingRequests"]>();
+  for (const row of dependencyRows ?? []) {
+    if (!row.requests || row.requests.fulfilled_at !== null) continue;
+    const list = blockingRequestsByTask.get(row.event_task_id) ?? [];
+    list.push({ id: row.requests.id, title: row.requests.title });
+    blockingRequestsByTask.set(row.event_task_id, list);
+  }
+
+  const tasks: ClientEventTaskData[] = (taskRows ?? []).map((row) => ({
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    status: row.status,
+    updates: updatesByTask.get(row.id) ?? [],
+    blockingRequests: blockingRequestsByTask.get(row.id) ?? [],
+  }));
 
   const headerImageUrl = await getEventHeaderImageDataUrl(event.header_image_path);
 
@@ -65,7 +107,7 @@ export default async function ClientEventDetailPage({
 
       <div className={styles.header}>
         <div>
-          <span className={styles.eyebrow}>Client · Event</span>
+          <span className={styles.eyebrow}>Event</span>
           <h1 className={styles.title}>{event.name}</h1>
           <div className={styles.metaRow} style={{ marginTop: 8 }}>
             <span className={event.status === "completed" ? styles.badgeMuted : styles.badge}>
@@ -76,80 +118,82 @@ export default async function ClientEventDetailPage({
       </div>
 
       <div className={styles.card}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-          <h2 className={styles.cardTitle} style={{ marginBottom: 0 }}>
-            Details
-          </h2>
-          <ModalButton
-            label={<InfoIcon size={16} />}
-            ariaLabel="More details"
-            modalTitle="Details"
-            className={styles.iconButton}
-          >
+        <h2 className={styles.cardHeading}>Event details</h2>
+        <p className={styles.description}>Basic information about your event.</p>
+
+        <div className={styles.factGrid}>
+          <div className={styles.factItem}>
+            <div className={styles.iconBox}>
+              <CalendarIcon size={18} />
+            </div>
             <div>
-              <h3 className={styles.cardTitle}>Documentation</h3>
-              <ClientEventDocumentationList
-                docs={(docs ?? []).map((doc, i) => ({
-                  id: doc.id,
-                  title: doc.title,
-                  description: doc.description,
-                  downloadUrl: docUrls[i].data?.signedUrl ?? null,
-                }))}
-              />
+              <p className={styles.factLabel}>Date &amp; time</p>
+              <p className={styles.factValue}>{formatEventDate(event.starts_at, event.ends_at)}</p>
+              {event.completed_at && (
+                <p className={styles.factSub}>Completed {new Date(event.completed_at).toLocaleString()}</p>
+              )}
             </div>
-            <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--border)" }}>
-              <Link
-                href={`/portal/client/events/${event.id}/vendors`}
-                className={styles.primaryButton}
-                style={{ width: "100%" }}
-              >
-                Vendors and Event Staff Contacts
-              </Link>
+          </div>
+          <div className={styles.factDivider} />
+          <div className={styles.factItem}>
+            <div className={styles.iconBox}>
+              <LocationIcon size={18} />
             </div>
-          </ModalButton>
+            <div>
+              <p className={styles.factLabel}>Location</p>
+              <p className={styles.factValue}>{event.location || "—"}</p>
+            </div>
+          </div>
         </div>
-        <table className={`${styles.table} ${styles.keyValueTable}`}>
-          <tbody>
-            <tr>
-              <td>Date &amp; time</td>
-              <td>{event.starts_at ? new Date(event.starts_at).toLocaleString() : "—"}</td>
-            </tr>
-            <tr>
-              <td>Location</td>
-              <td>{event.location || "—"}</td>
-            </tr>
-            {event.completed_at && (
-              <tr>
-                <td>Completed</td>
-                <td>{new Date(event.completed_at).toLocaleString()}</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
 
         <div style={{ marginTop: 24, paddingTop: 24, borderTop: "1px solid var(--border)" }}>
-          <CollapsibleCard
-            title="Requests"
-            badgeCount={(requests ?? []).filter((r) => !r.fulfilled_at).length}
-            defaultOpen={false}
-            bare
-          >
-            <ClientEventRequestsList
-              eventId={event.id}
-              requests={(requests ?? []).map((r) => ({
-                id: r.id,
-                title: r.title,
-                dueDate: r.due_date,
-                fulfilledAt: r.fulfilled_at,
-              }))}
-            />
-          </CollapsibleCard>
+          <h3 className={styles.sectionHeading}>Resources</h3>
+          <div className={styles.resourceGrid}>
+            <Link href={`/portal/client/events/${event.id}/documentation`} className={styles.resourceCard}>
+              <div className={styles.iconBox}>
+                <FileIcon size={18} />
+              </div>
+              <div className={styles.resourceCardBody}>
+                <p className={styles.resourceCardTitle}>Event documentation</p>
+                <p className={styles.resourceCardSubtitle}>View event files and details</p>
+              </div>
+              <span className={styles.resourceCardArrow} aria-hidden="true">
+                →
+              </span>
+            </Link>
+            <VendorContactsButton vendors={vendors} />
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <div className={styles.resourceRow}>
+            <CollapsibleCard
+              title="Requests"
+              description="Things the admin needs from you."
+              badgeCount={(requests ?? []).filter((r) => !r.fulfilled_at).length}
+              icon={<CommentIcon size={18} />}
+              titleClassName={styles.resourceCardTitle}
+              defaultOpen={false}
+              bare
+            >
+              <ClientEventRequestsList
+                eventId={event.id}
+                requests={(requests ?? []).map((r) => ({
+                  id: r.id,
+                  title: r.title,
+                  dueDate: r.due_date,
+                  fulfilledAt: r.fulfilled_at,
+                }))}
+              />
+            </CollapsibleCard>
+          </div>
         </div>
       </div>
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Event Tasks</h2>
-        <ClientEventTaskBoard eventId={event.id} tasks={tasks ?? []} />
+        <p className={styles.description}>Work being done for this event.</p>
+        <ClientEventTaskBoard eventId={event.id} tasks={tasks} />
       </div>
     </div>
   );

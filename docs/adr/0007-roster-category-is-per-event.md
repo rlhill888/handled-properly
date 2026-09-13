@@ -1,6 +1,8 @@
 ---
-status: accepted
+status: superseded
 ---
+
+> **Superseded**: Roster Category has been removed entirely — an Event's Roster no longer supports grouping members into per-event labels at all. The reasoning below for why it was kept separate from Category (when it existed) is still historically accurate; it just no longer applies to a feature that exists.
 
 # Roster Category is scoped per-Event, not the global Contact Category
 

@@ -8,59 +8,25 @@ import type { StaffOption } from "./NewAssignmentForm";
 export async function getAssignmentsBoardData(eventId: string) {
   const supabase = await createSupabaseServerClient();
 
-  const [
-    { data: rosterRows },
-    { data: assignmentRows },
-    { data: rosterCategoryRows },
-    { data: allCategoryLinkRows },
-    { data: eventTaskRows },
-  ] = await Promise.all([
-    supabase
-      .from("roster_entries")
-      .select("event_staff(id, contacts(name))")
-      .eq("event_id", eventId),
-    supabase
-      .from("assignments")
-      .select(
-        "id, parent_assignment_id, title, description, status, tags, due_date, priority, pickup_setting, assignment_assignees(event_staff(id, contacts(name)))"
-      )
-      .eq("event_id", eventId)
-      .order("created_at", { ascending: true }),
-    // Roster tags — lets the assignee picker match a search term like
-    // "Catering" against a staff member's category, not just their name.
-    supabase
-      .from("roster_categories")
-      .select("name, roster_entry_categories(event_staff_id)")
-      .eq("event_id", eventId),
-    // Every roster-category a staff member has ever been assigned, across
-    // ALL events (no event_id filter) — merged alongside the
-    // current-event-only roster tags above, so e.g. someone tagged
-    // "Catering" on a past event still surfaces here even if this event
-    // hasn't tagged them that way yet.
-    supabase.from("roster_entry_categories").select("event_staff_id, roster_categories(name)"),
-    supabase
-      .from("event_tasks")
-      .select("id, title")
-      .eq("event_id", eventId)
-      .order("created_at", { ascending: true }),
-  ]);
-
-  const categoryNamesByStaff = new Map<string, string[]>();
-  for (const row of rosterCategoryRows ?? []) {
-    for (const entry of row.roster_entry_categories) {
-      const list = categoryNamesByStaff.get(entry.event_staff_id) ?? [];
-      list.push(row.name);
-      categoryNamesByStaff.set(entry.event_staff_id, list);
-    }
-  }
-
-  const globalTagNamesByStaff = new Map<string, string[]>();
-  for (const link of allCategoryLinkRows ?? []) {
-    if (!link.roster_categories) continue;
-    const list = globalTagNamesByStaff.get(link.event_staff_id) ?? [];
-    list.push(link.roster_categories.name);
-    globalTagNamesByStaff.set(link.event_staff_id, list);
-  }
+  const [{ data: rosterRows }, { data: assignmentRows }, { data: eventTaskRows }] =
+    await Promise.all([
+      supabase
+        .from("roster_entries")
+        .select("event_staff(id, contacts(name))")
+        .eq("event_id", eventId),
+      supabase
+        .from("assignments")
+        .select(
+          "id, parent_assignment_id, title, description, status, due_date, priority, pickup_setting, assignment_assignees(event_staff(id, contacts(name)))"
+        )
+        .eq("event_id", eventId)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("event_tasks")
+        .select("id, title")
+        .eq("event_id", eventId)
+        .order("created_at", { ascending: true }),
+    ]);
 
   const assignmentIds = (assignmentRows ?? []).map((row) => row.id);
 
@@ -95,8 +61,6 @@ export async function getAssignmentsBoardData(eventId: string) {
     .map((r) => ({
       id: r.event_staff!.id,
       name: r.event_staff!.contacts!.name,
-      categoryNames: categoryNamesByStaff.get(r.event_staff!.id) ?? [],
-      globalTagNames: globalTagNamesByStaff.get(r.event_staff!.id) ?? [],
     }));
 
   const flatAssignments = (assignmentRows ?? []).map((row) => ({
@@ -105,7 +69,6 @@ export async function getAssignmentsBoardData(eventId: string) {
     title: row.title,
     description: row.description,
     status: row.status,
-    tags: row.tags,
     dueDate: row.due_date,
     priority: row.priority,
     pickupSetting: row.pickup_setting,

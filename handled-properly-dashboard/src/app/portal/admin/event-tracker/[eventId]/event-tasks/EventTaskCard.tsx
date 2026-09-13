@@ -14,7 +14,6 @@ import commentStyles from "@/components/portal/CommentsSection.module.css";
 import type { EventTaskData, RequestOption, AssignmentOption } from "./EventTasksBoardClient";
 
 const STATUS_OPTIONS: { value: EventTaskData["status"]; label: string }[] = [
-  { value: "not_started", label: "Not Started" },
   { value: "in_progress", label: "In Progress" },
   { value: "blocked", label: "Blocked" },
   { value: "done", label: "Done" },
@@ -107,6 +106,7 @@ export default function EventTaskCard({
 
       <div>
         <h2 className={styles.cardTitle}>Updates</h2>
+        <p className={styles.description}>Write updates the client can read.</p>
         <div className={commentStyles.list}>
           {task.updates.length === 0 && <p className={styles.emptyState}>No updates yet.</p>}
           {task.updates.map((update) => (

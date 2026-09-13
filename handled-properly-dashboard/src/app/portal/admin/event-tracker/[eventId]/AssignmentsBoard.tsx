@@ -37,6 +37,7 @@ export default async function AssignmentsBoard({
           Edit all Assignments
         </Link>
       </div>
+      <p className={styles.description}>Jobs for your staff to do at this event.</p>
 
       <AssignmentBoardClient
         eventId={eventId}

@@ -44,6 +44,7 @@ export default async function CommunicationHubPage() {
             +
           </Link>
         </div>
+        <p className={styles.description}>Forms people can fill out.</p>
 
         {formsError && (
           <p className={styles.error}>Could not load forms: {formsError.message}</p>
@@ -108,9 +109,7 @@ export default async function CommunicationHubPage() {
             </svg>
           </Link>
         </div>
-        <p className={styles.description}>
-          Compose and send an email to your Contacts, filtered by category.
-        </p>
+        <p className={styles.description}>Send an email to your contacts.</p>
 
         {sendsError && (
           <p className={styles.error}>Could not load sent emails: {sendsError.message}</p>

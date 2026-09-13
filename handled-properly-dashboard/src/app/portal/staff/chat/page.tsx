@@ -25,12 +25,13 @@ export default async function StaffChatPage() {
         <div>
           <span className={styles.eyebrow}>Event Staff</span>
           <h1 className={styles.title}>Chat</h1>
-          <p className={styles.description}>Every conversation you're part of, across all events.</p>
+          <p className={styles.description}>All your chats, from every event.</p>
         </div>
       </div>
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Conversations ({conversations?.length ?? 0})</h2>
+        <p className={styles.description}>Shows the event and who&apos;s in each chat.</p>
         {!conversations || conversations.length === 0 ? (
           <p className={styles.emptyState}>
             No conversations yet. Open an event to start or join one.

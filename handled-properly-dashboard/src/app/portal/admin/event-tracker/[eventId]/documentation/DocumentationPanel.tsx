@@ -47,6 +47,7 @@ export default async function DocumentationPanel({
           </AddModalButton>
         )}
       </div>
+      <p className={styles.description}>Files you shared with the client.</p>
 
       <DocumentationPanelClient eventId={eventId} docs={docs} />
     </div>

@@ -24,17 +24,31 @@ export default async function EventVendorsPanel({ eventId }: { eventId: string }
   const initialSelectedIds = currentVendors.map((c) => c.id);
 
   return (
-    <CollapsibleCard title="Vendors" badgeCount={currentVendors.length} defaultOpen={false}>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-        <ModalButton label="Edit" modalTitle="Edit Vendors" className={styles.secondaryButton}>
-          <EventVendorsPanelClient
-            eventId={eventId}
-            contactOptions={contactOptions}
-            initialSelectedIds={initialSelectedIds}
-          />
-        </ModalButton>
-      </div>
-
+    <CollapsibleCard
+      title="Vendors"
+      description="Outside people helping with this event. The client can see this."
+      badgeCount={currentVendors.length}
+      defaultOpen={false}
+      actions={
+        currentVendors.length === 0 ? (
+          <ModalButton label="+" ariaLabel="Add Vendor" modalTitle="Add Vendors" className={styles.addButton}>
+            <EventVendorsPanelClient
+              eventId={eventId}
+              contactOptions={contactOptions}
+              initialSelectedIds={initialSelectedIds}
+            />
+          </ModalButton>
+        ) : (
+          <ModalButton label="Edit" modalTitle="Edit Vendors" className={styles.secondaryButton}>
+            <EventVendorsPanelClient
+              eventId={eventId}
+              contactOptions={contactOptions}
+              initialSelectedIds={initialSelectedIds}
+            />
+          </ModalButton>
+        )
+      }
+    >
       {currentVendors.length === 0 ? (
         <p className={styles.emptyState}>No vendors on this event yet.</p>
       ) : (

@@ -1,6 +1,8 @@
 ---
-status: accepted
+status: superseded
 ---
+
+> **Superseded**: the Event Series feature this ADR describes (the `event_series` table, `events.series_id`, and the recurrence UI) has been removed entirely — recurring events are no longer linked to one another at all. The reasoning below for why occurrences were kept independent still holds; only the parent-record grouping was cut.
 
 # Recurring events are independent Event rows linked to a Series, not one record with a recurrence rule
 

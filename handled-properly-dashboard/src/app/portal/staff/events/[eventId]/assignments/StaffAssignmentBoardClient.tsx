@@ -3,7 +3,7 @@
 import { useCallback, useOptimistic, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { staffSetStatus } from "./actions";
-import StaffAssignmentCard, { type StaffAssignmentData } from "./StaffAssignmentCard";
+import StaffAssignmentCard, { isRestrictedForStaff, type StaffAssignmentData } from "./StaffAssignmentCard";
 import Modal from "@/components/portal/Modal";
 import LockIcon from "@/components/portal/LockIcon";
 import boardStyles from "@/styles/assignments-board.module.css";
@@ -18,7 +18,6 @@ function isBlocked(assignment: StaffAssignmentData): boolean {
 }
 
 const COLUMNS: { status: StaffAssignmentData["status"]; label: string }[] = [
-  { status: "ready", label: "Ready to Work" },
   { status: "in_progress", label: "In Progress" },
   { status: "blocked", label: "Blocked" },
   { status: "done", label: "Done" },
@@ -166,7 +165,7 @@ export default function StaffAssignmentBoardClient({
                     draggingId === assignment.id ? boardStyles.titleCardDragging : ""
                   } ${isBlocked(assignment) ? boardStyles.titleCardBlocked : ""} ${
                     !isDraggable(assignment) ? boardStyles.titleCardStatic : ""
-                  } ${isMine(assignment) ? boardStyles.titleCardMine : ""}`}
+                  } ${isRestrictedForStaff(assignment, currentStaffId) ? boardStyles.cardRestricted : ""}`}
                   style={
                     draggingId === assignment.id && dragOffset
                       ? { transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)` }
@@ -178,6 +177,9 @@ export default function StaffAssignmentBoardClient({
                   onPointerCancel={endDrag}
                 >
                   <span className={boardStyles.titleCardText}>
+                    {isMine(assignment) && (
+                      <span className={boardStyles.titleCardMineBadge}>Assigned to You</span>
+                    )}
                     {isBlocked(assignment) && (
                       <span className={boardStyles.titleCardBlockedIcon} aria-label="Blocked">
                         <LockIcon size={12} />

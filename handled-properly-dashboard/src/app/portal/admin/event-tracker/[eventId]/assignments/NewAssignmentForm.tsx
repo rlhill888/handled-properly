@@ -10,8 +10,6 @@ import styles from "@/styles/admin-shared.module.css";
 export type StaffOption = {
   id: string;
   name: string;
-  categoryNames: string[];
-  globalTagNames: string[];
 };
 
 export default function NewAssignmentForm({
@@ -54,19 +52,11 @@ export default function NewAssignmentForm({
     <form ref={formRef} action={formAction} className={styles.form}>
       {state?.error && <p className={styles.error}>{state.error}</p>}
 
-      <div className={styles.formRow}>
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="title">
-            Title
-          </label>
-          <input id="title" name="title" required className={styles.input} placeholder="Set up chairs" />
-        </div>
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="tags">
-            Tags <span className={styles.optional}>(comma-separated)</span>
-          </label>
-          <input id="tags" name="tags" className={styles.input} placeholder="Setup, Catering" />
-        </div>
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="title">
+          Title
+        </label>
+        <input id="title" name="title" required className={styles.input} placeholder="Set up chairs" />
       </div>
 
       <div className={styles.field}>
@@ -120,10 +110,9 @@ export default function NewAssignmentForm({
           options={rosterStaff.map((staff) => ({
             id: staff.id,
             label: staff.name,
-            searchText: [...staff.categoryNames, ...staff.globalTagNames].join(" "),
           }))}
           placeholder="Add an assignee…"
-          searchPlaceholder="Search staff or tag…"
+          searchPlaceholder="Search staff…"
         />
       )}
 

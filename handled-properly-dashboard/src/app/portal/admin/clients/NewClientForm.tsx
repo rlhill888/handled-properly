@@ -1,25 +1,33 @@
 "use client";
 
 import { useActionState, useRef, useEffect } from "react";
-import { createClientRecord, type ActionState } from "./actions";
+import { createClientRecord, type CreateClientState } from "./actions";
 import SubmitButton from "@/components/portal/SubmitButton";
 import styles from "@/styles/admin-shared.module.css";
 
-export default function NewClientForm() {
-  const [state, formAction] = useActionState<ActionState, FormData>(createClientRecord, null);
+export default function NewClientForm({
+  onCreated,
+}: {
+  onCreated?: (client: { id: string; name: string }) => void;
+}) {
+  const [state, formAction] = useActionState<CreateClientState, FormData>(
+    createClientRecord,
+    null
+  );
   const formRef = useRef<HTMLFormElement>(null);
-  const previousState = useRef<ActionState>(null);
 
   useEffect(() => {
-    if (previousState.current !== null && state === null) {
+    if (state && "client" in state) {
       formRef.current?.reset();
+      onCreated?.(state.client);
     }
-    previousState.current = state;
-  }, [state]);
+  }, [state, onCreated]);
+
+  const error = state && "error" in state ? state.error : null;
 
   return (
     <form ref={formRef} action={formAction} className={styles.form}>
-      {state?.error && <p className={styles.error}>{state.error}</p>}
+      {error && <p className={styles.error}>{error}</p>}
 
       <div className={styles.formRow}>
         <div className={styles.field}>

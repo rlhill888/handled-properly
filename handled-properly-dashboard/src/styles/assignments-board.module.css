@@ -32,6 +32,20 @@
   justify-content: space-between;
 }
 
+.columnHeaderTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.columnDescription {
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--muted);
+}
+
 .titleCard {
   display: flex;
   align-items: center;
@@ -88,10 +102,18 @@
   cursor: default;
 }
 
-/* A persistent "this one's yours" cue — grab-cursor only shows on hover,
-   this stays visible at a glance among everyone else's assignments. */
-.titleCardMine {
-  border-left: 3px solid #0a0a0a;
+.titleCardMineBadge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ffffff;
+  background: #0a7c2f;
+  padding: 3px 7px;
+  border-radius: 999px;
 }
 
 .titleCardText {
@@ -201,6 +223,13 @@
   color: var(--foreground);
 }
 
+.cardTitleLg {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--foreground);
+}
+
 .cardTitleDone {
   color: var(--muted);
   text-decoration: line-through;
@@ -242,6 +271,61 @@
   gap: 4px;
 }
 
+.fieldGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.fieldBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--foreground);
+}
+
+.dueDateBox {
+  composes: fieldBox;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+/* A staff member can view an assignment they can neither pick up nor act
+   on (admin_only, not assigned to them) but can't change its status —
+   greyed out to signal it's read-only for them. Only used on the Kanban
+   tile preview; the opened detail card stays fully legible (see
+   .restrictedWrap/.restrictedOverlay below) and explains itself on click
+   instead. */
+.cardRestricted {
+  opacity: 0.55;
+  filter: grayscale(0.5);
+}
+
+.restrictedWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+/* A transparent, click-catching layer over an inert (disabled) control on
+   an assignment that isn't the viewer's — the control itself never reacts
+   (disabled), so this is what actually receives the click and explains why
+   nothing happened, instead of the click silently going nowhere. */
+.restrictedOverlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: not-allowed;
+}
+
 .metaLabel {
   font-size: 11px;
   font-weight: 700;
@@ -262,7 +346,7 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   padding: 3px 8px;
-  border-radius: 2px;
+  border-radius: 999px;
 }
 
 .priority_low {
@@ -323,7 +407,7 @@
   gap: 8px;
   margin-top: 6px;
   padding-top: 10px;
-  border-top: 1px dashed var(--border);
+  border-top: 1px solid var(--border);
 }
 
 .subToggle {
@@ -340,6 +424,19 @@
 
 .subToggle:hover {
   color: var(--foreground);
+}
+
+.subToggleWithIcon {
+  composes: subToggle;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.subHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .subList {

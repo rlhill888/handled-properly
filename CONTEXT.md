@@ -32,20 +32,12 @@ The single account with unrestricted access: manages Clients, Events, Event Staf
 ### Events
 
 **Event**:
-A single occurrence of work for a Client — one-time or one instance of a recurring series. Owns its own Roster, Assignments, Conversations, and (once Completed) its own history record.
+A single occurrence of work for a Client. Owns its own Roster, Assignments, Conversations, and (once Completed) its own history record. May span multiple consecutive days (a date range) rather than a single instant — see [`0015-multi-day-events-as-a-date-range`](./docs/adr/0015-multi-day-events-as-a-date-range.md). Recurring events are not linked to one another; each is created and tracked independently — see [`0003-event-series-as-independent-occurrences`](./docs/adr/0003-event-series-as-independent-occurrences.md) (superseded: the Event Series grouping that ADR describes has since been removed).
 _Avoid_: Job, Gig, Booking
-
-**Event Series**:
-The parent record linking multiple Event occurrences that recur for the same Client. Occurrences are created individually by the admin, not generated in bulk from a schedule.
-_Avoid_: Recurring Event (ambiguous — could mean the series or one occurrence)
 
 **Roster**:
 The explicit set of Event Staff added to an Event by the admin. Roster membership — not Assignment assignment — determines who can see the Event, be added to its Conversations, and be assigned/pick up its Assignments.
 _Avoid_: Team, Assigned staff
-
-**Roster Category**:
-An admin-created label scoped to a single Event, used to group that Event's Roster members (e.g. "Security", "Bar Staff"). A Roster member can carry several. Created and managed per Event — never shared or reused across Events, unlike Category.
-_Avoid_: Category (reserved for the global Contact taxonomy — see below), Tag (reserved for Assignments — see below)
 
 **Active** (Event status):
 The literal, default `event_status` an Event holds from creation until the admin manually marks it Completed — not a separate concept, just the not-yet-Completed state. This is what the Client Portal's "active events" list filters on.
@@ -61,19 +53,15 @@ A record linking a Contact to a specific Event as an attendee, created manually 
 ### Assignments
 
 **Assignment**:
-A unit of work belonging to exactly one Event. Has a title, description, Status, one or more Tags, a due date, a priority, a Pickup Setting, and zero or more assignees drawn from the Event's Roster. Created and content-edited by the admin only. Can also be associated with one Event Task, admin-set from either record's own edit form — informational only, it doesn't gate either record's Status, and exists so a Staff member looking at an Event Task can see the Assignment(s) doing the work behind it.
+A unit of work belonging to exactly one Event. Has a title, description, Status, a due date, a priority, a Pickup Setting, and zero or more assignees drawn from the Event's Roster. Created and content-edited by the admin only. Can also be associated with one Event Task, admin-set from either record's own edit form — informational only, it doesn't gate either record's Status, and exists so a Staff member looking at an Event Task can see the Assignment(s) doing the work behind it.
 _Avoid_: Task, Ticket, To-do
 
 **Subtask**:
-An Assignment whose `parent_assignment_id` points at another Assignment. Not a distinct kind of record — a Subtask has every field a top-level Assignment has (its own Status, Tags, assignees, Pickup Setting). A Subtask cannot itself have Subtasks: nesting is capped at one level below a top-level Assignment.
+An Assignment whose `parent_assignment_id` points at another Assignment. Not a distinct kind of record — a Subtask has every field a top-level Assignment has (its own Status, assignees, Pickup Setting). A Subtask cannot itself have Subtasks: nesting is capped at one level below a top-level Assignment.
 _Avoid_: Sub-assignment, Checklist item
 
 **Status**:
-An Assignment's position in its 4-stage lifecycle: Ready to Work, In Progress, Blocked, Done. Any Roster member can move an Assignment's Status; only the admin edits its content.
-
-**Tag**:
-A free-text label typed onto an individual Assignment, with no central list or reuse enforcement.
-_Avoid_: Category (reserved for the Contact taxonomy — see below), Roster Category (reserved for per-Event Roster grouping — see above)
+An Assignment's position in its 3-stage lifecycle: In Progress, Blocked, Done. Any Roster member can move an Assignment's Status; only the admin edits its content.
 
 **Pickup Setting**:
 A per-Assignment flag: either only the admin may assign it to chosen Event Staff, or any Roster member may Pick it up.
@@ -95,7 +83,7 @@ A per-Event flag controlling whether Roster members may start new Conversations 
 
 **Category**:
 An admin-managed, reusable tag in the Contact taxonomy (e.g. "VIP"). Admin creates/renames/deletes Categories over time; a Contact can carry several. Client and Event Staff roles imply their own Category automatically, in addition to any custom ones.
-_Avoid_: Tag (reserved for Assignments — see above), Segment, Roster Category (reserved for per-Event Roster grouping — see above, under Events)
+_Avoid_: Segment
 
 **Email Send**:
 A record of one mass-email dispatch by the admin to a filtered set of Contacts: subject, HTML body, recipients, timestamp, and any number of attached Forms. Sent via AWS SES. Composed fresh each time — there is no saved, reusable Email Template. See [`0009-no-saved-email-templates`](./docs/adr/0009-no-saved-email-templates.md).
@@ -117,11 +105,11 @@ _Avoid_: Response, Entry
 ### Client Portal
 
 **Event Task**:
-An admin-authored unit of client-visible work on an Event: a title, a description, and a Status. Distinct from Assignment — an Event Task has no assignee (Assignment's assignees are drawn from the Event Roster, which Clients aren't part of) and none of Assignment's staff-only fields (Tags, Priority, Pickup Setting). Only the admin creates and edits an Event Task; the Client sees it and its Updates read-only, and a rostered Event Staff member sees the same read-only view (plus which Assignments are associated with it) for Events they're on.
+An admin-authored unit of client-visible work on an Event: a title, a description, and a Status. Distinct from Assignment — an Event Task has no assignee (Assignment's assignees are drawn from the Event Roster, which Clients aren't part of) and none of Assignment's staff-only fields (Priority, Pickup Setting). Only the admin creates and edits an Event Task; the Client sees it and its Updates read-only, and a rostered Event Staff member sees the same read-only view (plus which Assignments are associated with it) for Events they're on.
 _Avoid_: Assignment (reserved for staff-facing work — see above), Task (too generic; always say "Event Task")
 
 **Event Task Status**:
-An Event Task's position in its 4-stage lifecycle: Not Started, In Progress, Blocked, Done. Distinct from Assignment's Status (Ready to Work / In Progress / Blocked / Done) — same shape, separate enum, because Event Task has no admin/staff split in who moves it: only the admin does.
+An Event Task's position in its 3-stage lifecycle: In Progress, Blocked, Done. Distinct from Assignment's Status (same shape, same 3 stages) — a separate enum, because Event Task has no admin/staff split in who moves it: only the admin does.
 
 **Event Task Update**:
 A timestamped, admin-authored note posted to an Event Task, visible to the Client. Mirrors Assignment Comment's shape (chronological, append-only) but single-author (admin only) rather than dual-author, since Clients don't post to their own Event Tasks.

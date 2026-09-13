@@ -178,7 +178,6 @@ export type Database = {
           pickup_setting: Database["public"]["Enums"]["pickup_setting"]
           priority: Database["public"]["Enums"]["assignment_priority"]
           status: Database["public"]["Enums"]["assignment_status"]
-          tags: string[]
           title: string
         }
         Insert: {
@@ -191,7 +190,6 @@ export type Database = {
           pickup_setting?: Database["public"]["Enums"]["pickup_setting"]
           priority?: Database["public"]["Enums"]["assignment_priority"]
           status?: Database["public"]["Enums"]["assignment_status"]
-          tags?: string[]
           title: string
         }
         Update: {
@@ -204,7 +202,6 @@ export type Database = {
           pickup_setting?: Database["public"]["Enums"]["pickup_setting"]
           priority?: Database["public"]["Enums"]["assignment_priority"]
           status?: Database["public"]["Enums"]["assignment_status"]
-          tags?: string[]
           title?: string
         }
         Relationships: [
@@ -627,35 +624,6 @@ export type Database = {
           },
         ]
       }
-      event_series: {
-        Row: {
-          client_id: string
-          created_at: string
-          id: string
-          label: string
-        }
-        Insert: {
-          client_id: string
-          created_at?: string
-          id?: string
-          label: string
-        }
-        Update: {
-          client_id?: string
-          created_at?: string
-          id?: string
-          label?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "event_series_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       event_staff: {
         Row: {
           auth_user_id: string | null
@@ -836,11 +804,11 @@ export type Database = {
           client_id: string
           completed_at: string | null
           created_at: string
+          ends_at: string | null
           header_image_path: string | null
           id: string
           location: string | null
           name: string
-          series_id: string | null
           staff_can_start_conversations: boolean
           starts_at: string | null
           status: Database["public"]["Enums"]["event_status"]
@@ -849,11 +817,11 @@ export type Database = {
           client_id: string
           completed_at?: string | null
           created_at?: string
+          ends_at?: string | null
           header_image_path?: string | null
           id?: string
           location?: string | null
           name: string
-          series_id?: string | null
           staff_can_start_conversations?: boolean
           starts_at?: string | null
           status?: Database["public"]["Enums"]["event_status"]
@@ -862,11 +830,11 @@ export type Database = {
           client_id?: string
           completed_at?: string | null
           created_at?: string
+          ends_at?: string | null
           header_image_path?: string | null
           id?: string
           location?: string | null
           name?: string
-          series_id?: string | null
           staff_can_start_conversations?: boolean
           starts_at?: string | null
           status?: Database["public"]["Enums"]["event_status"]
@@ -877,13 +845,6 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "events_series_id_fkey"
-            columns: ["series_id"]
-            isOneToOne: false
-            referencedRelation: "event_series"
             referencedColumns: ["id"]
           },
         ]
@@ -1143,35 +1104,6 @@ export type Database = {
           },
         ]
       }
-      roster_categories: {
-        Row: {
-          created_at: string
-          event_id: string
-          id: string
-          name: string
-        }
-        Insert: {
-          created_at?: string
-          event_id: string
-          id?: string
-          name: string
-        }
-        Update: {
-          created_at?: string
-          event_id?: string
-          id?: string
-          name?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "roster_categories_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       roster_entries: {
         Row: {
           added_at: string
@@ -1198,36 +1130,6 @@ export type Database = {
           },
           {
             foreignKeyName: "roster_entries_event_staff_id_fkey"
-            columns: ["event_staff_id"]
-            isOneToOne: false
-            referencedRelation: "event_staff"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      roster_entry_categories: {
-        Row: {
-          category_id: string
-          event_staff_id: string
-        }
-        Insert: {
-          category_id: string
-          event_staff_id: string
-        }
-        Update: {
-          category_id?: string
-          event_staff_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "roster_entry_categories_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "roster_categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "roster_entry_categories_event_staff_id_fkey"
             columns: ["event_staff_id"]
             isOneToOne: false
             referencedRelation: "event_staff"
@@ -1364,12 +1266,12 @@ export type Database = {
     Enums: {
       assigned_via: "admin" | "pickup"
       assignment_priority: "low" | "medium" | "high"
-      assignment_status: "ready" | "in_progress" | "blocked" | "done"
+      assignment_status: "in_progress" | "blocked" | "done"
       attendance_source: "manual" | "form_submission"
       client_application_status: "pending" | "converted" | "declined"
       client_invite_status: "invited" | "active" | "revoked"
       event_status: "active" | "completed"
-      event_task_status: "not_started" | "in_progress" | "blocked" | "done"
+      event_task_status: "in_progress" | "blocked" | "done"
       form_field_type:
         | "text"
         | "email"
@@ -1516,12 +1418,12 @@ export const Constants = {
     Enums: {
       assigned_via: ["admin", "pickup"],
       assignment_priority: ["low", "medium", "high"],
-      assignment_status: ["ready", "in_progress", "blocked", "done"],
+      assignment_status: ["in_progress", "blocked", "done"],
       attendance_source: ["manual", "form_submission"],
       client_application_status: ["pending", "converted", "declined"],
       client_invite_status: ["invited", "active", "revoked"],
       event_status: ["active", "completed"],
-      event_task_status: ["not_started", "in_progress", "blocked", "done"],
+      event_task_status: ["in_progress", "blocked", "done"],
       form_field_type: [
         "text",
         "email",

@@ -84,6 +84,7 @@ export default async function EventTasksBoard({
           </AddModalButton>
         )}
       </div>
+      <p className={styles.description}>Tasks the client sees for this event.</p>
 
       <EventTasksBoardClient
         eventId={eventId}

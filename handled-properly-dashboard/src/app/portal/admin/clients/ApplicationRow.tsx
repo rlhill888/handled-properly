@@ -7,6 +7,7 @@ import {
   convertApplicationToClient,
   declineApplication,
 } from "./applications-actions";
+import InvitePromptModal from "./InvitePromptModal";
 import styles from "@/styles/admin-shared.module.css";
 
 export type ApplicationRowData = {
@@ -33,6 +34,7 @@ export default function ApplicationRow({ application }: { application: Applicati
   const [isSummarizing, startSummarize] = useTransition();
   const [isActing, startAction] = useTransition();
   const [actionError, setActionError] = useState<string | null>(null);
+  const [convertedClient, setConvertedClient] = useState<{ id: string; name: string } | null>(null);
 
   const toggleExpanded = () => {
     const next = !expanded;
@@ -51,8 +53,15 @@ export default function ApplicationRow({ application }: { application: Applicati
     setActionError(null);
     startAction(async () => {
       const result = await convertApplicationToClient(application.id);
-      if (result?.error) setActionError(result.error);
-      else router.refresh();
+      if (result && "error" in result) {
+        setActionError(result.error);
+      } else if (result && "client" in result) {
+        // Don't router.refresh() yet — the applications query filters out
+        // converted rows, so an immediate refresh would unmount this row
+        // (and the invite prompt below) before the admin can act on it.
+        // Refresh only once they've closed the prompt instead.
+        setConvertedClient(result.client);
+      }
     });
   };
 
@@ -160,6 +169,14 @@ export default function ApplicationRow({ application }: { application: Applicati
           )}
         </div>
       )}
+
+      <InvitePromptModal
+        client={convertedClient}
+        onClose={() => {
+          setConvertedClient(null);
+          router.refresh();
+        }}
+      />
     </div>
   );
 }

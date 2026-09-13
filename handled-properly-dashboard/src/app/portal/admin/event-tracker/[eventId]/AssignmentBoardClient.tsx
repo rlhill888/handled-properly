@@ -20,7 +20,6 @@ function isBlocked(assignment: AssignmentData): boolean {
 }
 
 const COLUMNS: { status: AssignmentData["status"]; label: string }[] = [
-  { status: "ready", label: "Ready to Work" },
   { status: "in_progress", label: "In Progress" },
   { status: "blocked", label: "Blocked" },
   { status: "done", label: "Done" },

@@ -7,22 +7,33 @@ export type EventTaskUpdateData = {
   createdAt: string;
 };
 
+function formatUpdateTime(iso: string): string {
+  const date = new Date(iso);
+  const day = date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  const time = date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return `${day} · ${time}`;
+}
+
 // Read-only counterpart to CommentsSection — Event Task Updates are
 // admin-authored only, neither the Client nor Staff ever post, so there's
-// no composer here. Shared by the Client's and Staff's Event Task detail
-// pages.
+// no composer here, and no author label (there's only ever one author).
+// Shared by the Client's and Staff's Event Task detail pages.
 export default function EventTaskUpdatesList({ updates }: { updates: EventTaskUpdateData[] }) {
+  if (updates.length === 0) {
+    return <p className={styles.emptyState}>No updates yet.</p>;
+  }
+
   return (
-    <div className={commentStyles.list}>
-      {updates.length === 0 && <p className={styles.emptyState}>No updates yet.</p>}
+    <div className={commentStyles.timeline}>
       {updates.map((update) => (
-        <div key={update.id} className={commentStyles.comment}>
-          <div className={commentStyles.commentMeta}>
-            <span className={commentStyles.commentTime}>
-              {new Date(update.createdAt).toLocaleString()}
-            </span>
+        <div key={update.id} className={commentStyles.timelineItem}>
+          <div className={commentStyles.timelineRail}>
+            <span className={commentStyles.timelineDot} aria-hidden="true" />
           </div>
-          <p className={commentStyles.commentBody}>{update.body}</p>
+          <div className={commentStyles.timelineContent}>
+            <span className={commentStyles.timelineTime}>{formatUpdateTime(update.createdAt)}</span>
+            <p className={commentStyles.timelineBody}>{update.body}</p>
+          </div>
         </div>
       ))}
     </div>

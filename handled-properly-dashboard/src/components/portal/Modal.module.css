@@ -28,7 +28,15 @@
 }
 
 .dialogTitle {
-  font-size: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dialogTitleHeading {
+  font-size: 28px;
   font-weight: 800;
   letter-spacing: -0.01em;
   color: var(--foreground);
