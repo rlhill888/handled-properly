@@ -7,10 +7,18 @@
 .content {
   flex: 1;
   min-width: 0;
+  /* The sidebar is position: fixed (see PortalSidebar.module.css) and so no
+     longer takes up space in this flex row — reserve its width here
+     instead so content doesn't render underneath it. */
+  margin-left: 240px;
 }
 
 @media (max-width: 899px) {
   .shell {
     flex-direction: column;
+  }
+
+  .content {
+    margin-left: 0;
   }
 }

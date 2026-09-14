@@ -21,7 +21,7 @@ export default async function EmailManagerPage() {
     supabase.from("events").select("id, name").order("name", { ascending: true }),
     supabase.from("roster_entries").select("event_id, event_staff(contact_id)"),
     supabase.from("event_attendance").select("event_id, contact_id"),
-    supabase.from("forms").select("id, name").is("target_type", null).order("name", { ascending: true }),
+    supabase.from("forms").select("id, name").order("name", { ascending: true }),
   ]);
 
   const contactPreviews = (contacts ?? []).map((c) => ({

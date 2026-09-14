@@ -1,0 +1,243 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* variant="row" toggle — a full-width space-between row (icon + label on
+   the left, a chevron on the right) instead of the default compact inline
+   toggle, for callers presenting Comments as its own bordered section
+   (e.g. the staff assignment detail page) rather than a small nested
+   accordion inside a denser card. */
+.rowToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--foreground);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.rowToggleLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rowToggleChevron {
+  flex-shrink: 0;
+  color: var(--muted);
+  transition: transform 0.2s ease;
+}
+
+.rowToggleChevronOpen {
+  transform: rotate(90deg);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.comment {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.commentAvatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #e5e5e5;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.commentContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.commentMeta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.commentAuthor {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.commentTime {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.commentBody {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--foreground);
+  white-space: pre-wrap;
+}
+
+.composerRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.composerAvatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.composerBox {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  transition: border-color 0.2s ease;
+}
+
+.composerBox:focus-within {
+  border-color: #0a0a0a;
+}
+
+.composerInput {
+  width: 100%;
+  font: inherit;
+  font-size: 14px;
+  color: var(--foreground);
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: vertical;
+  min-height: 20px;
+}
+
+.composerInput::placeholder {
+  color: var(--muted);
+}
+
+.postButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  color: #ffffff;
+  background: #0a0a0a;
+  border: 1px solid #0a0a0a;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.postButton:hover {
+  opacity: 0.85;
+}
+
+.postButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.composerHint {
+  align-self: flex-start;
+  margin-left: 44px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Event Task Updates only (EventTaskUpdatesList) — a vertical timeline
+   with the timestamp above a shaded body box, distinct from .comment's
+   single-box layout since Updates are single-author and read-only. */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.timelineItem {
+  display: flex;
+  gap: 12px;
+}
+
+.timelineRail {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 8px;
+  flex-shrink: 0;
+}
+
+.timelineItem:not(:last-child) .timelineRail::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  background: var(--border);
+}
+
+.timelineDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+  margin-top: 6px;
+  position: relative;
+  z-index: 1;
+}
+
+.timelineContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.timelineTime {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.timelineBody {
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 14px;
+  color: var(--foreground);
+  white-space: pre-wrap;
+}

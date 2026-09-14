@@ -17,7 +17,7 @@ export default async function EventHistoryPage() {
         <div>
           <span className={styles.eyebrow}>Admin</span>
           <h1 className={styles.title}>Event History</h1>
-          <p className={styles.description}>Completed events, locked as a record of what happened.</p>
+          <p className={styles.description}>A list of events that are finished.</p>
         </div>
         <Link href="/portal/admin/event-tracker" className={styles.backLink} aria-label="Back to Active Events">
           ←

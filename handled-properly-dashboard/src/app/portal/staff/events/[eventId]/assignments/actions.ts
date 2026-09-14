@@ -25,6 +25,7 @@ export async function staffSetStatus(
   if (error) return { error: error.message };
 
   revalidatePath(`/portal/staff/events/${eventId}/assignments`);
+  revalidatePath("/portal");
   return {};
 }
 
@@ -40,5 +41,6 @@ export async function staffPickupAssignment(
   if (error) return { error: error.message };
 
   revalidatePath(`/portal/staff/events/${eventId}/assignments`);
+  revalidatePath("/portal");
   return {};
 }

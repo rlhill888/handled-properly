@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import NewConversationForm from "@/components/portal/NewConversationForm";
+import { CHAT_ENABLED } from "@/lib/feature-flags";
 import styles from "@/styles/admin-shared.module.css";
 
 export default async function AdminEventConversationsPage({
@@ -9,6 +10,8 @@ export default async function AdminEventConversationsPage({
 }: {
   params: Promise<{ eventId: string }>;
 }) {
+  if (!CHAT_ENABLED) notFound();
+
   const { eventId } = await params;
   const supabase = await createSupabaseServerClient();
 
@@ -49,13 +52,14 @@ export default async function AdminEventConversationsPage({
           <span className={styles.eyebrow}>Admin · Conversations</span>
           <h1 className={styles.title}>{event.name}</h1>
           <p className={styles.description}>
-            You see every conversation for this event, even ones you weren't added to.
+            You see every conversation for this event, even ones you weren&apos;t added to.
           </p>
         </div>
       </div>
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Start Conversation</h2>
+        <p className={styles.description}>Send a message to staff on this event.</p>
         <NewConversationForm
           eventId={eventId}
           basePath={`/portal/admin/event-tracker/${eventId}/conversations`}
@@ -65,6 +69,7 @@ export default async function AdminEventConversationsPage({
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>All Conversations ({conversations?.length ?? 0})</h2>
+        <p className={styles.description}>All chats for this event, even ones you&apos;re not in.</p>
         {!conversations || conversations.length === 0 ? (
           <p className={styles.emptyState}>No conversations yet.</p>
         ) : (

@@ -90,23 +90,3 @@ export async function setContactCategories(
   return {};
 }
 
-export async function addAttendance(
-  contactId: string,
-  eventId: string
-): Promise<{ error?: string }> {
-  if (!(await requireAdmin())) return { error: "Not authorized." };
-  if (!eventId) return { error: "Choose an event." };
-
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase
-    .from("event_attendance")
-    .insert({ contact_id: contactId, event_id: eventId, source: "manual" });
-
-  if (error) {
-    if (error.code === "23505") return { error: "Already an attendee of that event." };
-    return { error: error.message };
-  }
-
-  revalidatePath("/portal/admin/contacts");
-  return {};
-}

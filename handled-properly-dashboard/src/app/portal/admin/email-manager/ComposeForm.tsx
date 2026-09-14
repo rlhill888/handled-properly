@@ -1,13 +1,17 @@
 "use client";
 
 import { useActionState, useMemo, useRef, useState } from "react";
-import { sendMassEmail, type ActionState } from "./actions";
-import { generateEmailHtmlWithAI } from "./ai-actions";
+import { sendMassEmail, uploadEmailAssets, type ActionState } from "./actions";
+import { suggestButtonMappingAction, applyButtonMappingAction } from "./ai-actions";
+import type {
+  ButtonCandidateOption,
+  FormSuggestion,
+  ButtonMappingResult,
+} from "@/lib/ai-email-button-mapping";
 import SubmitButton from "@/components/portal/SubmitButton";
 import Modal from "@/components/portal/Modal";
 import SelectDropdown from "@/components/portal/SelectDropdown";
 import AiGeneratingOverlay from "@/components/AiGeneratingOverlay";
-import { useFocusTrap } from "@/hooks/useFocusTrap";
 import styles from "@/styles/admin-shared.module.css";
 
 // `caretRangeFromPoint` (Chrome/Safari) and `caretPositionFromPoint`
@@ -29,7 +33,52 @@ function caretRangeFromPoint(x: number, y: number): Range | null {
   return range;
 }
 
-type UploadedPhoto = { dataUrl: string; name: string };
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Client-side mirror of the token/fallback-link resolution sendMassEmail
+// does server-side (actions.ts) — purely for an accurate, instantly-updating
+// preview; the actual send still resolves this itself, independently, since
+// this is trusted only for what it's displayed for, not for what gets sent.
+function resolvePreviewLinks(
+  html: string,
+  formIds: string[],
+  availableForms: { id: string; name: string }[]
+): string {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const fillUrl = (formId: string) => `${siteUrl}/forms/fill/${formId}`;
+
+  let resolved = html;
+  for (const formId of formIds) {
+    const token = `{{FORM_LINK_${formId}}}`;
+    if (resolved.includes(token)) {
+      resolved = resolved.split(token).join(fillUrl(formId));
+    } else {
+      const form = availableForms.find((f) => f.id === formId);
+      if (form) resolved += `<p><a href="${fillUrl(formId)}">Fill out ${form.name}</a></p>`;
+    }
+  }
+  return resolved;
+}
+
+// An exported HTML file's images are referenced by a local relative path
+// (e.g. src="images/photo1.png") that can't resolve once the HTML is
+// emailed out. Matches by trailing filename only — not the exact relative
+// path prefix, which varies (images/, ./images/, assets/img/, ...) — so it
+// covers both <img src="..."> and CSS url(...) backgrounds uniformly.
+function inlineEmailAssetUrls(html: string, urlsByFilename: Record<string, string>): string {
+  let result = html;
+  for (const [filename, url] of Object.entries(urlsByFilename)) {
+    const escaped = escapeRegExp(filename);
+    result = result.replace(new RegExp(`(src\\s*=\\s*["'])[^"']*?${escaped}(["'])`, "gi"), `$1${url}$2`);
+    result = result.replace(
+      new RegExp(`url\\((['"]?)[^'")]*?${escaped}\\1\\)`, "gi"),
+      `url($1${url}$1)`
+    );
+  }
+  return result;
+}
 
 type Category = { id: string; name: string };
 type EventOption = { id: string; name: string };
@@ -59,7 +108,8 @@ export default function ComposeForm({
   const [eventFilterType, setEventFilterType] = useState<"staff" | "attendees">("staff");
   const [subject, setSubject] = useState("");
   const [bodyHtml, setBodyHtml] = useState("");
-  const [formId, setFormId] = useState("");
+  const [formIds, setFormIds] = useState<string[]>([]);
+  const [pendingFormId, setPendingFormId] = useState("");
   const bodyRef = useRef<HTMLDivElement>(null);
   // Opening the native file picker steals focus/selection from the body
   // before the file is even chosen, so by the time handleAttachImage runs
@@ -68,32 +118,30 @@ export default function ComposeForm({
   const attachImageRangeRef = useRef<Range | null>(null);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
-  const [aiHtmlOpen, setAiHtmlOpen] = useState(false);
-  const [designBrief, setDesignBrief] = useState("");
-  const [contentDetails, setContentDetails] = useState("");
-  const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
-  const [aiStage, setAiStage] = useState<"idle" | "generating" | "revising">("idle");
-  const [aiError, setAiError] = useState<string | null>(null);
-  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
-  // The AI's own last output, with {{PHOTO_n}}/{{FILL_LINK}} placeholders
-  // still literally present — used as context for follow-up revisions, so
-  // the (potentially huge) base64 photo data embedded in previewHtml is
-  // never sent back to the model.
-  const [lastGeneratedHtml, setLastGeneratedHtml] = useState<string | null>(null);
-  const [followUpInstruction, setFollowUpInstruction] = useState("");
-  const aiRegionRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(aiHtmlOpen, aiRegionRef);
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [isApplyingMapping, setIsApplyingMapping] = useState(false);
+  const [mappingError, setMappingError] = useState<string | null>(null);
+  const [mappingResults, setMappingResults] = useState<ButtonMappingResult[] | null>(null);
+  const [mappingReviewOpen, setMappingReviewOpen] = useState(false);
+  const [candidateOptions, setCandidateOptions] = useState<ButtonCandidateOption[]>([]);
+  // Keyed by formId — the candidate index as a string, or "none" for
+  // "no button, append a plain link instead." Seeded from AI's suggestion,
+  // freely editable before anything is actually applied.
+  const [selections, setSelections] = useState<Record<string, string>>({});
+  const [isUploadingAssets, setIsUploadingAssets] = useState(false);
 
   const syncFromEditor = () => {
     if (!bodyRef.current) return;
     setBodyHtml(bodyRef.current.innerHTML);
+    setMappingResults(null);
   };
 
   // Drop lands wherever the pointer was, not wherever the caret last was —
   // so a dropped image needs its own Range from the drop point, applied
-  // just before the insert. Paste/file-picker/AI-photo inserts have no such
-  // point and just fall back to whatever's currently selected.
+  // just before the insert. Paste/file-picker inserts have no such point
+  // and just fall back to whatever's currently selected.
   const insertImage = (dataUrl: string, dropRange?: Range) => {
     bodyRef.current?.focus();
     if (dropRange) {
@@ -156,97 +204,115 @@ export default function ComposeForm({
     e.target.value = "";
   };
 
-  const handleAddPhotos = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Emails are designed externally (e.g. in Canva) and exported as a folder
+  // (an .html file plus an "images/" subfolder it references by relative
+  // path) — this picks up the whole folder, not just the .html file, since
+  // those relative paths can't resolve once the HTML is emailed out. Every
+  // image in the folder gets uploaded to public storage and the HTML's
+  // references rewritten to the real hosted URLs (inlineEmailAssetUrls).
+  // This is just a second way to populate the same body editor, alongside
+  // typing directly into it — an .html file with no accompanying images
+  // works exactly as before.
+  const handleUploadHtml = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     e.target.value = "";
-    for (const file of files) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setPhotos((current) => [...current, { dataUrl: reader.result as string, name: file.name }]);
-      };
-      reader.readAsDataURL(file);
+    if (files.length === 0) return;
+
+    setMappingError(null);
+
+    const htmlFile = files.find((f) => f.name.toLowerCase().endsWith(".html"));
+    if (!htmlFile) {
+      setMappingError("No .html file found in the selected folder.");
+      return;
     }
-  };
 
-  const handleRemovePhoto = (index: number) => {
-    setPhotos((current) => current.filter((_, i) => i !== index));
-  };
+    const html = await htmlFile.text();
+    const imageFiles = files.filter((f) => f !== htmlFile && f.type.startsWith("image/"));
 
-  const resolvePhotoPlaceholders = (html: string) => {
-    let resolved = html;
-    photos.forEach((photo, i) => {
-      resolved = resolved.split(`{{PHOTO_${i + 1}}}`).join(photo.dataUrl);
-    });
-    return resolved;
-  };
+    if (imageFiles.length === 0) {
+      setBodyHtml(html);
+      if (bodyRef.current) bodyRef.current.innerHTML = html;
+      setMappingResults(null);
+      return;
+    }
 
-  const handleGenerateEmailHtml = async () => {
-    setAiStage("generating");
-    setAiError(null);
+    setIsUploadingAssets(true);
+    const assetFormData = new FormData();
+    for (const file of imageFiles) assetFormData.append("files", file);
+    const result = await uploadEmailAssets(assetFormData);
+    setIsUploadingAssets(false);
 
-    const formName = availableForms.find((f) => f.id === formId)?.name ?? null;
-    const result = await generateEmailHtmlWithAI(designBrief, contentDetails, {
-      subject,
-      formName,
-      photoCount: photos.length,
-    });
-
-    setAiStage("idle");
     if ("error" in result) {
-      setAiError(result.error);
-      return; // manually-entered body, if any, is left untouched
+      setMappingError(result.error);
+      return;
     }
 
-    // Show a preview before committing — an AI pass over a rich, table-based
-    // design can miss the brief, and contentEditable is a poor place to
-    // judge the real result (bounded height, editable, no isolation from
-    // the admin UI's own styles) as well as a risky place to land it
-    // unreviewed (typing/selecting inside complex markup can mangle it).
-    setLastGeneratedHtml(result.bodyHtml);
-    setPreviewHtml(resolvePhotoPlaceholders(result.bodyHtml));
+    const finalHtml = inlineEmailAssetUrls(html, result.urls);
+    setBodyHtml(finalHtml);
+    if (bodyRef.current) bodyRef.current.innerHTML = finalHtml;
+    setMappingResults(null);
   };
 
-  const handleApplyFollowUp = async () => {
-    if (!followUpInstruction.trim() || lastGeneratedHtml === null) return;
-    setAiStage("revising");
-    setAiError(null);
+  const attachedForms = formIds
+    .map((id) => availableForms.find((f) => f.id === id))
+    .filter((f): f is FormOption => Boolean(f));
 
-    const formName = availableForms.find((f) => f.id === formId)?.name ?? null;
-    const result = await generateEmailHtmlWithAI(
-      followUpInstruction,
-      "",
-      { subject, formName, photoCount: photos.length },
-      lastGeneratedHtml,
+  const previewHtml = useMemo(
+    () => resolvePreviewLinks(bodyHtml, formIds, availableForms),
+    [bodyHtml, formIds, availableForms]
+  );
+
+  // Step 1: asks AI to suggest which button each attached Form should link
+  // to — applies nothing yet. Opens a review modal so the admin can confirm
+  // or correct every suggestion before anything actually changes.
+  const handleOpenMappingReview = async () => {
+    setMappingError(null);
+    setIsSuggesting(true);
+    const result = await suggestButtonMappingAction(bodyHtml, attachedForms);
+    setIsSuggesting(false);
+
+    if ("error" in result) {
+      setMappingError(result.error);
+      return;
+    }
+
+    setCandidateOptions(result.candidates);
+    setSelections(
+      Object.fromEntries(
+        result.suggestions.map((s) => [s.formId, s.candidateIndex === null ? "none" : String(s.candidateIndex)])
+      )
     );
+    setMappingReviewOpen(true);
+  };
 
-    setAiStage("idle");
+  // Step 2: applies whatever the admin has actually confirmed in the review
+  // modal — swaps each chosen button's href for a {{FORM_LINK_<formId>}}
+  // token, resolved to the real fill-out URL at actual send time
+  // (sendMassEmail in actions.ts). A Form left on "no button" still gets a
+  // plain link appended when the email sends.
+  const handleApplyMapping = async () => {
+    setMappingError(null);
+    setIsApplyingMapping(true);
+    const mapping: FormSuggestion[] = attachedForms.map((form) => {
+      const selection = selections[form.id] ?? "none";
+      return {
+        formId: form.id,
+        formName: form.name,
+        candidateIndex: selection === "none" ? null : Number(selection),
+      };
+    });
+    const result = await applyButtonMappingAction(bodyHtml, mapping);
+    setIsApplyingMapping(false);
+
     if ("error" in result) {
-      setAiError(result.error);
-      return; // keep the current preview as-is
+      setMappingError(result.error);
+      return;
     }
 
-    setLastGeneratedHtml(result.bodyHtml);
-    setPreviewHtml(resolvePhotoPlaceholders(result.bodyHtml));
-    setFollowUpInstruction("");
-  };
-
-  const handleUsePreview = () => {
-    if (previewHtml === null) return;
-    setBodyHtml(previewHtml);
-    if (bodyRef.current) bodyRef.current.innerHTML = previewHtml;
-    setAiHtmlOpen(false);
-    setPreviewHtml(null);
-    setLastGeneratedHtml(null);
-    setDesignBrief("");
-    setContentDetails("");
-    setFollowUpInstruction("");
-    setPhotos([]);
-  };
-
-  const handleDiscardPreview = () => {
-    setPreviewHtml(null);
-    setLastGeneratedHtml(null);
-    setFollowUpInstruction("");
+    setBodyHtml(result.bodyHtml);
+    if (bodyRef.current) bodyRef.current.innerHTML = result.bodyHtml;
+    setMappingResults(result.results);
+    setMappingReviewOpen(false);
   };
 
   const filteredCategories = useMemo(() => {
@@ -314,31 +380,180 @@ export default function ComposeForm({
           onPaste={handlePaste}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
-          data-placeholder="Write your email…"
+          data-placeholder="Write your email, or upload HTML designed elsewhere (e.g. Canva)…"
         />
 
         <input type="hidden" name="body_html" value={bodyHtml} />
       </div>
 
+      {bodyHtml.trim() && (
+        <div className={styles.field}>
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            style={{ alignSelf: "flex-start" }}
+            onClick={() => setPreviewOpen(true)}
+          >
+            Preview Email
+          </button>
+        </div>
+      )}
+
+      <Modal open={previewOpen} onClose={() => setPreviewOpen(false)} title="Email Preview">
+        <div className={styles.form}>
+          <p className={styles.description}>
+            Buttons/links are live here — click one to confirm it goes where it should.
+          </p>
+          <iframe
+            title="Email preview"
+            srcDoc={previewHtml}
+            style={{
+              width: "100%",
+              height: "60vh",
+              border: "1px solid var(--border)",
+              borderRadius: 4,
+              background: "#ffffff",
+            }}
+          />
+        </div>
+      </Modal>
+
       <div className={styles.field}>
         <span className={styles.label}>
-          Include a fillable form <span className={styles.optional}>(optional — a fill link is appended to the email)</span>
+          Include fillable forms <span className={styles.optional}>(optional — a fill link is appended to the email for each)</span>
         </span>
-        <SelectDropdown
-          options={[
-            { id: "", label: "No form" },
-            ...availableForms.map((form) => ({ id: form.id, label: form.name })),
-          ]}
-          value={formId}
-          onChange={setFormId}
-          placeholder="No form"
-          searchable
-          searchPlaceholder="Search forms…"
-          createLabel="New Form"
-          createHref="/portal/admin/form/new"
-        />
-        <input type="hidden" name="form_id" value={formId} />
+
+        {formIds.length > 0 && (
+          <ul className={styles.metaRow}>
+            {formIds.map((id) => {
+              const form = availableForms.find((f) => f.id === id);
+              return (
+                <li key={id} className={styles.checkboxRow}>
+                  {form?.name ?? id}
+                  <button
+                    type="button"
+                    className={styles.dangerButton}
+                    style={{ marginLeft: 8 }}
+                    onClick={() => {
+                      setFormIds((current) => current.filter((formId) => formId !== id));
+                      setMappingResults(null);
+                    }}
+                  >
+                    Remove
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        <div className={styles.formRow}>
+          <SelectDropdown
+            options={availableForms
+              .filter((form) => !formIds.includes(form.id))
+              .map((form) => ({ id: form.id, label: form.name }))}
+            value={pendingFormId}
+            onChange={setPendingFormId}
+            placeholder="Add a form…"
+            searchable
+            searchPlaceholder="Search forms…"
+            createLabel="New Form"
+            createHref="/portal/admin/form/new"
+          />
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            disabled={!pendingFormId}
+            onClick={() => {
+              setFormIds((current) => [...current, pendingFormId]);
+              setPendingFormId("");
+              setMappingResults(null);
+            }}
+          >
+            Add
+          </button>
+        </div>
+
+        {formIds.map((id) => (
+          <input key={id} type="hidden" name="form_ids" value={id} />
+        ))}
+
+        {formIds.length > 0 && (
+          <div style={{ marginTop: 8 }}>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              disabled={isSuggesting || !bodyHtml.trim()}
+              onClick={handleOpenMappingReview}
+            >
+              {isSuggesting ? "Analyzing…" : "Map Forms to Buttons"}
+            </button>
+            <p className={styles.description}>
+              Suggests the best-matching button already in the Body for each attached form — you
+              confirm or correct each one before anything changes. Any form left on &ldquo;no
+              button&rdquo; still gets a plain link appended when the email sends.
+            </p>
+
+            {mappingError && <p className={styles.error}>{mappingError}</p>}
+
+            {mappingResults && (
+              <ul className={styles.metaRow} style={{ flexDirection: "column", alignItems: "flex-start" }}>
+                {mappingResults.map((r) => (
+                  <li key={r.formId} className={styles.description}>
+                    {r.matched
+                      ? `✓ ${r.formName} → matched button "${r.buttonText}"`
+                      : `— ${r.formName} → no matching button found, a link will be added when sent`}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
+
+      <Modal
+        open={mappingReviewOpen}
+        onClose={() => setMappingReviewOpen(false)}
+        title="Confirm Button Mapping"
+      >
+        <div className={styles.form}>
+          {mappingError && <p className={styles.error}>{mappingError}</p>}
+
+          {attachedForms.map((form) => (
+            <div key={form.id} className={styles.field}>
+              <span className={styles.label}>{form.name}</span>
+              <SelectDropdown
+                options={[
+                  { id: "none", label: "No button — append a link instead" },
+                  ...candidateOptions.map((c) => ({ id: String(c.index), label: `"${c.text}"` })),
+                ]}
+                value={selections[form.id] ?? "none"}
+                onChange={(value) => setSelections((current) => ({ ...current, [form.id]: value }))}
+                placeholder="Choose a button…"
+              />
+            </div>
+          ))}
+
+          <div className={styles.actions}>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              disabled={isApplyingMapping}
+              onClick={() => setMappingReviewOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className={styles.primaryButton}
+              disabled={isApplyingMapping}
+              onClick={handleApplyMapping}
+            >
+              {isApplyingMapping ? "Applying…" : "Apply Mapping"}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       <div className={styles.field}>
         <span className={styles.label}>Recipients</span>
@@ -365,17 +580,30 @@ export default function ComposeForm({
 
       <div className={styles.composeToolbar}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <button
-            type="button"
-            className={styles.attachButton}
-            aria-label="Generate HTML with AI"
-            title="Generate HTML with AI"
-            onClick={() => setAiHtmlOpen(true)}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M12 2.5a1 1 0 0 1 .967.744l.902 3.386a4.5 4.5 0 0 0 3.18 3.18l3.387.903a1 1 0 0 1 0 1.933l-3.386.902a4.5 4.5 0 0 0-3.18 3.18l-.903 3.387a1 1 0 0 1-1.933 0l-.902-3.386a4.5 4.5 0 0 0-3.18-3.18l-3.387-.903a1 1 0 0 1 0-1.933l3.386-.902a4.5 4.5 0 0 0 3.18-3.18l.903-3.387A1 1 0 0 1 12 2.5Z" />
+          <label className={styles.attachButton} aria-label="Upload email folder">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 16V4m0 0-4 4m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"
+              />
             </svg>
-          </button>
+            <input
+              type="file"
+              multiple
+              style={{ display: "none" }}
+              onChange={handleUploadHtml}
+              {...{ webkitdirectory: "", directory: "" }}
+            />
+          </label>
           <label
             className={styles.attachButton}
             aria-label="Attach a file"
@@ -500,204 +728,8 @@ export default function ComposeForm({
         </div>
       </Modal>
 
-      <div ref={aiRegionRef} tabIndex={-1}>
-        <Modal
-          open={aiHtmlOpen}
-          onClose={() => {
-            if (aiStage !== "idle") return;
-            setAiHtmlOpen(false);
-            setPreviewHtml(null);
-            setLastGeneratedHtml(null);
-            setFollowUpInstruction("");
-          }}
-          title={previewHtml === null ? "Generate HTML with AI" : "Preview"}
-        >
-          {previewHtml === null ? (
-            <div className={styles.form}>
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="ai_design_brief">
-                  What should the email look like?
-                </label>
-                <textarea
-                  id="ai_design_brief"
-                  className={styles.textarea}
-                  rows={3}
-                  placeholder="Bold, colorful invite for an evening tech meetup — dark hero banner, big headline, a clear RSVP button"
-                  value={designBrief}
-                  onChange={(e) => setDesignBrief(e.target.value)}
-                  disabled={aiStage !== "idle"}
-                />
-              </div>
-
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="ai_content_details">
-                  Anything else you&apos;d like to add?
-                  <span className={styles.optional}> (optional)</span>
-                </label>
-                <textarea
-                  id="ai_content_details"
-                  className={styles.textarea}
-                  rows={3}
-                  placeholder="Event is Thursday Sept 17, 6–9:30pm at The Foundry downtown. Mention limited seats."
-                  value={contentDetails}
-                  onChange={(e) => setContentDetails(e.target.value)}
-                  disabled={aiStage !== "idle"}
-                />
-              </div>
-
-              <div className={styles.field}>
-                <span className={styles.label}>
-                  Photos to include <span className={styles.optional}>(optional)</span>
-                </span>
-                {photos.length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
-                    {photos.map((photo, index) => (
-                      <div key={index} style={{ position: "relative" }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={photo.dataUrl}
-                          alt={photo.name}
-                          style={{
-                            width: 64,
-                            height: 64,
-                            objectFit: "cover",
-                            borderRadius: 6,
-                            border: "1px solid var(--border)",
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleRemovePhoto(index)}
-                          aria-label={`Remove ${photo.name}`}
-                          disabled={aiStage !== "idle"}
-                          style={{
-                            position: "absolute",
-                            top: -6,
-                            right: -6,
-                            width: 18,
-                            height: 18,
-                            lineHeight: 1,
-                            fontSize: 12,
-                            borderRadius: "50%",
-                            border: "1px solid var(--border)",
-                            background: "#ffffff",
-                            color: "var(--foreground)",
-                            cursor: "pointer",
-                          }}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <label className={styles.secondaryButton} style={{ display: "inline-flex", cursor: "pointer" }}>
-                  {photos.length > 0 ? "Add more photos" : "Choose photos"}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    style={{ display: "none" }}
-                    onChange={handleAddPhotos}
-                    disabled={aiStage !== "idle"}
-                  />
-                </label>
-              </div>
-
-              {formId && (
-                <p className={styles.description}>
-                  A fill-out link for the attached form will be added to the design — it becomes
-                  active once you actually send the email; it won&apos;t work yet in preview.
-                </p>
-              )}
-
-              {aiError && <p className={styles.error}>{aiError}</p>}
-
-              <div className={styles.actions}>
-                <button
-                  type="button"
-                  className={styles.primaryButton}
-                  disabled={aiStage !== "idle" || !designBrief.trim()}
-                  onClick={handleGenerateEmailHtml}
-                >
-                  {aiStage === "idle" ? "Generate" : "Working…"}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className={styles.form}>
-              <iframe
-                title="Generated email preview"
-                srcDoc={previewHtml}
-                style={{
-                  width: "100%",
-                  height: "60vh",
-                  border: "1px solid var(--border)",
-                  borderRadius: 4,
-                  background: "#ffffff",
-                }}
-              />
-              {formId && (
-                <p className={styles.description}>
-                  The form fill-out link isn&apos;t active in this preview — it becomes active
-                  once you actually send the email.
-                </p>
-              )}
-
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="ai_follow_up">
-                  Ask for changes
-                </label>
-                <div className={styles.formRow}>
-                  <input
-                    id="ai_follow_up"
-                    className={styles.input}
-                    placeholder="Make the headline bigger and use a blue button"
-                    value={followUpInstruction}
-                    onChange={(e) => setFollowUpInstruction(e.target.value)}
-                    disabled={aiStage !== "idle"}
-                  />
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    disabled={aiStage !== "idle" || !followUpInstruction.trim()}
-                    onClick={handleApplyFollowUp}
-                  >
-                    {aiStage === "revising" ? "Working…" : "Apply"}
-                  </button>
-                </div>
-              </div>
-
-              {aiError && <p className={styles.error}>{aiError}</p>}
-
-              <div className={styles.actions}>
-                <button
-                  type="button"
-                  className={styles.secondaryButton}
-                  disabled={aiStage !== "idle"}
-                  onClick={handleDiscardPreview}
-                >
-                  Back
-                </button>
-                <button
-                  type="button"
-                  className={styles.primaryButton}
-                  disabled={aiStage !== "idle"}
-                  onClick={handleUsePreview}
-                >
-                  Use This
-                </button>
-              </div>
-            </div>
-          )}
-        </Modal>
-
-        {aiStage !== "idle" && (
-          <AiGeneratingOverlay
-            message={aiStage === "generating" ? "Generating your email…" : "Applying your changes…"}
-          />
-        )}
-      </div>
+      {isSuggesting && <AiGeneratingOverlay message="Analyzing buttons…" />}
+      {isUploadingAssets && <AiGeneratingOverlay message="Uploading images…" />}
     </form>
   );
 }

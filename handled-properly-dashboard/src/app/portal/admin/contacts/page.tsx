@@ -16,19 +16,17 @@ export default async function ContactsPage({
   const { category: categoryFilter } = await searchParams;
   const supabase = await createSupabaseServerClient();
 
-  const [{ data: contacts, error }, { data: categories }, { data: events }] = await Promise.all([
+  const [{ data: contacts, error }, { data: categories }] = await Promise.all([
     supabase
       .from("contacts")
       .select(
-        "id, name, email, phone, clients(id), event_staff(id), contact_categories(category_id), event_attendance(events(id,name))"
+        "id, name, email, phone, clients(id), event_staff(id), event_vendors(event_id), contact_categories(category_id), event_attendance(events(id,name))"
       )
       .order("name", { ascending: true }),
     supabase.from("categories").select("id, name").order("name", { ascending: true }),
-    supabase.from("events").select("id, name").eq("status", "active").order("name", { ascending: true }),
   ]);
 
   const categoryOptions = categories ?? [];
-  const eventOptions = events ?? [];
 
   let rows: ContactRowData[] = (contacts ?? []).map((row) => ({
     id: row.id,
@@ -37,6 +35,7 @@ export default async function ContactsPage({
     phone: row.phone,
     isClient: row.clients !== null,
     isStaff: row.event_staff !== null,
+    isVendor: row.event_vendors.length > 0,
     categoryIds: row.contact_categories.map((cc) => cc.category_id),
     attendingEventNames: row.event_attendance
       .map((ea) => ea.events?.name)
@@ -76,6 +75,7 @@ export default async function ContactsPage({
             <NewCategoryForm />
           </AddModalButton>
         </div>
+        <p className={styles.description}>Labels you can put on any contact.</p>
         <CategoryManager categories={categoryOptions} />
       </div>
 
@@ -100,8 +100,9 @@ export default async function ContactsPage({
             ))}
           </div>
         </div>
+        <p className={styles.description}>Everyone in the system. Filter by category.</p>
 
-        <ContactsList contacts={rows} allCategories={categoryOptions} activeEvents={eventOptions} />
+        <ContactsList contacts={rows} allCategories={categoryOptions} />
       </div>
     </div>
   );

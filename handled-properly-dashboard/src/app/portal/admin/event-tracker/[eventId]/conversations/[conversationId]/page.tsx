@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import ChatView, { type ChatMessage } from "@/components/portal/ChatView";
+import { CHAT_ENABLED } from "@/lib/feature-flags";
 import styles from "@/styles/admin-shared.module.css";
 
 export default async function AdminConversationPage({
@@ -9,6 +10,8 @@ export default async function AdminConversationPage({
 }: {
   params: Promise<{ eventId: string; conversationId: string }>;
 }) {
+  if (!CHAT_ENABLED) notFound();
+
   const { eventId, conversationId } = await params;
   const supabase = await createSupabaseServerClient();
 

@@ -24,9 +24,13 @@ export async function setPassword(
   const { error: updateError } = await supabase.auth.updateUser({ password });
   if (updateError) return { error: updateError.message };
 
-  // No-op for an admin session (admins aren't in event_staff); scoped to
-  // auth.uid() server-side, so this only ever touches the caller's own row.
+  // All three are no-ops for the wrong role (each scoped to auth.uid()
+  // server-side, touching only the caller's own row in its own table) —
+  // same reasoning as the original staff-only call, just extended to cover
+  // Client and Vendor sessions too.
   await supabase.rpc("activate_own_staff_account");
+  await supabase.rpc("activate_own_client_account");
+  await supabase.rpc("activate_own_vendor_account");
 
   return null;
 }

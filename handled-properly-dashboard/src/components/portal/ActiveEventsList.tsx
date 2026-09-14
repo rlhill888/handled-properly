@@ -1,15 +1,24 @@
 import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getEventHeaderImageUrl } from "@/lib/data/event-header-image";
+import { formatEventDate } from "@/lib/format-event-date";
 import styles from "@/styles/admin-shared.module.css";
 
-export default async function ActiveEventsList() {
+// Shared by the admin (Active Events on /portal/admin/event-tracker and the
+// /portal root dashboard) and staff (/portal root dashboard) views — the
+// query itself is role-agnostic; RLS (admin_all vs staff_select_rostered_events)
+// is what actually scopes an event-staff session down to only their own
+// rostered active events. Only the link destination differs per role.
+export default async function ActiveEventsList({ linkBase }: { linkBase: string }) {
   const supabase = await createSupabaseServerClient();
 
   const { data: events, error } = await supabase
     .from("events")
-    .select("id, name, starts_at, location, status, client:clients(company_name,contacts(name))")
+    .select(
+      "id, name, starts_at, ends_at, location, status, header_image_path, client:clients(company_name,contacts(name))"
+    )
     .eq("status", "active")
-    .order("created_at", { ascending: false });
+    .order("starts_at", { ascending: true, nullsFirst: false });
 
   if (error) {
     return <p className={styles.error}>Could not load events: {error.message}</p>;
@@ -19,38 +28,31 @@ export default async function ActiveEventsList() {
     return <p className={styles.emptyState}>No active events yet.</p>;
   }
 
+  const headerImageUrls = await Promise.all(
+    events.map((event) => getEventHeaderImageUrl(event.header_image_path))
+  );
+
   return (
-    <table className={`${styles.table} ${styles.cardRows}`}>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Client</th>
-          <th>Date</th>
-          <th>Location</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {events.map((event) => (
-          <tr key={event.id}>
-            <td data-label="Name" className={styles.cardPrimaryCell}>
-              {event.name}
-            </td>
-            <td data-label="Client">
+    <div className={styles.eventCardGrid}>
+      {events.map((event, i) => (
+        <Link key={event.id} href={`${linkBase}/${event.id}`} className={styles.eventCard}>
+          {headerImageUrls[i] ? (
+            <img src={headerImageUrls[i]!} alt="" className={styles.eventCardImage} />
+          ) : (
+            <div className={styles.eventCardImagePlaceholder}>No header image</div>
+          )}
+          <div className={styles.eventCardBody}>
+            <span className={styles.eventCardTitle}>{event.name}</span>
+            <span className={styles.eventCardMeta}>
               {event.client?.company_name || event.client?.contacts?.name || "—"}
-            </td>
-            <td data-label="Date">
-              {event.starts_at ? new Date(event.starts_at).toLocaleString() : "—"}
-            </td>
-            <td data-label="Location">{event.location || "—"}</td>
-            <td className={styles.cardActionCell}>
-              <Link href={`/portal/admin/event-tracker/${event.id}`} className={styles.link}>
-                View
-              </Link>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+            </span>
+            <span className={styles.eventCardMeta}>
+              {formatEventDate(event.starts_at, event.ends_at)}
+            </span>
+            <span className={styles.eventCardMeta}>{event.location || "—"}</span>
+          </div>
+        </Link>
+      ))}
+    </div>
   );
 }

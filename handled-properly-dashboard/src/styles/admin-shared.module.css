@@ -13,6 +13,20 @@
   gap: 16px;
 }
 
+.eventHeaderImage {
+  width: 100%;
+  max-height: 280px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.eventHeaderImageControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .eyebrow {
   display: inline-flex;
   align-items: center;
@@ -71,6 +85,7 @@
   font-size: 14px;
   color: var(--muted);
   margin-top: 6px;
+  margin-bottom: 16px;
   max-width: 60ch;
 }
 
@@ -166,10 +181,48 @@
   color: var(--foreground);
 }
 
+/* Lays a set of .checkboxRow options out side by side instead of each
+   taking its own line — used for the Pickup radios on the admin
+   Assignment edit form. */
+.checkboxRowGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+
 .actions {
   display: flex;
   gap: 12px;
   margin-top: 4px;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.iconButton:hover {
+  border-color: #0a0a0a;
+  color: #0a0a0a;
+}
+
+.iconButtonDanger {
+  composes: iconButton;
+}
+
+.iconButtonDanger:hover {
+  border-color: #b3261e;
+  color: #b3261e;
 }
 
 .primaryButton {
@@ -215,6 +268,15 @@
 
 .secondaryButton:hover {
   border-color: #0a0a0a;
+}
+
+.secondaryButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.secondaryButton:disabled:hover {
+  border-color: var(--border);
 }
 
 .dangerButton {
@@ -312,6 +374,110 @@
   border-bottom: none;
 }
 
+.eventCardGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.eventCard {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s ease;
+}
+
+.eventCard:hover {
+  border-color: #0a0a0a;
+}
+
+.eventCardImage {
+  display: block;
+  width: 100%;
+  max-height: 320px;
+  aspect-ratio: 21 / 9;
+  object-fit: cover;
+}
+
+.eventCardImagePlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 21 / 9;
+  background: var(--surface);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.eventCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+}
+
+.eventCardTitle {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--foreground);
+}
+
+.eventCardMeta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.assignmentCardRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.assignmentCompactCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s ease;
+}
+
+.assignmentCompactCard:hover {
+  border-color: #0a0a0a;
+}
+
+.assignmentCompactCardBlocked {
+  opacity: 0.6;
+}
+
+.assignmentCompactHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.assignmentCompactTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.assignmentCompactMeta {
+  font-size: 11px;
+  color: var(--muted);
+}
+
 .emptyState {
   font-size: 13px;
   color: var(--muted);
@@ -341,6 +507,44 @@
   border: 1px solid var(--border);
 }
 
+/* A count that needs attention (e.g. open items assigned to you) — bold
+   and colored so it reads at a glance, distinct from the neutral .badge/
+   .badgeMuted pills used for plain status labels. */
+.navBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 8px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #b91c1c;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* A neutral count (e.g. number of comments) — same shape as .navBadge but
+   without its red "needs attention" semantics. */
+.countBubble {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .pill {
   display: inline-flex;
   align-items: center;
@@ -352,6 +556,21 @@
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 3px 10px;
+}
+
+/* A larger, borderless status pill for a modal's own title row (e.g. an
+   Event Task's Status next to its name) — .pill/.badge read as small
+   metadata tags, too quiet to sit beside a large heading. */
+.taskStatusPill {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--foreground);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 8px 16px;
 }
 
 .pillDelete {
@@ -498,6 +717,137 @@
   padding: 16px;
   border-top: 1px solid var(--border);
   background: var(--surface);
+}
+
+.cardHeading {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--foreground);
+  margin-bottom: 4px;
+}
+
+.sectionHeading {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--foreground);
+  margin-bottom: 12px;
+}
+
+.iconBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--foreground);
+}
+
+.factGrid {
+  display: flex;
+  gap: 24px;
+}
+
+.factItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.factDivider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border);
+}
+
+.factLabel {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.factValue {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--foreground);
+  margin-top: 2px;
+}
+
+.factSub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.resourceGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.resourceCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #ffffff;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.2s ease;
+}
+
+.resourceCard:hover {
+  border-color: #0a0a0a;
+}
+
+.resourceCardBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.resourceCardTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.resourceCardSubtitle {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.resourceCardArrow {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 18px;
+}
+
+.resourceRow {
+  background: var(--surface);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+@media (max-width: 640px) {
+  .factGrid {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .factDivider {
+    display: none;
+  }
+
+  .resourceGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {

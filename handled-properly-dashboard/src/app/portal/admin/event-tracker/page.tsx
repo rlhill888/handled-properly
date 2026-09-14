@@ -8,10 +8,9 @@ import styles from "@/styles/admin-shared.module.css";
 export default async function EventTrackerPage() {
   const supabase = await createSupabaseServerClient();
 
-  const [{ data: clients }, { data: series }] = await Promise.all([
-    supabase.from("clients").select("id, company_name, contacts(name)"),
-    supabase.from("event_series").select("id, label, client_id"),
-  ]);
+  const { data: clients } = await supabase
+    .from("clients")
+    .select("id, company_name, contacts(name)");
 
   const clientOptions = (clients ?? [])
     .filter((c) => c.contacts !== null)
@@ -19,12 +18,6 @@ export default async function EventTrackerPage() {
       id: c.id,
       name: c.company_name || c.contacts!.name,
     }));
-
-  const seriesOptions = (series ?? []).map((s) => ({
-    id: s.id,
-    label: s.label,
-    clientId: s.client_id,
-  }));
 
   return (
     <div className={styles.page}>
@@ -34,7 +27,7 @@ export default async function EventTrackerPage() {
           <div className={styles.titleRow}>
             <h1 className={styles.title}>Events</h1>
             <AddModalButton label="New Event" modalTitle="New Event">
-              <NewEventForm clients={clientOptions} series={seriesOptions} />
+              <NewEventForm clients={clientOptions} />
             </AddModalButton>
           </div>
           <p className={styles.description}>Active events. Completed events move to History.</p>
@@ -44,10 +37,8 @@ export default async function EventTrackerPage() {
         </Link>
       </div>
 
-      <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Active Events</h2>
-        <ActiveEventsList />
-      </div>
+      <h2 className={styles.cardTitle}>Active Events</h2>
+      <ActiveEventsList linkBase="/portal/admin/event-tracker" />
     </div>
   );
 }

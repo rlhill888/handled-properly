@@ -25,11 +25,8 @@ Admin-managed taxonomy applied to Contacts.
 Singleton operator account, not a Contact — the admin isn't a person the system tracks business relationships with, just an auth identity with unrestricted access.
 - `id`, `auth_user_id` (Supabase Auth)
 
-### EventSeries
-- `id`, `client_id` → Client, `label`, `created_at`
-
 ### Event
-- `id`, `client_id` → Client, `series_id` → EventSeries (nullable — null for one-time events), `name`, `starts_at`, `location`, `status` (`active` | `completed`), `completed_at`, `staff_can_start_conversations` (bool)
+- `id`, `client_id` → Client, `name`, `starts_at`, `location`, `status` (`active` | `completed`), `completed_at`, `staff_can_start_conversations` (bool)
 
 ### RosterEntry (join)
 The Event ↔ EventStaff relationship. See [`0004-explicit-event-roster`](./adr/0004-explicit-event-roster.md).
@@ -40,8 +37,8 @@ The Event ↔ Contact relationship that makes a Contact "an attendee."
 - `event_id` → Event, `contact_id` → Contact, `source` (`manual` | `form_submission`), `created_at`
 
 ### Assignment
-Sub-assignments are Assignment rows with `parent_assignment_id` set — see [`0005-sub-assignments-are-full-assignments`](./adr/0005-sub-assignments-are-full-assignments.md). Tags are a plain string array, not a separate table (no central taxonomy).
-- `id`, `event_id` → Event, `parent_assignment_id` → Assignment (nullable, self-referential), `title`, `description`, `status` (`ready` | `in_progress` | `blocked` | `done`), `tags` (text[]), `due_date`, `priority` (`low` | `medium` | `high`), `pickup_setting` (`admin_only` | `open_pickup`), `created_at`
+Subtasks are Assignment rows with `parent_assignment_id` set, capped at one level of nesting — see [`0005-sub-assignments-are-full-assignments`](./adr/0005-sub-assignments-are-full-assignments.md) and [`0012-subtasks-cannot-have-subtasks`](./adr/0012-subtasks-cannot-have-subtasks.md).
+- `id`, `event_id` → Event, `parent_assignment_id` → Assignment (nullable, self-referential), `title`, `description`, `status` (`in_progress` | `blocked` | `done`), `due_date`, `priority` (`low` | `medium` | `high`), `pickup_setting` (`admin_only` | `open_pickup`), `created_at`
 
 ### AssignmentAssignee (join)
 - `assignment_id` → Assignment, `event_staff_id` → EventStaff, `assigned_via` (`admin` | `pickup`), `assigned_at`
@@ -85,15 +82,13 @@ Contact          * ── *    Category            (via ContactCategory)
 Contact          * ── *    Event               (via EventAttendance, as attendee)
 
 Client           1 ── *    Event
-Client           1 ── *    EventSeries
-EventSeries      1 ── *    Event               (0/1 series per event)
 
 Event            * ── *    EventStaff          (via RosterEntry)
 Event            1 ── *    Assignment
 Event            1 ── *    Conversation
 Event            1 ── *    EventAttendance
 
-Assignment       0/1 ── *  Assignment          (parent/children, self-referential)
+Assignment       0/1 ── *  Assignment          (parent/subtasks, self-referential, capped at one level)
 Assignment       * ── *    EventStaff          (via AssignmentAssignee — subset of that Event's Roster)
 
 Conversation     * ── *    EventStaff          (via ConversationParticipant — subset of that Event's Roster)
@@ -112,4 +107,3 @@ EmailSend        0/1 ── 1  Form
 
 - **`created_by` / `sender` are polymorphic (EventStaff or Admin).** The Admin isn't a Contact or an EventStaff, but can create Conversations and post Messages. Implementation will need either a nullable pair of FKs (`admin_id` / `event_staff_id`, exactly one set) or a `sender_type` discriminator column — deferred to implementation, not a domain question.
 - **`AssignmentAssignee.event_staff_id` and `ConversationParticipant.event_staff_id` must be validated as a subset of that Event's `RosterEntry`** at the application level; the relational model doesn't enforce "assignee must be on the roster" structurally without a composite-FK trick that isn't worth the complexity here.
-- **Tags are a string array on Assignment, not a table**, per the explicit "free-text, no central list" decision (contrast with Category, which *is* a table).

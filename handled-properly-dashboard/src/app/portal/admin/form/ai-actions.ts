@@ -1,13 +1,7 @@
 "use server";
 
 import { getCurrentActor } from "@/lib/auth/get-current-actor";
-import {
-  findBannerImageUrl,
-  generateFormDesign,
-  reviewFormScreenshot,
-  type AiFormDesign,
-  type AiReviewResult,
-} from "@/lib/ai-form-design";
+import { findBannerImageUrl, generateFormDesign, type AiFormDesign } from "@/lib/ai-form-design";
 import type { FormBuilderSaveData } from "@/components/FormBuilder";
 
 export async function generateFormWithAI(
@@ -26,21 +20,7 @@ export async function generateFormWithAI(
     }
     return design;
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "AI design failed. Try again." };
-  }
-}
-
-export async function reviewFormScreenshotAction(
-  prompt: string,
-  screenshotBase64: string,
-  currentDesign: AiFormDesign,
-): Promise<AiReviewResult | { error: string }> {
-  const actor = await getCurrentActor();
-  if (actor?.role !== "admin") return { error: "Not authorized." };
-
-  try {
-    return await reviewFormScreenshot(prompt, screenshotBase64, currentDesign);
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "AI review failed. Try again." };
+    console.error("generateFormWithAI failed:", err);
+    return { error: "An error occurred. Please try again." };
   }
 }

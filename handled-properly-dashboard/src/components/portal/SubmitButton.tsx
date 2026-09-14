@@ -9,12 +9,14 @@ export default function SubmitButton({
   variant = "primary",
   className,
   ariaLabel,
+  disabled = false,
 }: {
   children: React.ReactNode;
   pendingLabel?: string;
   variant?: "primary" | "secondary";
   className?: string;
   ariaLabel?: string;
+  disabled?: boolean;
 }) {
   const { pending } = useFormStatus();
   const variantClass = variant === "primary" ? styles.primaryButton : styles.secondaryButton;
@@ -22,7 +24,7 @@ export default function SubmitButton({
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={pending || disabled}
       aria-label={ariaLabel}
       className={className ? `${variantClass} ${className}` : variantClass}
     >

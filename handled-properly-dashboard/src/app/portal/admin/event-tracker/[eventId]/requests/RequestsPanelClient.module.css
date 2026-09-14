@@ -1,0 +1,49 @@
+.row td {
+  transition: background 0.15s ease;
+}
+
+.row:hover td {
+  background: var(--surface);
+}
+
+.titleCell {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--foreground);
+}
+
+.dueCell {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.submissionCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.typeTag {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 3px 6px;
+}
+
+.actionsCell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}

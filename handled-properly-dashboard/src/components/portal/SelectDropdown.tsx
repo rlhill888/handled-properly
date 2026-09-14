@@ -3,7 +3,17 @@
 import { useEffect, useId, useRef, useState } from "react";
 import styles from "./SelectDropdown.module.css";
 
-export type SelectDropdownOption = { id: string; label: string };
+// searchText is extra text matched by the search box but never displayed —
+// lets a caller make an option findable by more than just its visible label.
+export type SelectDropdownOption = {
+  id: string;
+  label: string;
+  searchText?: string;
+  // Renders a small colored circle before the label, in both the trigger's
+  // selected value and the option row — opt-in, unset by every existing
+  // caller, so nothing else in the app changes visually.
+  dotColor?: string;
+};
 
 export default function SelectDropdown({
   options,
@@ -64,7 +74,10 @@ export default function SelectDropdown({
   const query = search.trim().toLowerCase();
   const visibleOptions =
     searchable && query
-      ? options.filter((o) => o.label.toLowerCase().includes(query))
+      ? options.filter(
+          (o) =>
+            o.label.toLowerCase().includes(query) || o.searchText?.toLowerCase().includes(query)
+        )
       : options;
 
   return (
@@ -79,6 +92,9 @@ export default function SelectDropdown({
         aria-controls={listboxId}
       >
         <span className={selected ? styles.triggerValue : styles.triggerPlaceholder}>
+          {selected?.dotColor && (
+            <span className={styles.optionDot} style={{ background: selected.dotColor }} aria-hidden="true" />
+          )}
           {selected ? selected.label : placeholder}
         </span>
         <span className={styles.chevron} aria-hidden="true">
@@ -116,6 +132,9 @@ export default function SelectDropdown({
                     closeMenu();
                   }}
                 >
+                  {option.dotColor && (
+                    <span className={styles.optionDot} style={{ background: option.dotColor }} aria-hidden="true" />
+                  )}
                   {option.label}
                 </button>
               </li>

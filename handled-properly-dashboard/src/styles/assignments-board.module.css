@@ -5,19 +5,6 @@
   width: 100%;
 }
 
-.detailView {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.detailHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
 .column {
   display: flex;
   flex-direction: column;
@@ -43,6 +30,20 @@
   color: var(--muted);
   display: flex;
   justify-content: space-between;
+}
+
+.columnHeaderTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.columnDescription {
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--muted);
 }
 
 .titleCard {
@@ -73,14 +74,67 @@
 }
 
 .titleCardDragging {
-  opacity: 0.5;
+  position: relative;
+  z-index: 20;
+  opacity: 0.95;
   border-color: #0a0a0a;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  /* Nothing underneath should react to the ghost card passing over it —
+     column hit-testing during drag uses getBoundingClientRect, not
+     elementFromPoint, so this only matters for not stealing hover/click. */
+  pointer-events: none;
+  will-change: transform;
+}
+
+.titleCardBlocked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Staff board only — every assignment on the event is shown for context,
+   but only ones assigned to the viewer can be dragged; this keeps a
+   non-draggable card from inviting a grab gesture that won't do anything. */
+.titleCardStatic {
+  cursor: default;
+}
+
+.titleCardStatic:active {
+  cursor: default;
+}
+
+.titleCardMineBadge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ffffff;
+  background: #0a7c2f;
+  padding: 3px 7px;
+  border-radius: 999px;
 }
 
 .titleCardText {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 14px;
   font-weight: 700;
   color: var(--foreground);
+}
+
+.titleCardBlockedIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: #b91c1c;
+}
+
+.assignedToMeIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--muted);
 }
 
 .titleCardToggle {
@@ -114,6 +168,48 @@
   padding: 14px;
 }
 
+.linkCard {
+  composes: card;
+  transition: border-color 0.2s ease;
+}
+
+.linkCard:hover {
+  border-color: #0a0a0a;
+}
+
+.taskGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 180px));
+  gap: 12px;
+}
+
+.squareCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px;
+  transition: border-color 0.2s ease;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+}
+
+.squareCard:hover {
+  border-color: #0a0a0a;
+}
+
+.squareCardDescription {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .cardHeader {
   display: flex;
   align-items: flex-start;
@@ -127,6 +223,37 @@
   color: var(--foreground);
 }
 
+.cardTitleLg {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--foreground);
+}
+
+.cardTitleDone {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.completeToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.completeToggle input {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.completeToggle input:disabled {
+  cursor: not-allowed;
+}
+
 .cardDescription {
   font-size: 12px;
   color: var(--muted);
@@ -134,10 +261,75 @@
 }
 
 .cardMeta {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.assigneesBlock {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.fieldBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--foreground);
+}
+
+.dueDateBox {
+  composes: fieldBox;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+/* A staff member can view an assignment they can neither pick up nor act
+   on (admin_only, not assigned to them) but can't change its status —
+   greyed out to signal it's read-only for them. Only used on the Kanban
+   tile preview; the opened detail card stays fully legible (see
+   .restrictedWrap/.restrictedOverlay below) and explains itself on click
+   instead. */
+.cardRestricted {
+  opacity: 0.55;
+  filter: grayscale(0.5);
+}
+
+.restrictedWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+/* A transparent, click-catching layer over an inert (disabled) control on
+   an assignment that isn't the viewer's — the control itself never reacts
+   (disabled), so this is what actually receives the click and explains why
+   nothing happened, instead of the click silently going nowhere. */
+.restrictedOverlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: not-allowed;
+}
+
+.metaLabel {
   font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
   color: var(--muted);
 }
 
@@ -147,29 +339,41 @@
   margin-top: 4px;
 }
 
-.priority {
-  flex-shrink: 0;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 3px 8px;
-  border-radius: 2px;
-}
-
-.priority_low {
-  background: var(--surface);
-  color: var(--muted);
-}
-
-.priority_medium {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.priority_high {
+.depPending {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
   background: #fee2e2;
   color: #b91c1c;
+}
+
+.depDone {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.depBlocking {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .subSection {
@@ -178,7 +382,7 @@
   gap: 8px;
   margin-top: 6px;
   padding-top: 10px;
-  border-top: 1px dashed var(--border);
+  border-top: 1px solid var(--border);
 }
 
 .subToggle {
@@ -197,10 +401,143 @@
   color: var(--foreground);
 }
 
+.subToggleWithIcon {
+  composes: subToggle;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.subHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .subList {
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding-left: 12px;
   border-left: 2px solid var(--border);
+}
+
+.subAccordionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+
+.subAccordionHeader:has(.subAccordionTitleButton:hover) {
+  border-color: #0a0a0a;
+}
+
+.subAccordionTitleButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.subAccordionChevron {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Icon-labeled label/value rows for a card's key fields (Status, Assigned
+   to, Due date, Event Task) — the same presentation StaffAssignmentCard
+   uses, adopted here so the admin card reads the same way. */
+.fieldRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.fieldRow + .fieldRow {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.fieldRowLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.fieldRowLabel svg {
+  color: var(--muted);
+}
+
+.fieldRowValue {
+  display: flex;
+  flex: 1;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.avatarRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.avatarChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 4px;
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.avatarCircle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #e5e5e5;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.avatarName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+@media (max-width: 480px) {
+  .fieldRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .fieldRowValue,
+  .avatarRow {
+    justify-content: flex-start;
+    width: 100%;
+  }
 }

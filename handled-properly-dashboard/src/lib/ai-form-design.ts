@@ -31,6 +31,11 @@ const AiFormFieldSchema = z.object({
 // assigns it, post-hoc, from a verified web-search result.
 const AiFormThemeSchema = z.object({
   backgroundColor: z.string(),
+  pageBackgroundColor: z.string(),
+  pageBackgroundType: z.enum(["solid", "gradient"]),
+  pageBackgroundGradientColor: z.string(),
+  pageBackgroundGradientAngle: z.number().min(0).max(360),
+  pageBackgroundAnimation: z.enum(["none", "gradientShift", "drift", "pulse"]),
   fontSize: z.number().min(12).max(22),
   cardOpacity: z.number().min(0).max(1),
   backgroundMode: z.enum(["banner", "full"]),
@@ -44,6 +49,9 @@ const AiFormThemeSchema = z.object({
   descriptionColor: z.string(),
   descriptionSize: z.number().min(12).max(500),
   descriptionMarginBottom: z.number().min(0).max(100),
+  submitButtonFont: z.enum(["sans", "serif", "mono"]),
+  submitButtonBackgroundColor: z.string(),
+  submitButtonStyle: z.enum(["solid", "outline"]),
   wantsBannerImage: z.boolean().optional(),
   backgroundImage: z.string().optional(),
 });
@@ -55,16 +63,6 @@ const AiFormDesignSchema = z.object({
   fields: z.array(AiFormFieldSchema).min(1),
 });
 export type AiFormDesign = z.infer<typeof AiFormDesignSchema>;
-
-const AiReviewResultSchema = z.object({
-  approved: z.boolean(),
-  feedback: z.string(),
-  // Always present, even when approved:true (the model echoes the same
-  // design back), so the structured-output schema stays a plain object
-  // rather than a discriminated union.
-  revisedDesign: AiFormDesignSchema,
-});
-export type AiReviewResult = z.infer<typeof AiReviewResultSchema>;
 
 function buildDesignSystemPrompt(bannerImageAvailable: boolean, isEditing: boolean): string {
   const imageGuidance = bannerImageAvailable
@@ -105,6 +103,24 @@ Theme guidance:
   unless the brief explicitly asks for something dramatic.
 - bannerHeight: 80-1000 (px), only relevant when backgroundMode is "banner"
 - cardOpacity: 0-1 (question card background opacity)
+- pageBackgroundColor: the full-bleed background behind the form card —
+  usually a neutral tone that complements backgroundColor while keeping the
+  card visually distinct from the page behind it. When pageBackgroundType is
+  "gradient", it's the gradient's first color stop.
+- pageBackgroundType "gradient" blends pageBackgroundColor into
+  pageBackgroundGradientColor at pageBackgroundGradientAngle degrees; only
+  set it when the brief calls for something more atmospheric than a flat
+  color. Otherwise use "solid" and ignore the gradient fields (still fill
+  them with reasonable values — they're required by the schema, just unused
+  visually).
+- pageBackgroundAnimation is almost always "none" — a subtle motion effect
+  ("gradientShift" or "drift", best with a gradient; "pulse" works on any
+  background) only when the brief explicitly wants something lively or
+  in-motion. Never combine with a busy backgroundImage.
+- submitButtonStyle "solid" fills the button with submitButtonBackgroundColor
+  (white text); "outline" uses submitButtonBackgroundColor only as a border/
+  text accent on a transparent button — pick whichever fits the overall
+  design, and pick submitButtonBackgroundColor for good contrast either way.
 - All colors are hex strings (e.g. "#1a1a1a").
 - ${imageGuidance}
 Produce at least one field. Order fields in a sensible completion order.`;
@@ -206,47 +222,3 @@ export async function findBannerImageUrl(prompt: string): Promise<string | null>
   }
 }
 
-const REVIEW_SYSTEM_PROMPT = `You review a screenshot of a rendered form against
-the admin's original brief and the JSON design that produced it. Judge layout,
-color/contrast, spacing, and whether the questions match what was asked for.
-If it looks good and matches the brief, set approved:true and echo the same
-design back unchanged in revisedDesign. If not, set approved:false, explain why
-in feedback, and return a corrected design in revisedDesign using the same
-field/theme constraints you were given when designing forms from scratch
-(including: every "select" field must carry a non-empty "options" array).`;
-
-export async function reviewFormScreenshot(
-  prompt: string,
-  screenshotBase64: string,
-  currentDesign: AiFormDesign,
-): Promise<AiReviewResult> {
-  const response = await client.messages.parse({
-    model: "claude-opus-5",
-    max_tokens: 4096,
-    system: REVIEW_SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: { type: "base64", media_type: "image/jpeg", data: screenshotBase64 },
-          },
-          {
-            type: "text",
-            text:
-              `Original brief: ${prompt}\n\n` +
-              `Design JSON that produced this screenshot:\n${JSON.stringify(currentDesign)}`,
-          },
-        ],
-      },
-    ],
-    output_config: { format: zodOutputFormat(AiReviewResultSchema) },
-  });
-
-  if (!response.parsed_output) {
-    throw new Error("The model's response couldn't be parsed as a review result.");
-  }
-
-  return response.parsed_output;
-}

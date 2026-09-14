@@ -2,15 +2,22 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentActor } from "@/lib/auth/get-current-actor";
 import { findOrCreateContact } from "@/lib/data/contacts";
+import { sendEmail } from "@/lib/ses";
 
 export type ActionState = { error: string } | null;
 
+export type CreateClientState =
+  | { error: string }
+  | { client: { id: string; name: string } }
+  | null;
+
 export async function createClientRecord(
-  _prevState: ActionState,
+  _prevState: CreateClientState,
   formData: FormData
-): Promise<ActionState> {
+): Promise<CreateClientState> {
   const actor = await getCurrentActor();
   if (actor?.role !== "admin") return { error: "Not authorized." };
 
@@ -27,11 +34,15 @@ export async function createClientRecord(
   const contact = await findOrCreateContact(supabase, { name, email, phone });
   if ("error" in contact) return { error: contact.error };
 
-  const { error: clientError } = await supabase.from("clients").insert({
-    contact_id: contact.id,
-    company_name: companyName || null,
-    notes: notes || null,
-  });
+  const { data: client, error: clientError } = await supabase
+    .from("clients")
+    .insert({
+      contact_id: contact.id,
+      company_name: companyName || null,
+      notes: notes || null,
+    })
+    .select("id")
+    .single();
 
   if (clientError) {
     if (clientError.code === "23505") {
@@ -41,7 +52,7 @@ export async function createClientRecord(
   }
 
   revalidatePath("/portal/admin/clients");
-  return null;
+  return { client: { id: client.id, name: companyName || name } };
 }
 
 export async function updateClientRecord(
@@ -85,4 +96,66 @@ export async function updateClientRecord(
 
   revalidatePath("/portal/admin/clients");
   return null;
+}
+
+// Unlike inviteEventStaff, this UPDATEs an already-existing clients row
+// (created earlier via createClientRecord or convertApplicationToClient)
+// rather than INSERTing a fresh one — a Client record always exists before
+// its portal login does.
+export async function inviteClient(clientId: string): Promise<{ error?: string }> {
+  const actor = await getCurrentActor();
+  if (actor?.role !== "admin") return { error: "Not authorized." };
+
+  const supabase = await createSupabaseServerClient();
+
+  const { data: client } = await supabase
+    .from("clients")
+    .select("auth_user_id, contacts(name, email)")
+    .eq("id", clientId)
+    .maybeSingle();
+
+  if (!client) return { error: "Client not found." };
+  if (!client.contacts) return { error: "This client has no contact record." };
+  if (client.auth_user_id) return { error: "This client has already been invited." };
+
+  const { name, email } = client.contacts;
+
+  // Same generateLink + SES pattern as inviteEventStaff — see that file for
+  // why generateLink rather than inviteUserByEmail.
+  const adminClient = createAdminClient();
+  const { data: invited, error: inviteError } = await adminClient.auth.admin.generateLink({
+    type: "invite",
+    email,
+    options: {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm?next=/portal/set-password`,
+    },
+  });
+
+  if (inviteError) return { error: inviteError.message };
+
+  const { error: updateError } = await supabase
+    .from("clients")
+    .update({ auth_user_id: invited.user.id, invite_status: "invited" })
+    .eq("id", clientId);
+
+  if (updateError) return { error: updateError.message };
+
+  try {
+    await sendEmail({
+      to: email,
+      subject: "You've been invited to the Handled Properly Client Portal",
+      bodyHtml: `
+        <p>Hi ${name},</p>
+        <p>You've been invited to your Client Portal.</p>
+        <p><a href="${invited.properties.action_link}">Accept your invite and set a password</a></p>
+      `,
+    });
+  } catch (err) {
+    return {
+      error: `Client invited, but the invite email failed to send: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+
+  revalidatePath("/portal/admin/clients");
+  return {};
 }

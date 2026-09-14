@@ -43,3 +43,53 @@ input[type="checkbox"],
 input[type="radio"] {
   accent-color: #0a0a0a;
 }
+
+/* Form page-background animation presets (see getPageBackgroundAnimationClass
+   in src/lib/form-theme.ts) — global rather than CSS-module scoped because
+   the same classes apply across the public fill page, its loading overlay,
+   and the admin's full-screen preview. Inert for anyone who has asked their
+   OS for reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .formPageBg-gradientShift {
+    animation: formPageBgGradientShift 8s ease infinite alternate;
+  }
+
+  .formPageBg-drift {
+    animation: formPageBgDrift 14s ease-in-out infinite alternate;
+  }
+
+  .formPageBg-pulse {
+    animation: formPageBgPulse 4s ease-in-out infinite;
+  }
+}
+
+@keyframes formPageBgGradientShift {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes formPageBgDrift {
+  0% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  100% {
+    background-position: 0% 0%;
+  }
+}
+
+@keyframes formPageBgPulse {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.08);
+  }
+}
