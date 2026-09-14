@@ -8,10 +8,17 @@ import NewAssignmentForm, { type StaffOption } from "./NewAssignmentForm";
 import CommentsSection from "@/components/portal/CommentsSection";
 import MultiSelectField from "@/components/portal/MultiSelectField";
 import SingleSelectField from "@/components/portal/SingleSelectField";
+import SelectDropdown from "@/components/portal/SelectDropdown";
 import LockIcon from "@/components/portal/LockIcon";
 import CalendarIcon from "@/components/portal/CalendarIcon";
+import TargetIcon from "@/components/portal/TargetIcon";
+import PeopleIcon from "@/components/portal/PeopleIcon";
+import PersonIcon from "@/components/portal/PersonIcon";
+import ClipboardIcon from "@/components/portal/ClipboardIcon";
+import PackageIcon from "@/components/portal/PackageIcon";
 import { addAssignmentComment, type CommentData } from "@/lib/actions/assignment-comments";
 import type { DependencyRef } from "@/lib/data/assignment-dependencies";
+import { getInitials } from "@/lib/get-initials";
 import styles from "@/styles/admin-shared.module.css";
 import cardStyles from "@/styles/assignments-board.module.css";
 
@@ -21,7 +28,6 @@ export type AssignmentData = {
   description: string | null;
   status: "in_progress" | "blocked" | "done";
   dueDate: string | null;
-  priority: "low" | "medium" | "high";
   pickupSetting: "admin_only" | "open_pickup";
   assigneeIds: string[];
   assigneeNames: string[];
@@ -30,6 +36,24 @@ export type AssignmentData = {
   blocks: DependencyRef[];
   subtasks: AssignmentData[];
   eventTaskId: string | null;
+  // Vendor Needs (items a vendor requested for the event) linked to this
+  // Assignment from the Vendor Details card's "Vendor requests" modal — see
+  // vendor_need_assignments.
+  vendorNeeds: { id: string; item: string; vendorName: string }[];
+};
+
+const STATUS_OPTIONS: { value: AssignmentData["status"]; label: string }[] = [
+  { value: "in_progress", label: "In Progress" },
+  { value: "blocked", label: "Blocked" },
+  { value: "done", label: "Done" },
+];
+
+// Same palette StaffAssignmentCard uses for the same statuses, so status
+// reads the same way for admins and staff.
+const STATUS_DOT_COLORS: Record<AssignmentData["status"], string> = {
+  in_progress: "#92400e",
+  blocked: "#b91c1c",
+  done: "#0a7c2f",
 };
 
 export default function AssignmentCard({
@@ -52,14 +76,14 @@ export default function AssignmentCard({
   // assignments_no_nested_subtasks trigger) — false on the recursive
   // self-render below so a Subtask's own card never offers "+ Add Subtask".
   allowSubtasks?: boolean;
-  // Only Subtasks get the quick complete-checkbox in the header — a
-  // top-level Assignment's status is a bigger decision (affects the board
-  // column it lives in) made via the Status field in the edit form instead.
+  // Only Subtasks get the quick complete-checkbox in the header, in
+  // addition to the same Status dropdown every card shows in its body.
   isSubtask?: boolean;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [addingSubtask, setAddingSubtask] = useState(false);
+  const [vendorNeedsExpanded, setVendorNeedsExpanded] = useState(false);
   const boundUpdate = updateAssignment.bind(null, eventId, assignment.id);
   const [state, formAction, isPending] = useActionState<ActionState, FormData>(boundUpdate, null);
   const wasPending = useRef(false);
@@ -85,19 +109,26 @@ export default function AssignmentCard({
   const [isTogglingComplete, startToggleComplete] = useTransition();
   const [completeError, setCompleteError] = useState<string | null>(null);
 
-  // A plain checkbox toggle, distinct from the Status dropdown in the edit
-  // form — this only ever moves between "done" and "in_progress"
-  // (unchecking a completed item resets it to In Progress, not back to
-  // whatever blocked state it might have had before). Uses the same
-  // updateAssignmentStatus the drag-and-drop board already calls, so it's
-  // unaffected by the dependency gate the same way admin drags already are.
-  const handleToggleComplete = () => {
-    const nextStatus = assignment.status === "done" ? "in_progress" : "done";
+  // Shared by the subtask header's quick checkbox and the Status dropdown
+  // below — both just move the assignment to a new status via the same
+  // updateAssignmentStatus the drag-and-drop board already calls. Unlike
+  // the staff side, admin status changes aren't gated by unmet
+  // dependencies — admins can already override that via the edit form's
+  // Status field, so the dropdown stays just as permissive.
+  const handleStatusChange = (nextStatus: AssignmentData["status"]) => {
     setCompleteError(null);
     startToggleComplete(async () => {
       const result = await updateAssignmentStatus(eventId, assignment.id, nextStatus);
       if (result?.error) setCompleteError(result.error);
     });
+  };
+
+  // A plain checkbox toggle, distinct from the fuller Status dropdown —
+  // this only ever moves between "done" and "in_progress" (unchecking a
+  // completed item resets it to In Progress, not back to whatever blocked
+  // state it might have had before).
+  const handleToggleComplete = () => {
+    handleStatusChange(assignment.status === "done" ? "in_progress" : "done");
   };
 
   const doneCount = assignment.subtasks.filter((c) => c.status === "done").length;
@@ -159,6 +190,97 @@ export default function AssignmentCard({
         </div>
       )}
     </>
+  );
+
+  // Grouped by vendor, in first-seen order — matches the "Vendor requests"
+  // modal's own "Selected items" card so an item's vendor reads the same way
+  // in both places.
+  const vendorNeedGroups: { vendorName: string; needs: AssignmentData["vendorNeeds"] }[] = [];
+  for (const need of assignment.vendorNeeds) {
+    const group = vendorNeedGroups.find((g) => g.vendorName === need.vendorName);
+    if (group) group.needs.push(need);
+    else vendorNeedGroups.push({ vendorName: need.vendorName, needs: [need] });
+  }
+
+  // Which requested items (and whose) this Assignment is meant to fulfill —
+  // linked from the Vendor Details card's "Vendor requests" modal. A plain
+  // collapsible row (styled like the Status/Assigned to/Due date rows above
+  // it) rather than always-open like Subtasks: usually not what an admin
+  // scanning the board needs to see, unlike an in-progress Subtask's own
+  // status.
+  const vendorNeedsSection = assignment.vendorNeeds.length > 0 && (
+    <div>
+      <button
+        type="button"
+        className={cardStyles.fieldRow}
+        onClick={() => setVendorNeedsExpanded((e) => !e)}
+        aria-expanded={vendorNeedsExpanded}
+        style={{
+          width: "100%",
+          background: "none",
+          border: "none",
+          padding: 0,
+          paddingTop: 12,
+          marginTop: 8,
+          borderTop: "1px solid var(--border)",
+          cursor: "pointer",
+          font: "inherit",
+        }}
+      >
+        <span className={cardStyles.fieldRowLabel}>
+          <PackageIcon size={14} />
+          Vendor requested items
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span className={styles.pill}>{assignment.vendorNeeds.length}</span>
+          <span
+            className={`${styles.accordionChevron} ${vendorNeedsExpanded ? styles.accordionChevronOpen : ""}`}
+            aria-hidden="true"
+          >
+            ▾
+          </span>
+        </span>
+      </button>
+      {vendorNeedsExpanded && (
+        <div className={styles.accordionItem} style={{ marginTop: 12 }}>
+          {vendorNeedGroups.map((group) => (
+            <div key={group.vendorName}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "10px 16px",
+                  background: "var(--surface)",
+                  borderBottom: "1px solid var(--border)",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: "var(--foreground)",
+                }}
+              >
+                {group.vendorName}
+                <span className={styles.optional}>
+                  {group.needs.length} item{group.needs.length === 1 ? "" : "s"}
+                </span>
+              </div>
+              <ul style={{ margin: 0, padding: "6px 16px 6px 32px" }}>
+                {group.needs.map((need) => (
+                  <li
+                    key={need.id}
+                    style={{
+                      padding: "4px 0",
+                      fontSize: 13,
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    {need.item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 
   const commentsSection = (
@@ -241,9 +363,6 @@ export default function AssignmentCard({
               {assignment.title}
             </span>
           )}
-          <span className={`${cardStyles.priority} ${cardStyles[`priority_${assignment.priority}`]}`}>
-            {assignment.priority}
-          </span>
         </div>
         {completeError && <p className={styles.error}>{completeError}</p>}
         {assignment.description && <p className={cardStyles.cardDescription}>{assignment.description}</p>}
@@ -252,27 +371,71 @@ export default function AssignmentCard({
           {assignment.pickupSetting === "open_pickup" ? "Open pickup" : "Assigned"}
         </span>
 
-        <div className={cardStyles.assigneesBlock}>
-          <span className={cardStyles.metaLabel}>Assigned to</span>
-          {assignment.assigneeNames.length > 0 ? (
-            <div className={styles.metaRow}>
-              {assignment.assigneeNames.map((name) => (
-                <span key={name} className={styles.badgeMuted}>
-                  {name}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <span className={cardStyles.cardMeta}>No one yet</span>
-          )}
+        <div className={cardStyles.fieldRow}>
+          <span className={cardStyles.fieldRowLabel}>
+            <TargetIcon size={14} />
+            Status
+          </span>
+          <div className={cardStyles.fieldRowValue}>
+            <SelectDropdown
+              options={STATUS_OPTIONS.map((opt) => ({
+                id: opt.value,
+                label: opt.label,
+                dotColor: STATUS_DOT_COLORS[opt.value],
+              }))}
+              value={assignment.status}
+              onChange={(value) => handleStatusChange(value as AssignmentData["status"])}
+              placeholder="Set status…"
+              disabled={isLocked || isTogglingComplete}
+            />
+          </div>
         </div>
 
-        {assignment.eventTaskId && (
-          <div className={cardStyles.assigneesBlock}>
-            <span className={cardStyles.metaLabel}>Event Task</span>
-            <span className={styles.pill}>
-              {eventTasks.find((t) => t.id === assignment.eventTaskId)?.title ?? "Unknown"}
+        <div className={cardStyles.fieldRow}>
+          <span className={cardStyles.fieldRowLabel}>
+            <PeopleIcon size={14} />
+            Assigned to
+          </span>
+          <div className={cardStyles.fieldRowValue}>
+            {assignment.assigneeNames.length > 0 ? (
+              <div className={cardStyles.avatarRow}>
+                {assignment.assigneeNames.map((name) => (
+                  <span key={name} className={cardStyles.avatarChip}>
+                    <span className={cardStyles.avatarCircle}>{getInitials(name)}</span>
+                    <span className={cardStyles.avatarName}>{name}</span>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <span className={cardStyles.cardMeta}>No one yet</span>
+            )}
+          </div>
+        </div>
+
+        {assignment.dueDate && (
+          <div className={cardStyles.fieldRow}>
+            <span className={cardStyles.fieldRowLabel}>
+              <CalendarIcon size={14} />
+              Due date
             </span>
+            <div className={cardStyles.dueDateBox}>
+              <CalendarIcon size={14} />
+              {new Date(assignment.dueDate).toLocaleDateString()}
+            </div>
+          </div>
+        )}
+
+        {assignment.eventTaskId && (
+          <div className={cardStyles.fieldRow}>
+            <span className={cardStyles.fieldRowLabel}>
+              <ClipboardIcon size={14} />
+              Event Task
+            </span>
+            <div className={cardStyles.fieldRowValue}>
+              <span className={styles.pill}>
+                {eventTasks.find((t) => t.id === assignment.eventTaskId)?.title ?? "Unknown"}
+              </span>
+            </div>
           </div>
         )}
 
@@ -287,17 +450,9 @@ export default function AssignmentCard({
           </div>
         )}
         {dependenciesDisplay}
+        {vendorNeedsSection}
         {subtasksSection}
         {commentsSection}
-        {assignment.dueDate && (
-          <div className={cardStyles.assigneesBlock}>
-            <span className={cardStyles.metaLabel}>Due date</span>
-            <div className={cardStyles.dueDateBox}>
-              <CalendarIcon size={14} />
-              {new Date(assignment.dueDate).toLocaleDateString()}
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -332,14 +487,6 @@ export default function AssignmentCard({
             />
           </div>
           <div className={styles.field}>
-            <label className={styles.label}>Priority</label>
-            <select name="priority" defaultValue={assignment.priority} className={styles.select}>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
-          </div>
-          <div className={styles.field}>
             <label className={styles.label}>Status</label>
             <select name="status" defaultValue={assignment.status} className={styles.select}>
               <option value="in_progress">In Progress</option>
@@ -350,28 +497,33 @@ export default function AssignmentCard({
         </div>
 
         <div className={styles.field}>
-          <span className={styles.label}>Pickup</span>
-          <div className={styles.checkboxRow}>
-            <label>
-              <input
-                type="radio"
-                name="pickup_setting"
-                value="admin_only"
-                defaultChecked={assignment.pickupSetting === "admin_only"}
-              />{" "}
-              Admin assigns
-            </label>
-          </div>
-          <div className={styles.checkboxRow}>
-            <label>
-              <input
-                type="radio"
-                name="pickup_setting"
-                value="open_pickup"
-                defaultChecked={assignment.pickupSetting === "open_pickup"}
-              />{" "}
-              Any roster staff can pick up
-            </label>
+          <span className={cardStyles.fieldRowLabel}>
+            <PersonIcon size={13} />
+            Pickup
+          </span>
+          <div className={styles.checkboxRowGroup}>
+            <div className={styles.checkboxRow}>
+              <label>
+                <input
+                  type="radio"
+                  name="pickup_setting"
+                  value="admin_only"
+                  defaultChecked={assignment.pickupSetting === "admin_only"}
+                />{" "}
+                Admin assigns
+              </label>
+            </div>
+            <div className={styles.checkboxRow}>
+              <label>
+                <input
+                  type="radio"
+                  name="pickup_setting"
+                  value="open_pickup"
+                  defaultChecked={assignment.pickupSetting === "open_pickup"}
+                />{" "}
+                Any roster staff can pick up
+              </label>
+            </div>
           </div>
         </div>
 
@@ -379,6 +531,8 @@ export default function AssignmentCard({
           <MultiSelectField
             name="assignee_ids"
             label="Assignees"
+            icon={<PeopleIcon size={13} />}
+            chipVariant="avatar"
             options={rosterStaff.map((staff) => ({
               id: staff.id,
               label: staff.name,
@@ -423,13 +577,14 @@ export default function AssignmentCard({
         </div>
       </form>
       {dependenciesDisplay}
+      {vendorNeedsSection}
       {subtasksSection}
       {commentsSection}
     </div>
   );
 }
 
-// A collapsed row for one Subtask (checkbox + title + priority), expanding
+// A collapsed row for one Subtask (checkbox + title), expanding
 // in place into its full AssignmentCard — as opposed to the old design
 // where the whole Subtasks section collapsed/expanded together as one unit.
 function SubtaskAccordion({
@@ -506,9 +661,6 @@ function SubtaskAccordion({
           }`}
         >
           {assignment.title}
-        </span>
-        <span className={`${cardStyles.priority} ${cardStyles[`priority_${assignment.priority}`]}`}>
-          {assignment.priority}
         </span>
         <span className={cardStyles.subAccordionChevron} aria-hidden>
           ▸

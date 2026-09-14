@@ -17,7 +17,7 @@ export async function getAssignmentsBoardData(eventId: string) {
       supabase
         .from("assignments")
         .select(
-          "id, parent_assignment_id, title, description, status, due_date, priority, pickup_setting, assignment_assignees(event_staff(id, contacts(name)))"
+          "id, parent_assignment_id, title, description, status, due_date, pickup_setting, assignment_assignees(event_staff(id, contacts(name)))"
         )
         .eq("event_id", eventId)
         .order("created_at", { ascending: true }),
@@ -49,6 +49,28 @@ export async function getAssignmentsBoardData(eventId: string) {
     }
   }
 
+  // Which Vendor Needs (items a vendor requested) each Assignment is meant
+  // to fulfill — set from the Vendor Details card's "Vendor requests" modal.
+  const { data: vendorNeedAssignmentRows } =
+    assignmentIds.length > 0
+      ? await supabase
+          .from("vendor_need_assignments")
+          .select("assignment_id, vendor_needs(id, item, contacts(name))")
+          .in("assignment_id", assignmentIds)
+      : { data: [] };
+
+  const vendorNeedsByAssignment = new Map<string, { id: string; item: string; vendorName: string }[]>();
+  for (const row of vendorNeedAssignmentRows ?? []) {
+    if (!row.vendor_needs) continue;
+    const list = vendorNeedsByAssignment.get(row.assignment_id) ?? [];
+    list.push({
+      id: row.vendor_needs.id,
+      item: row.vendor_needs.item,
+      vendorName: row.vendor_needs.contacts?.name ?? "Unknown vendor",
+    });
+    vendorNeedsByAssignment.set(row.assignment_id, list);
+  }
+
   const commentsByAssignment = await getCommentsByAssignment(supabase, assignmentIds);
 
   const { dependsOnByAssignment, blocksByAssignment } = await getAssignmentDependencies(
@@ -70,7 +92,6 @@ export async function getAssignmentsBoardData(eventId: string) {
     description: row.description,
     status: row.status,
     dueDate: row.due_date,
-    priority: row.priority,
     pickupSetting: row.pickup_setting,
     assigneeIds: row.assignment_assignees
       .map((a) => a.event_staff?.id)
@@ -82,6 +103,7 @@ export async function getAssignmentsBoardData(eventId: string) {
     dependsOn: dependsOnByAssignment.get(row.id) ?? [],
     blocks: blocksByAssignment.get(row.id) ?? [],
     eventTaskId: eventTaskIdByAssignment.get(row.id) ?? null,
+    vendorNeeds: vendorNeedsByAssignment.get(row.id) ?? [],
   }));
 
   const assignments: AssignmentData[] = buildAssignmentTree(flatAssignments);

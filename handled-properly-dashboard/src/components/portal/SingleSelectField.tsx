@@ -15,6 +15,7 @@ export default function SingleSelectField({
   initialSelectedId = "",
   placeholder,
   searchPlaceholder = "Search…",
+  onChange,
 }: {
   name: string;
   label: string;
@@ -23,9 +24,18 @@ export default function SingleSelectField({
   initialSelectedId?: string;
   placeholder: string;
   searchPlaceholder?: string;
+  // Opt-in — lets a caller mirror the selection into its own state (e.g. to
+  // disable a submit button until something's chosen) without every
+  // existing caller needing to pass one.
+  onChange?: (id: string) => void;
 }) {
   const [selectedId, setSelectedId] = useState(initialSelectedId);
   const selectedOption = options.find((o) => o.id === selectedId);
+
+  const select = (id: string) => {
+    setSelectedId(id);
+    onChange?.(id);
+  };
 
   return (
     <div className={styles.field}>
@@ -41,7 +51,7 @@ export default function SingleSelectField({
               type="button"
               className={styles.pillDelete}
               aria-label={`Remove ${selectedOption.label}`}
-              onClick={() => setSelectedId("")}
+              onClick={() => select("")}
             >
               ×
             </button>
@@ -54,7 +64,7 @@ export default function SingleSelectField({
       <SelectDropdown
         options={options.filter((o) => o.id !== selectedId)}
         value=""
-        onChange={setSelectedId}
+        onChange={select}
         placeholder={placeholder}
         searchable
         searchPlaceholder={searchPlaceholder}

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import ClipboardIcon from "@/components/portal/ClipboardIcon";
 import styles from "./RequestsTabs.module.css";
 
 export type RequestRow = {
@@ -12,16 +13,6 @@ export type RequestRow = {
   fulfilled_at: string | null;
   events: { name: string } | null;
 };
-
-function ClipboardIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="6" y="4" width="12" height="17" rx="2" />
-      <path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" />
-      <path d="M9 11h6M9 15h6" />
-    </svg>
-  );
-}
 
 function ArrowIcon() {
   return (
@@ -54,7 +45,7 @@ function RequestList({ requests, showFulfilled }: { requests: RequestRow[]; show
           <div key={request.id} className={styles.row}>
             <div className={styles.requestCell}>
               <span className={styles.requestIcon}>
-                <ClipboardIcon />
+                <ClipboardIcon size={16} />
               </span>
               <span className={styles.requestTitle}>{request.title}</span>
             </div>

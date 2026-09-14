@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { staffSetStatus, staffPickupAssignment } from "./actions";
-import { isRestrictedForStaff, getInitials, type StaffAssignmentData } from "./StaffAssignmentCard";
+import { isRestrictedForStaff, type StaffAssignmentData } from "./StaffAssignmentCard";
 import CommentsSection from "@/components/portal/CommentsSection";
 import CalendarIcon from "@/components/portal/CalendarIcon";
 import LockIcon from "@/components/portal/LockIcon";
@@ -11,6 +11,7 @@ import LinkIcon from "@/components/portal/LinkIcon";
 import ChevronRightIcon from "@/components/portal/ChevronRightIcon";
 import SelectDropdown from "@/components/portal/SelectDropdown";
 import { addAssignmentComment } from "@/lib/actions/assignment-comments";
+import { getInitials } from "@/lib/get-initials";
 import styles from "@/styles/admin-shared.module.css";
 import cardStyles from "@/styles/assignments-board.module.css";
 import detailStyles from "./StaffAssignmentCard.module.css";
@@ -49,6 +50,16 @@ export default function StaffAssignmentDetail({
   const doneCount = assignment.subtasks.filter((c) => c.status === "done").length;
   const hasSubtasks = assignment.subtasks.length > 0;
 
+  // Grouped by vendor, in first-seen order — matches the admin's own
+  // "Vendor requested items" card so an item's vendor reads the same way in
+  // both places.
+  const vendorNeedGroups: { vendorName: string; needs: StaffAssignmentData["vendorNeeds"] }[] = [];
+  for (const need of assignment.vendorNeeds) {
+    const group = vendorNeedGroups.find((g) => g.vendorName === need.vendorName);
+    if (group) group.needs.push(need);
+    else vendorNeedGroups.push({ vendorName: need.vendorName, needs: [need] });
+  }
+
   const isAlreadyAssigned = Boolean(currentStaffId && assignment.assigneeIds.includes(currentStaffId));
   const canPickUp = assignment.pickupSetting === "open_pickup" && !isAlreadyAssigned && !isLocked;
   const hasUnmetDependencies = assignment.dependsOn.some((dep) => dep.status !== "done");
@@ -75,18 +86,13 @@ export default function StaffAssignmentDetail({
 
   return (
     <div className={detailStyles.card}>
-      <div className={detailStyles.headerRow}>
-        <div>
-          <span className={assignment.status === "done" ? detailStyles.titleDone : detailStyles.title}>
-            {assignment.title}
-          </span>
-          {assignment.description && (
-            <p className={detailStyles.description}>{assignment.description}</p>
-          )}
-        </div>
-        <span className={detailStyles.priorityPill}>
-          {assignment.priority.charAt(0).toUpperCase() + assignment.priority.slice(1)} priority
+      <div>
+        <span className={assignment.status === "done" ? detailStyles.titleDone : detailStyles.title}>
+          {assignment.title}
         </span>
+        {assignment.description && (
+          <p className={detailStyles.description}>{assignment.description}</p>
+        )}
       </div>
 
       <div className={detailStyles.fieldGrid}>
@@ -191,6 +197,45 @@ export default function StaffAssignmentDetail({
               <ChevronRightIcon size={16} className={detailStyles.linkRowChevron} />
             </Link>
           ))}
+        </div>
+      )}
+
+      {assignment.vendorNeeds.length > 0 && (
+        <div className={detailStyles.section}>
+          <div className={detailStyles.sectionHeader}>
+            Vendor requested items
+            <span className={styles.countBubble}>{assignment.vendorNeeds.length}</span>
+          </div>
+          <div className={styles.accordionItem}>
+            {vendorNeedGroups.map((group) => (
+              <div key={group.vendorName}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    padding: "10px 16px",
+                    background: "var(--surface)",
+                    borderBottom: "1px solid var(--border)",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: "var(--foreground)",
+                  }}
+                >
+                  {group.vendorName}
+                  <span className={styles.optional}>
+                    {group.needs.length} item{group.needs.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <ul style={{ margin: 0, padding: "6px 16px 6px 32px" }}>
+                  {group.needs.map((need) => (
+                    <li key={need.id} style={{ padding: "4px 0", fontSize: 13, wordBreak: "break-word" }}>
+                      {need.item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -317,9 +362,6 @@ function DetailSubtaskAccordion({
               </span>
             )}{" "}
             {assignment.title}
-          </span>
-          <span className={`${cardStyles.priority} ${cardStyles[`priority_${assignment.priority}`]}`}>
-            {assignment.priority}
           </span>
           <span className={cardStyles.subAccordionChevron} aria-hidden>
             ▸

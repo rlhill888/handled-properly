@@ -2,7 +2,7 @@
 // literal percentage (Event Tasks don't track sub-progress), just a status
 // glyph: mostly-empty for In Progress, a short red arc for Blocked, and a
 // full ring for Done, echoing the same status meanings/colors already used
-// for dependency pills and priority badges elsewhere in the portal.
+// for dependency pills elsewhere in the portal.
 const RING_BY_STATUS: Record<"in_progress" | "blocked" | "done", { pct: number; color: string }> = {
   in_progress: { pct: 0.35, color: "#0a0a0a" },
   blocked: { pct: 0.15, color: "#b91c1c" },

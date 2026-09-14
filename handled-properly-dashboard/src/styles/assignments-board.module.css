@@ -339,31 +339,6 @@
   margin-top: 4px;
 }
 
-.priority {
-  flex-shrink: 0;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 3px 8px;
-  border-radius: 999px;
-}
-
-.priority_low {
-  background: var(--surface);
-  color: var(--muted);
-}
-
-.priority_medium {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.priority_high {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
 .depPending {
   display: inline-flex;
   align-items: center;
@@ -479,4 +454,90 @@
   flex-shrink: 0;
   font-size: 11px;
   color: var(--muted);
+}
+
+/* Icon-labeled label/value rows for a card's key fields (Status, Assigned
+   to, Due date, Event Task) — the same presentation StaffAssignmentCard
+   uses, adopted here so the admin card reads the same way. */
+.fieldRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.fieldRow + .fieldRow {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.fieldRowLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.fieldRowLabel svg {
+  color: var(--muted);
+}
+
+.fieldRowValue {
+  display: flex;
+  flex: 1;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.avatarRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.avatarChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 4px;
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.avatarCircle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #e5e5e5;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.avatarName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+@media (max-width: 480px) {
+  .fieldRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .fieldRowValue,
+  .avatarRow {
+    justify-content: flex-start;
+    width: 100%;
+  }
 }

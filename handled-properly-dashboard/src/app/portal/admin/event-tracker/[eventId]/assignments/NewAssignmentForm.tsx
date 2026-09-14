@@ -66,23 +66,11 @@ export default function NewAssignmentForm({
         <textarea id="description" name="description" className={styles.textarea} />
       </div>
 
-      <div className={styles.formRow}>
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="due_date">
-            Due date <span className={styles.optional}>(optional)</span>
-          </label>
-          <input id="due_date" name="due_date" type="date" className={styles.input} />
-        </div>
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="priority">
-            Priority
-          </label>
-          <select id="priority" name="priority" defaultValue="medium" className={styles.select}>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-        </div>
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="due_date">
+          Due date <span className={styles.optional}>(optional)</span>
+        </label>
+        <input id="due_date" name="due_date" type="date" className={styles.input} />
       </div>
 
       <div className={styles.field}>

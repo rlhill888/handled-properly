@@ -23,7 +23,6 @@ export type TaskLinkedAssignment = {
   description: string | null;
   status: "in_progress" | "blocked" | "done";
   dueDate: string | null;
-  priority: "low" | "medium" | "high";
   assigneeNames: string[];
 };
 

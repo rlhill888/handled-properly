@@ -7,6 +7,8 @@ export default function ModalButton({
   label,
   ariaLabel,
   modalTitle,
+  titleAction,
+  titleVariant,
   className,
   children,
 }: {
@@ -14,6 +16,9 @@ export default function ModalButton({
   // Needed when label is an icon rather than readable text.
   ariaLabel?: string;
   modalTitle: string;
+  // Forwarded to Modal — see its own doc comments.
+  titleAction?: ReactNode;
+  titleVariant?: "eyebrow" | "heading";
   className?: string;
   children: ReactNode;
 }) {
@@ -24,7 +29,13 @@ export default function ModalButton({
       <button type="button" className={className} aria-label={ariaLabel} onClick={() => setOpen(true)}>
         {label}
       </button>
-      <Modal open={open} onClose={() => setOpen(false)} title={modalTitle}>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title={modalTitle}
+        titleAction={titleAction}
+        titleVariant={titleVariant}
+      >
         {children}
       </Modal>
     </>

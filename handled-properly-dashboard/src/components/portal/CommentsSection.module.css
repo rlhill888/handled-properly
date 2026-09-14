@@ -46,44 +46,136 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 16px;
 }
 
 .comment {
   display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.commentAvatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #e5e5e5;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.commentContent {
+  display: flex;
   flex-direction: column;
-  gap: 4px;
-  background: var(--surface);
-  border-radius: 4px;
-  padding: 10px 12px;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
 }
 
 .commentMeta {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 8px;
 }
 
+.commentAuthor {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
 .commentTime {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 
 .commentBody {
-  font-size: 13px;
+  font-size: 14px;
+  line-height: 1.5;
   color: var(--foreground);
   white-space: pre-wrap;
 }
 
-.composer {
+.composerRow {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
+  align-items: center;
+  gap: 12px;
 }
 
-.composer textarea {
+.composerAvatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.composerBox {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  transition: border-color 0.2s ease;
+}
+
+.composerBox:focus-within {
+  border-color: #0a0a0a;
+}
+
+.composerInput {
   width: 100%;
+  font: inherit;
+  font-size: 14px;
+  color: var(--foreground);
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: vertical;
+  min-height: 20px;
+}
+
+.composerInput::placeholder {
+  color: var(--muted);
+}
+
+.postButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  color: #ffffff;
+  background: #0a0a0a;
+  border: 1px solid #0a0a0a;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.postButton:hover {
+  opacity: 0.85;
+}
+
+.postButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.composerHint {
+  align-self: flex-start;
+  margin-left: 44px;
+  font-size: 11px;
+  color: var(--muted);
 }
 
 /* Event Task Updates only (EventTaskUpdatesList) — a vertical timeline

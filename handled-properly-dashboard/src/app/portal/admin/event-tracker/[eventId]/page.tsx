@@ -11,8 +11,10 @@ import EventTasksBoard from "./event-tasks/EventTasksBoard";
 import RequestsPanel from "./requests/RequestsPanel";
 import DocumentationPanel from "./documentation/DocumentationPanel";
 import EventVendorsPanel from "./event-vendors/EventVendorsPanel";
+import VendorDetailsPanel from "./event-vendors/VendorDetailsPanel";
 import SettingsModalButton from "@/components/portal/SettingsModalButton";
 import EventHeaderImage from "@/components/portal/EventHeaderImage";
+import CommentIcon from "@/components/portal/CommentIcon";
 import { getEventHeaderImageDataUrl } from "@/lib/data/event-header-image";
 import { formatEventDate } from "@/lib/format-event-date";
 import { CHAT_ENABLED } from "@/lib/feature-flags";
@@ -119,19 +121,7 @@ export default async function EventDetailPage({
               className={styles.backLink}
               aria-label="View Conversations"
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
+              <CommentIcon size={16} />
             </Link>
           )}
 
@@ -172,6 +162,8 @@ export default async function EventDetailPage({
             {detailsCard}
 
             <AssignmentsBoard eventId={event.id} isLocked={event.status === "completed"} />
+
+            <VendorDetailsPanel eventId={event.id} />
 
             <div className={styles.card}>
               <h2 className={styles.cardTitle}>Roster</h2>

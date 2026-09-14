@@ -2,11 +2,24 @@
 
 import { useState } from "react";
 import type { CommentData } from "@/lib/actions/assignment-comments";
+import { getInitials } from "@/lib/get-initials";
 import CommentIcon from "./CommentIcon";
 import ChevronRightIcon from "./ChevronRightIcon";
+import PersonIcon from "./PersonIcon";
+import SendIcon from "./SendIcon";
 import styles from "@/styles/admin-shared.module.css";
 import cardStyles from "@/styles/assignments-board.module.css";
 import commentStyles from "./CommentsSection.module.css";
+
+// "Aug 31 · 3:31 PM" — no year, since a comment thread is always read in
+// the context of one still-open assignment/request rather than as a
+// historical record.
+function formatCommentTime(iso: string): string {
+  const date = new Date(iso);
+  const day = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const time = date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return `${day} · ${time}`;
+}
 
 // Shared by the admin (AssignmentCard, used both on the assignments list
 // page and inside the Kanban board's detail modal), staff
@@ -42,8 +55,7 @@ export default function CommentsSection({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSend = async () => {
     if (!draft.trim()) return;
     setSending(true);
     setError(null);
@@ -55,6 +67,14 @@ export default function CommentsSection({
     }
     setComments((current) => [...current, result.comment]);
     setDraft("");
+  };
+
+  // Mirrors the ⌘/Ctrl+Enter hint shown under the composer.
+  const handleComposerKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      e.preventDefault();
+      handleSend();
+    }
   };
 
   return (
@@ -86,32 +106,50 @@ export default function CommentsSection({
             {comments.length === 0 && <p className={styles.emptyState}>No comments yet.</p>}
             {comments.map((comment) => (
               <div key={comment.id} className={commentStyles.comment}>
-                <div className={commentStyles.commentMeta}>
-                  <span className={comment.isAdmin ? styles.badge : styles.badgeMuted}>
-                    {comment.authorName}
-                  </span>
-                  <span className={commentStyles.commentTime}>
-                    {new Date(comment.createdAt).toLocaleString()}
-                  </span>
+                <span className={commentStyles.commentAvatar} aria-hidden="true">
+                  {getInitials(comment.authorName)}
+                </span>
+                <div className={commentStyles.commentContent}>
+                  <div className={commentStyles.commentMeta}>
+                    <span className={commentStyles.commentAuthor}>{comment.authorName}</span>
+                    <span className={commentStyles.commentTime}>{formatCommentTime(comment.createdAt)}</span>
+                  </div>
+                  <p className={commentStyles.commentBody}>{comment.body}</p>
                 </div>
-                <p className={commentStyles.commentBody}>{comment.body}</p>
               </div>
             ))}
           </div>
 
           {error && <p className={styles.error}>{error}</p>}
 
-          <form onSubmit={handleSend} className={commentStyles.composer}>
-            <textarea
-              className={styles.textarea}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="Add a comment…"
-              rows={2}
-              disabled={sending}
-            />
-            <button type="submit" className={styles.primaryButton} disabled={sending || !draft.trim()}>
-              {sending ? "Posting…" : "Post"}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSend();
+            }}
+            className={commentStyles.composerRow}
+          >
+            <span className={commentStyles.composerAvatar} aria-hidden="true">
+              <PersonIcon size={14} />
+            </span>
+            <div className={commentStyles.composerBox}>
+              <textarea
+                className={commentStyles.composerInput}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={handleComposerKeyDown}
+                placeholder="Write a comment…"
+                rows={2}
+                disabled={sending}
+              />
+            </div>
+            <button
+              type="submit"
+              className={commentStyles.postButton}
+              disabled={sending || !draft.trim()}
+              aria-label={sending ? "Posting…" : "Post comment"}
+            >
+              <SendIcon size={14} />
             </button>
           </form>
         </div>

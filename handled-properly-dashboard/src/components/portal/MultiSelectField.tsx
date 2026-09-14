@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import SelectDropdown, { type SelectDropdownOption } from "./SelectDropdown";
+import { getInitials } from "@/lib/get-initials";
 import styles from "@/styles/admin-shared.module.css";
+import cardStyles from "@/styles/assignments-board.module.css";
 
 // A searchable multi-select — same SelectDropdown pattern used for Forms in
 // ComposeForm.tsx, generalized so it can also submit as plain repeated-name
@@ -14,15 +16,21 @@ import styles from "@/styles/admin-shared.module.css";
 export default function MultiSelectField({
   name,
   label,
+  icon,
   helperText,
   options,
   initialSelectedIds = [],
   placeholder,
   searchPlaceholder = "Search…",
   onSelectionChange,
+  chipVariant = "pill",
 }: {
   name: string;
   label: string;
+  // Renders before the label, using the same icon-labeled-row look as the
+  // Assignment cards' display fields — opt-in, unset by every existing
+  // caller, so nothing else in the app changes visually.
+  icon?: ReactNode;
   helperText?: string;
   options: SelectDropdownOption[];
   initialSelectedIds?: string[];
@@ -33,6 +41,10 @@ export default function MultiSelectField({
   // relying on this field's hidden inputs being read from a surrounding
   // <form> on submit.
   onSelectionChange?: (selectedIds: string[]) => void;
+  // "avatar" renders each selection the same way Assigned-to chips read
+  // elsewhere in the portal (initials circle + name) instead of a plain
+  // text pill — for selecting people specifically, e.g. Assignees.
+  chipVariant?: "pill" | "avatar";
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>(initialSelectedIds);
 
@@ -55,21 +67,41 @@ export default function MultiSelectField({
 
   return (
     <div className={styles.field}>
-      <span className={styles.label}>
+      <span className={icon ? cardStyles.fieldRowLabel : styles.label}>
+        {icon}
         {label} {helperText && <span className={styles.optional}>{helperText}</span>}
       </span>
 
       {selectedIds.length > 0 && (
+        // metaRow (not cardStyles.avatarRow) even for avatar chips — that
+        // row is right-aligned for its own use nested in a display field's
+        // value column, which doesn't fit this field's plain left-aligned,
+        // full-width layout above the picker.
         <div className={styles.metaRow}>
           {selectedIds.map((id) => {
             const option = options.find((o) => o.id === id);
-            return (
-              <span key={id} className={styles.pill}>
-                {option?.label ?? id}
+            const chipLabel = option?.label ?? id;
+            return chipVariant === "avatar" ? (
+              <span key={id} className={cardStyles.avatarChip}>
+                <span className={cardStyles.avatarCircle}>{getInitials(chipLabel)}</span>
+                <span className={cardStyles.avatarName}>{chipLabel}</span>
                 <button
                   type="button"
                   className={styles.pillDelete}
-                  aria-label={`Remove ${option?.label ?? id}`}
+                  aria-label={`Remove ${chipLabel}`}
+                  onClick={() => remove(id)}
+                >
+                  ×
+                </button>
+                <input type="hidden" name={name} value={id} />
+              </span>
+            ) : (
+              <span key={id} className={styles.pill}>
+                {chipLabel}
+                <button
+                  type="button"
+                  className={styles.pillDelete}
+                  aria-label={`Remove ${chipLabel}`}
                   onClick={() => remove(id)}
                 >
                   ×

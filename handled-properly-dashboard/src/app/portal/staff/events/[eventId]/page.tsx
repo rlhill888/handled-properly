@@ -39,6 +39,26 @@ export default async function StaffEventDetailPage({
 
   const assignments = await getStaffAssignments(eventId);
 
+  // Every item a vendor has requested for this event, regardless of whether
+  // it's been linked to an Assignment yet — the staff-side counterpart to
+  // the admin's "Vendor requests" modal, so staff can see the full request
+  // list even for items nobody's picked up work on yet. RLS
+  // (staff_select_rostered_vendor_needs) scopes this to events the staff
+  // member is rostered on.
+  const { data: vendorNeedRows } = await supabase
+    .from("vendor_needs")
+    .select("id, item, contacts(name)")
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: true });
+
+  const vendorNeedGroups: { vendorName: string; needs: { id: string; item: string }[] }[] = [];
+  for (const row of vendorNeedRows ?? []) {
+    const vendorName = row.contacts?.name ?? "Unknown vendor";
+    const group = vendorNeedGroups.find((g) => g.vendorName === vendorName);
+    if (group) group.needs.push({ id: row.id, item: row.item });
+    else vendorNeedGroups.push({ vendorName, needs: [{ id: row.id, item: row.item }] });
+  }
+
   // The same Event Tasks the Client sees for this event, read-only — only
   // the admin moves them.
   const { data: taskRows } = await supabase
@@ -70,7 +90,7 @@ export default async function StaffEventDetailPage({
   const { data: linkRows } = await supabase
     .from("event_task_assignments")
     .select(
-      "event_task_id, assignments(id, title, description, status, due_date, priority, assignment_assignees(event_staff(contacts(name))))"
+      "event_task_id, assignments(id, title, description, status, due_date, assignment_assignees(event_staff(contacts(name))))"
     )
     .in("event_task_id", taskIds);
 
@@ -85,7 +105,6 @@ export default async function StaffEventDetailPage({
       description: a.description,
       status: a.status,
       dueDate: a.due_date,
-      priority: a.priority,
       assigneeNames: (a.assignment_assignees ?? [])
         .map((aa) => aa.event_staff?.contacts?.name)
         .filter((name): name is string => Boolean(name)),
@@ -158,6 +177,43 @@ export default async function StaffEventDetailPage({
           </tbody>
         </table>
       </div>
+
+      {vendorNeedGroups.length > 0 && (
+        <div className={styles.card}>
+          <h2 className={styles.cardTitle}>Vendor Requested Items</h2>
+          <p className={styles.description}>Everything vendors have requested for this event.</p>
+          <div className={styles.accordionItem}>
+            {vendorNeedGroups.map((group) => (
+              <div key={group.vendorName}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    padding: "10px 16px",
+                    background: "var(--surface)",
+                    borderBottom: "1px solid var(--border)",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: "var(--foreground)",
+                  }}
+                >
+                  {group.vendorName}
+                  <span className={styles.optional}>
+                    {group.needs.length} item{group.needs.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <ul style={{ margin: 0, padding: "6px 16px 6px 32px" }}>
+                  {group.needs.map((need) => (
+                    <li key={need.id} style={{ padding: "4px 0", fontSize: 13, wordBreak: "break-word" }}>
+                      {need.item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Assignments</h2>

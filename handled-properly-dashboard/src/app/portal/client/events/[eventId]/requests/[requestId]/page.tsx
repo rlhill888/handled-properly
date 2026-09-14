@@ -8,46 +8,10 @@ import RequestTextForm from "./RequestTextForm";
 import RequestCheckOffButton from "./RequestCheckOffButton";
 import BackButton from "./BackButton";
 import CommentsSection from "@/components/portal/CommentsSection";
+import CalendarIcon from "@/components/portal/CalendarIcon";
+import FileIcon from "@/components/portal/FileIcon";
 import styles from "@/styles/admin-shared.module.css";
 import detailStyles from "./RequestDetail.module.css";
-
-function CalendarIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="3" y="4" width="18" height="18" rx="2" />
-      <path d="M16 2v4M8 2v4M3 10h18" />
-    </svg>
-  );
-}
-
-function FileIcon() {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <path d="M14 2v6h6" />
-    </svg>
-  );
-}
 
 function ExternalLinkIcon() {
   return (
@@ -111,7 +75,7 @@ export default async function ClientRequestDetailPage({
         </div>
         {request.due_date && (
           <div className={detailStyles.dueDate}>
-            <CalendarIcon />
+            <CalendarIcon size={16} />
             Due {new Date(request.due_date).toLocaleDateString(undefined, {
               month: "short",
               day: "numeric",
@@ -138,7 +102,7 @@ export default async function ClientRequestDetailPage({
                 <h2 className={detailStyles.sectionTitle}>Your file</h2>
                 <div className={detailStyles.fileRow}>
                   <span className={detailStyles.fileRowLabel}>
-                    <FileIcon />
+                    <FileIcon size={18} />
                     Uploaded file
                   </span>
                   <a href={fileUrl} target="_blank" rel="noreferrer" className={detailStyles.viewFileLink}>

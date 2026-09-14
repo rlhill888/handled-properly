@@ -6,7 +6,6 @@ import { getCurrentActor } from "@/lib/auth/get-current-actor";
 import type { Database } from "@/lib/supabase/database.types";
 
 type AssignmentStatus = Database["public"]["Enums"]["assignment_status"];
-type AssignmentPriority = Database["public"]["Enums"]["assignment_priority"];
 type PickupSetting = Database["public"]["Enums"]["pickup_setting"];
 
 export type ActionState = { error: string } | null;
@@ -113,11 +112,15 @@ export async function createAssignment(
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const dueDate = String(formData.get("due_date") ?? "");
-  const priority = String(formData.get("priority") ?? "medium") as AssignmentPriority;
   const pickupSetting = String(formData.get("pickup_setting") ?? "admin_only") as PickupSetting;
   const assigneeIds = formData.getAll("assignee_ids").map(String);
   const dependsOnIds = formData.getAll("depends_on_ids").map(String);
   const eventTaskId = String(formData.get("event_task_id") ?? "") || null;
+  // Set only by the "create assignment from selected items" flow in the
+  // Vendor Details card's Vendor's Requested Items modal — links the new
+  // Assignment to the Vendor Needs it's meant to fulfill. Empty for every
+  // other caller of this form.
+  const vendorNeedIds = formData.getAll("vendor_need_ids").map(String);
 
   if (!title) return { error: "Title is required." };
 
@@ -133,7 +136,6 @@ export async function createAssignment(
       title,
       description: description || null,
       due_date: dueDate || null,
-      priority,
       pickup_setting: pickupSetting,
     })
     .select("id")
@@ -158,6 +160,16 @@ export async function createAssignment(
   const eventTaskResult = await syncAssignmentEventTask(supabase, eventId, assignment.id, eventTaskId);
   if (eventTaskResult.error) return { error: eventTaskResult.error };
 
+  if (vendorNeedIds.length > 0) {
+    const { error: vendorNeedsError } = await supabase.from("vendor_need_assignments").insert(
+      vendorNeedIds.map((vendorNeedId) => ({
+        assignment_id: assignment.id,
+        vendor_need_id: vendorNeedId,
+      }))
+    );
+    if (vendorNeedsError) return { error: vendorNeedsError.message };
+  }
+
   revalidatePath(`/portal/admin/event-tracker/${eventId}`);
   revalidatePath(`/portal/admin/event-tracker/${eventId}/assignments`);
   return null;
@@ -174,7 +186,6 @@ export async function updateAssignment(
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const dueDate = String(formData.get("due_date") ?? "");
-  const priority = String(formData.get("priority") ?? "medium") as AssignmentPriority;
   const status = String(formData.get("status") ?? "in_progress") as AssignmentStatus;
   const pickupSetting = String(formData.get("pickup_setting") ?? "admin_only") as PickupSetting;
   const assigneeIds = formData.getAll("assignee_ids").map(String);
@@ -193,7 +204,6 @@ export async function updateAssignment(
       title,
       description: description || null,
       due_date: dueDate || null,
-      priority,
       status,
       pickup_setting: pickupSetting,
     })

@@ -20,7 +20,7 @@ export default async function ContactsPage({
     supabase
       .from("contacts")
       .select(
-        "id, name, email, phone, clients(id), event_staff(id), contact_categories(category_id), event_attendance(events(id,name))"
+        "id, name, email, phone, clients(id), event_staff(id), event_vendors(event_id), contact_categories(category_id), event_attendance(events(id,name))"
       )
       .order("name", { ascending: true }),
     supabase.from("categories").select("id, name").order("name", { ascending: true }),
@@ -35,6 +35,7 @@ export default async function ContactsPage({
     phone: row.phone,
     isClient: row.clients !== null,
     isStaff: row.event_staff !== null,
+    isVendor: row.event_vendors.length > 0,
     categoryIds: row.contact_categories.map((cc) => cc.category_id),
     attendingEventNames: row.event_attendance
       .map((ea) => ea.events?.name)

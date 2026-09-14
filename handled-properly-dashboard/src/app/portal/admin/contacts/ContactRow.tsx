@@ -12,6 +12,7 @@ export type ContactRowData = {
   phone: string | null;
   isClient: boolean;
   isStaff: boolean;
+  isVendor: boolean;
   categoryIds: string[];
   attendingEventNames: string[];
 };
@@ -57,6 +58,7 @@ export default function ContactRow({
         <div className={styles.metaRow} style={{ marginLeft: "auto", marginRight: 8 }}>
           {contact.isStaff && <span className={styles.badge}>Staff</span>}
           {contact.isClient && <span className={styles.badgeMuted}>Client</span>}
+          {contact.isVendor && <span className={styles.badgeMuted}>Vendor</span>}
         </div>
         <span
           className={`${styles.accordionChevron} ${expanded ? styles.accordionChevronOpen : ""}`}
@@ -83,10 +85,11 @@ export default function ContactRow({
             </tbody>
           </table>
 
-          {(contact.isClient || contact.isStaff) && (
+          {(contact.isClient || contact.isStaff || contact.isVendor) && (
             <div className={styles.metaRow}>
               {contact.isClient && <span className={styles.badge}>Client</span>}
               {contact.isStaff && <span className={styles.badge}>Staff</span>}
+              {contact.isVendor && <span className={styles.badge}>Vendor</span>}
             </div>
           )}
 

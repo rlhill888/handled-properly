@@ -4,11 +4,16 @@ import { useState, useTransition } from "react";
 import { staffSetStatus, staffPickupAssignment } from "./actions";
 import CommentsSection from "@/components/portal/CommentsSection";
 import CalendarIcon from "@/components/portal/CalendarIcon";
+import CheckCircleIcon from "@/components/portal/CheckCircleIcon";
 import LockIcon from "@/components/portal/LockIcon";
+import PackageIcon from "@/components/portal/PackageIcon";
+import PeopleIcon from "@/components/portal/PeopleIcon";
 import PersonIcon from "@/components/portal/PersonIcon";
 import SelectDropdown from "@/components/portal/SelectDropdown";
+import TargetIcon from "@/components/portal/TargetIcon";
 import { addAssignmentComment, type CommentData } from "@/lib/actions/assignment-comments";
 import type { DependencyRef } from "@/lib/data/assignment-dependencies";
+import { getInitials } from "@/lib/get-initials";
 import styles from "@/styles/admin-shared.module.css";
 import cardStyles from "@/styles/assignments-board.module.css";
 import detailStyles from "./StaffAssignmentCard.module.css";
@@ -19,7 +24,6 @@ export type StaffAssignmentData = {
   description: string | null;
   status: "in_progress" | "blocked" | "done";
   dueDate: string | null;
-  priority: "low" | "medium" | "high";
   pickupSetting: "admin_only" | "open_pickup";
   assigneeIds: string[];
   assigneeNames: string[];
@@ -27,6 +31,10 @@ export type StaffAssignmentData = {
   dependsOn: DependencyRef[];
   blocks: DependencyRef[];
   subtasks: StaffAssignmentData[];
+  // Vendor Needs (items a vendor requested for the event) linked to this
+  // Assignment from the admin's Vendor Details card — see
+  // vendor_need_assignments.
+  vendorNeeds: { id: string; item: string; vendorName: string }[];
 };
 
 const STATUS_OPTIONS: { value: StaffAssignmentData["status"]; label: string }[] = [
@@ -37,8 +45,8 @@ const STATUS_OPTIONS: { value: StaffAssignmentData["status"]; label: string }[] 
 
 // No existing color convention for assignment_status elsewhere in the app —
 // reuses the exact hex values already established for the same meanings on
-// priority/dependency pills (amber/red) and the Kanban "Assigned to You"
-// badge (green), rather than inventing a new palette.
+// dependency pills (amber/red) and the Kanban "Assigned to You" badge
+// (green), rather than inventing a new palette.
 const STATUS_DOT_COLORS: Record<StaffAssignmentData["status"], string> = {
   in_progress: "#92400e",
   blocked: "#b91c1c",
@@ -59,15 +67,6 @@ export function isRestrictedForStaff(
   );
 }
 
-// "Priya Nandan" -> "PN"; a single-word name just takes its first two
-// letters so the avatar circle never ends up empty.
-export function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
 export default function StaffAssignmentCard({
   eventId,
   assignment,
@@ -81,9 +80,20 @@ export default function StaffAssignmentCard({
 }) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [vendorNeedsExpanded, setVendorNeedsExpanded] = useState(false);
 
   const doneCount = assignment.subtasks.filter((c) => c.status === "done").length;
   const hasSubtasks = assignment.subtasks.length > 0;
+
+  // Grouped by vendor, in first-seen order — matches the admin's own
+  // "Vendor requested items" card so an item's vendor reads the same way in
+  // both places.
+  const vendorNeedGroups: { vendorName: string; needs: StaffAssignmentData["vendorNeeds"] }[] = [];
+  for (const need of assignment.vendorNeeds) {
+    const group = vendorNeedGroups.find((g) => g.vendorName === need.vendorName);
+    if (group) group.needs.push(need);
+    else vendorNeedGroups.push({ vendorName: need.vendorName, needs: [need] });
+  }
 
   const isAlreadyAssigned = Boolean(currentStaffId && assignment.assigneeIds.includes(currentStaffId));
   const canPickUp = assignment.pickupSetting === "open_pickup" && !isAlreadyAssigned && !isLocked;
@@ -110,25 +120,25 @@ export default function StaffAssignmentCard({
     setError("This assignment isn't assigned to you, so you can't change it.");
 
   return (
-    <div className={cardStyles.card}>
-      <div className={cardStyles.cardHeader}>
-        <span className={cardStyles.cardTitleLg}>
+    <div className={detailStyles.cardBody}>
+      <div>
+        <span className={assignment.status === "done" ? detailStyles.titleDone : detailStyles.title}>
           {isAlreadyAssigned && (
             <span className={cardStyles.assignedToMeIcon} aria-label="Assigned to you">
-              <PersonIcon size={12} />
+              <PersonIcon size={14} />
             </span>
           )}{" "}
           {assignment.title}
         </span>
-        <span className={`${cardStyles.priority} ${cardStyles[`priority_${assignment.priority}`]}`}>
-          {assignment.priority}
-        </span>
+        {assignment.description && <p className={detailStyles.description}>{assignment.description}</p>}
       </div>
-      {assignment.description && <p className={cardStyles.cardDescription}>{assignment.description}</p>}
 
-      <div className={cardStyles.assigneesBlock}>
-        <span className={cardStyles.metaLabel}>Status</span>
-        <div className={cardStyles.restrictedWrap}>
+      <div className={detailStyles.fieldRow}>
+        <span className={detailStyles.fieldRowLabel}>
+          <TargetIcon size={14} />
+          Status
+        </span>
+        <div className={`${cardStyles.restrictedWrap} ${detailStyles.fieldRowValue}`}>
           <SelectDropdown
             options={STATUS_OPTIONS.filter(
               // A blocked-by-dependency option is hidden rather than shown
@@ -167,56 +177,130 @@ export default function StaffAssignmentCard({
         </div>
       )}
 
-      <div className={cardStyles.assigneesBlock}>
-        <span className={cardStyles.metaLabel}>Assigned to</span>
-        {assignment.assigneeNames.length > 0 ? (
-          <div className={detailStyles.avatarRow}>
-            {assignment.assigneeNames.map((name) => (
-              <span key={name} className={detailStyles.avatarChip}>
-                <span className={detailStyles.avatarCircle}>{getInitials(name)}</span>
-                <span className={detailStyles.avatarName}>{name}</span>
-              </span>
-            ))}
-          </div>
-        ) : (
-          <span className={cardStyles.cardMeta}>No one yet</span>
-        )}
+      <div className={detailStyles.fieldRow}>
+        <span className={detailStyles.fieldRowLabel}>
+          <PeopleIcon size={14} />
+          Assignees
+        </span>
+        <div className={detailStyles.fieldRowValue}>
+          {assignment.assigneeNames.length > 0 ? (
+            <div className={detailStyles.avatarRow}>
+              {assignment.assigneeNames.map((name) => (
+                <span key={name} className={detailStyles.avatarChip}>
+                  <span className={detailStyles.avatarCircle}>{getInitials(name)}</span>
+                  <span className={detailStyles.avatarName}>{name}</span>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className={cardStyles.cardMeta}>No one yet</span>
+          )}
+        </div>
       </div>
 
-      {assignment.dependsOn.length > 0 && (
-        <div className={cardStyles.assigneesBlock}>
-          <span className={cardStyles.metaLabel} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-            {hasUnmetDependencies && (
-              <span style={{ color: "#b91c1c", display: "inline-flex" }}>
-                <LockIcon size={11} />
-              </span>
-            )}
-            Waiting on
-          </span>
-          <div className={styles.metaRow}>
-            {assignment.dependsOn.map((dep) => (
-              <span key={dep.id} className={dep.status === "done" ? cardStyles.depDone : cardStyles.depPending}>
-                {dep.title}
-              </span>
-            ))}
-          </div>
+      <div className={detailStyles.fieldRow}>
+        <span className={detailStyles.fieldRowLabel}>
+          <CalendarIcon size={14} />
+          Due date
+        </span>
+        <div className={detailStyles.dueDateBox}>
+          <CalendarIcon size={14} />
+          {assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : "No due date"}
         </div>
-      )}
-
-      {assignment.blocks.length > 0 && (
-        <div className={cardStyles.assigneesBlock}>
-          <span className={cardStyles.metaLabel}>Blocking</span>
-          <div className={styles.metaRow}>
-            {assignment.blocks.map((b) => (
-              <span key={b.id} className={cardStyles.depBlocking}>
-                {b.title}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      </div>
 
       {error && <p className={styles.error}>{error}</p>}
+
+      {(assignment.dependsOn.length > 0 || assignment.blocks.length > 0) && (
+        <div className={detailStyles.depsBlock}>
+          <span className={detailStyles.depsBlockLabel}>Dependencies</span>
+          {assignment.dependsOn.map((dep) => (
+            <div key={dep.id} className={detailStyles.depRow}>
+              <span className={dep.status === "done" ? detailStyles.depRowLabelDone : detailStyles.depRowLabel}>
+                {dep.status === "done" ? <CheckCircleIcon size={16} /> : <LockIcon size={14} />}
+                {dep.title}
+              </span>
+              <span className={dep.status === "done" ? detailStyles.depBadgeDone : detailStyles.depBadgePending}>
+                {dep.status === "done" ? "Completed" : "Pending"}
+              </span>
+            </div>
+          ))}
+          {assignment.blocks.map((b) => (
+            <div key={b.id} className={detailStyles.depRow}>
+              <span className={detailStyles.depRowLabel}>{b.title}</span>
+              <span className={detailStyles.depBadgeBlocking}>Blocking</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {assignment.vendorNeeds.length > 0 && (
+        <div>
+          <button
+            type="button"
+            className={detailStyles.fieldRow}
+            onClick={() => setVendorNeedsExpanded((e) => !e)}
+            aria-expanded={vendorNeedsExpanded}
+            style={{
+              width: "100%",
+              background: "none",
+              border: "none",
+              padding: 0,
+              paddingTop: 12,
+              marginTop: 8,
+              borderTop: "1px solid var(--border)",
+              cursor: "pointer",
+              font: "inherit",
+            }}
+          >
+            <span className={detailStyles.fieldRowLabel}>
+              <PackageIcon size={14} />
+              Vendor requested items
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span className={styles.pill}>{assignment.vendorNeeds.length}</span>
+              <span
+                className={`${styles.accordionChevron} ${vendorNeedsExpanded ? styles.accordionChevronOpen : ""}`}
+                aria-hidden="true"
+              >
+                ▾
+              </span>
+            </span>
+          </button>
+          {vendorNeedsExpanded && (
+            <div className={styles.accordionItem} style={{ marginTop: 12 }}>
+              {vendorNeedGroups.map((group) => (
+                <div key={group.vendorName}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      padding: "10px 16px",
+                      background: "var(--surface)",
+                      borderBottom: "1px solid var(--border)",
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: "var(--foreground)",
+                    }}
+                  >
+                    {group.vendorName}
+                    <span className={styles.optional}>
+                      {group.needs.length} item{group.needs.length === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                  <ul style={{ margin: 0, padding: "6px 16px 6px 32px" }}>
+                    {group.needs.map((need) => (
+                      <li key={need.id} style={{ padding: "4px 0", fontSize: 13, wordBreak: "break-word" }}>
+                        {need.item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {hasSubtasks && (
         <div className={cardStyles.subSection}>
@@ -240,23 +324,18 @@ export default function StaffAssignmentCard({
         </div>
       )}
 
-      <CommentsSection
-        initialComments={assignment.comments}
-        onPost={(body) => addAssignmentComment(assignment.id, body)}
-      />
-
-      <div className={cardStyles.assigneesBlock}>
-        <span className={cardStyles.metaLabel}>Due date</span>
-        <div className={cardStyles.dueDateBox}>
-          <CalendarIcon size={14} />
-          {assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : "No due date"}
-        </div>
+      <div className={detailStyles.section}>
+        <CommentsSection
+          initialComments={assignment.comments}
+          onPost={(body) => addAssignmentComment(assignment.id, body)}
+          variant="row"
+        />
       </div>
     </div>
   );
 }
 
-// A collapsed row for one Subtask (checkbox + title + priority, expanding in
+// A collapsed row for one Subtask (checkbox + title, expanding in
 // place into the full StaffAssignmentCard) — same per-item accordion
 // pattern already used for Subtasks on the admin AssignmentCard, instead of
 // one toggle for the whole Subtasks section.
@@ -346,9 +425,6 @@ function StaffSubtaskAccordion({
               </span>
             )}{" "}
             {assignment.title}
-          </span>
-          <span className={`${cardStyles.priority} ${cardStyles[`priority_${assignment.priority}`]}`}>
-            {assignment.priority}
           </span>
           <span className={cardStyles.subAccordionChevron} aria-hidden>
             ▸

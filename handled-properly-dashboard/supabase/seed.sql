@@ -58,11 +58,11 @@ insert into event_attendance (id, event_id, contact_id, source) values
   ('11111112-0000-0000-0000-000000000001', '88888888-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000005', 'manual'),
   ('11111112-0000-0000-0000-000000000002', '88888888-0000-0000-0000-000000000003', '11111111-0000-0000-0000-000000000006', 'form_submission');
 
-insert into assignments (id, event_id, parent_assignment_id, title, description, status, due_date, priority, pickup_setting) values
-  ('99999999-0000-0000-0000-000000000001', '88888888-0000-0000-0000-000000000001', null, 'Set up registration table', 'Table, iPad check-in, and signage near the main entrance.', 'in_progress', '2026-09-19', 'medium', 'open_pickup'),
-  ('99999999-0000-0000-0000-000000000002', '88888888-0000-0000-0000-000000000001', null, 'Confirm AV vendor', 'Call to confirm load-in time and mic count.', 'in_progress', '2026-09-12', 'high', 'admin_only'),
-  ('99999999-0000-0000-0000-000000000003', '88888888-0000-0000-0000-000000000001', '99999999-0000-0000-0000-000000000001', 'Print name badges', 'Pull the RSVP list and print badges the morning of.', 'in_progress', '2026-09-19', 'medium', 'open_pickup'),
-  ('99999999-0000-0000-0000-000000000004', '88888888-0000-0000-0000-000000000003', null, 'Post-event survey follow-up', 'Email non-responders a reminder to fill out the survey.', 'done', '2026-07-20', 'low', 'admin_only');
+insert into assignments (id, event_id, parent_assignment_id, title, description, status, due_date, pickup_setting) values
+  ('99999999-0000-0000-0000-000000000001', '88888888-0000-0000-0000-000000000001', null, 'Set up registration table', 'Table, iPad check-in, and signage near the main entrance.', 'in_progress', '2026-09-19', 'open_pickup'),
+  ('99999999-0000-0000-0000-000000000002', '88888888-0000-0000-0000-000000000001', null, 'Confirm AV vendor', 'Call to confirm load-in time and mic count.', 'in_progress', '2026-09-12', 'admin_only'),
+  ('99999999-0000-0000-0000-000000000003', '88888888-0000-0000-0000-000000000001', '99999999-0000-0000-0000-000000000001', 'Print name badges', 'Pull the RSVP list and print badges the morning of.', 'in_progress', '2026-09-19', 'open_pickup'),
+  ('99999999-0000-0000-0000-000000000004', '88888888-0000-0000-0000-000000000003', null, 'Post-event survey follow-up', 'Email non-responders a reminder to fill out the survey.', 'done', '2026-07-20', 'admin_only');
 
 insert into assignment_assignees (assignment_id, event_staff_id, assigned_via) values
   ('99999999-0000-0000-0000-000000000001', '55555555-0000-0000-0000-000000000002', 'pickup'),

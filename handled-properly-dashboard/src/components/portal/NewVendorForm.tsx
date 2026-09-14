@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useEffect } from "react";
+import { useActionState, useRef, useEffect, useState } from "react";
 import { createVendor, type ActionState } from "@/lib/actions/vendors";
 import SubmitButton from "./SubmitButton";
 import styles from "@/styles/admin-shared.module.css";
@@ -16,10 +16,14 @@ export default function NewVendorForm({
   const [state, formAction] = useActionState<ActionState, FormData>(boundAction, null);
   const formRef = useRef<HTMLFormElement>(null);
   const previousState = useRef<ActionState>(null);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
 
   useEffect(() => {
     if (previousState.current !== null && state === null) {
       formRef.current?.reset();
+      setName("");
+      setEmail("");
       onCreated?.();
     }
     previousState.current = state;
@@ -35,13 +39,29 @@ export default function NewVendorForm({
           <label className={styles.label} htmlFor="vendor-name">
             Name
           </label>
-          <input id="vendor-name" name="name" required className={styles.input} placeholder="Acme Catering" />
+          <input
+            id="vendor-name"
+            name="name"
+            required
+            className={styles.input}
+            placeholder="Acme Catering"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
         </div>
         <div className={styles.field}>
           <label className={styles.label} htmlFor="vendor-email">
             Email
           </label>
-          <input id="vendor-email" name="email" type="email" required className={styles.input} />
+          <input
+            id="vendor-email"
+            name="email"
+            type="email"
+            required
+            className={styles.input}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
         </div>
       </div>
 
@@ -53,7 +73,9 @@ export default function NewVendorForm({
       </div>
 
       <div className={styles.actions}>
-        <SubmitButton pendingLabel="Adding…">Add Vendor</SubmitButton>
+        <SubmitButton pendingLabel="Adding…" disabled={!name.trim() || !email.trim()}>
+          Add Vendor
+        </SubmitButton>
       </div>
     </form>
   );

@@ -17,6 +17,10 @@ export default async function PortalIndexPage() {
   // events list instead of building a "Welcome back" home screen.
   if (actor.role === "event_staff") redirect("/portal/staff/events");
 
+  // Same reasoning as Event Staff above — Vendor has no dashboard of its
+  // own, just a list of the Events it's on.
+  if (actor.role === "vendor") redirect("/portal/vendor/events");
+
   // Omitted for the Client portal — see PortalSidebar's roleLabel prop.
   const roleLabel = actor.role === "admin" ? "Admin" : undefined;
 

@@ -7,30 +7,10 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -176,7 +156,6 @@ export type Database = {
           id: string
           parent_assignment_id: string | null
           pickup_setting: Database["public"]["Enums"]["pickup_setting"]
-          priority: Database["public"]["Enums"]["assignment_priority"]
           status: Database["public"]["Enums"]["assignment_status"]
           title: string
         }
@@ -188,7 +167,6 @@ export type Database = {
           id?: string
           parent_assignment_id?: string | null
           pickup_setting?: Database["public"]["Enums"]["pickup_setting"]
-          priority?: Database["public"]["Enums"]["assignment_priority"]
           status?: Database["public"]["Enums"]["assignment_status"]
           title: string
         }
@@ -200,7 +178,6 @@ export type Database = {
           id?: string
           parent_assignment_id?: string | null
           pickup_setting?: Database["public"]["Enums"]["pickup_setting"]
-          priority?: Database["public"]["Enums"]["assignment_priority"]
           status?: Database["public"]["Enums"]["assignment_status"]
           title?: string
         }
@@ -812,6 +789,7 @@ export type Database = {
           staff_can_start_conversations: boolean
           starts_at: string | null
           status: Database["public"]["Enums"]["event_status"]
+          vendor_needs_due_date: string | null
         }
         Insert: {
           client_id: string
@@ -825,6 +803,7 @@ export type Database = {
           staff_can_start_conversations?: boolean
           starts_at?: string | null
           status?: Database["public"]["Enums"]["event_status"]
+          vendor_needs_due_date?: string | null
         }
         Update: {
           client_id?: string
@@ -838,6 +817,7 @@ export type Database = {
           staff_can_start_conversations?: boolean
           starts_at?: string | null
           status?: Database["public"]["Enums"]["event_status"]
+          vendor_needs_due_date?: string | null
         }
         Relationships: [
           {
@@ -1212,6 +1192,183 @@ export type Database = {
           },
         ]
       }
+      vendor_event_details: {
+        Row: {
+          access_expires_after_event: boolean
+          admin_notes: string | null
+          arrival_location: string | null
+          arrival_time: string | null
+          contact_id: string
+          created_at: string
+          event_id: string
+          id: string
+          location_photo_path: string | null
+          parking_instructions: string | null
+          setup_location: string | null
+          setup_time: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_expires_after_event?: boolean
+          admin_notes?: string | null
+          arrival_location?: string | null
+          arrival_time?: string | null
+          contact_id: string
+          created_at?: string
+          event_id: string
+          id?: string
+          location_photo_path?: string | null
+          parking_instructions?: string | null
+          setup_location?: string | null
+          setup_time?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_expires_after_event?: boolean
+          admin_notes?: string | null
+          arrival_location?: string | null
+          arrival_time?: string | null
+          contact_id?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          location_photo_path?: string | null
+          parking_instructions?: string | null
+          setup_location?: string | null
+          setup_time?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_event_details_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_event_details_event_id_contact_id_fkey"
+            columns: ["event_id", "contact_id"]
+            isOneToOne: true
+            referencedRelation: "event_vendors"
+            referencedColumns: ["event_id", "contact_id"]
+          },
+          {
+            foreignKeyName: "vendor_event_details_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_need_assignments: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          vendor_need_id: string
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          vendor_need_id: string
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          vendor_need_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_need_assignments_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_need_assignments_vendor_need_id_fkey"
+            columns: ["vendor_need_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_needs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_needs: {
+        Row: {
+          contact_id: string
+          created_at: string
+          event_id: string
+          id: string
+          item: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          event_id: string
+          id?: string
+          item: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          item?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_needs_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_needs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendors: {
+        Row: {
+          auth_user_id: string | null
+          contact_id: string
+          created_at: string
+          id: string
+          invite_status: Database["public"]["Enums"]["vendor_invite_status"]
+          invited_at: string
+        }
+        Insert: {
+          auth_user_id?: string | null
+          contact_id: string
+          created_at?: string
+          id?: string
+          invite_status?: Database["public"]["Enums"]["vendor_invite_status"]
+          invited_at?: string
+        }
+        Update: {
+          auth_user_id?: string | null
+          contact_id?: string
+          created_at?: string
+          id?: string
+          invite_status?: Database["public"]["Enums"]["vendor_invite_status"]
+          invited_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendors_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1219,6 +1376,7 @@ export type Database = {
     Functions: {
       activate_own_client_account: { Args: never; Returns: undefined }
       activate_own_staff_account: { Args: never; Returns: undefined }
+      activate_own_vendor_account: { Args: never; Returns: undefined }
       can_staff_view_form: {
         Args: { target_form_id: string }
         Returns: boolean
@@ -1229,6 +1387,7 @@ export type Database = {
       }
       current_client_id: { Args: never; Returns: string }
       current_event_staff_id: { Args: never; Returns: string }
+      current_vendor_id: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
       is_client_for_event: {
         Args: { target_event_id: string }
@@ -1241,6 +1400,10 @@ export type Database = {
       is_on_roster: { Args: { target_event_id: string }; Returns: boolean }
       is_on_roster_for_assignment: {
         Args: { target_assignment_id: string }
+        Returns: boolean
+      }
+      is_vendor_for_event: {
+        Args: { target_event_id: string }
         Returns: boolean
       }
       pickup_assignment: {
@@ -1265,7 +1428,6 @@ export type Database = {
     }
     Enums: {
       assigned_via: "admin" | "pickup"
-      assignment_priority: "low" | "medium" | "high"
       assignment_status: "in_progress" | "blocked" | "done"
       attendance_source: "manual" | "form_submission"
       client_application_status: "pending" | "converted" | "declined"
@@ -1286,6 +1448,7 @@ export type Database = {
       pickup_setting: "admin_only" | "open_pickup"
       request_type: "file" | "text" | "checkbox"
       staff_invite_status: "invited" | "active" | "revoked"
+      vendor_invite_status: "invited" | "active" | "revoked"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1301,12 +1464,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1330,11 +1493,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1355,11 +1518,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1380,11 +1543,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1397,11 +1560,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1411,13 +1574,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       assigned_via: ["admin", "pickup"],
-      assignment_priority: ["low", "medium", "high"],
       assignment_status: ["in_progress", "blocked", "done"],
       attendance_source: ["manual", "form_submission"],
       client_application_status: ["pending", "converted", "declined"],
@@ -1439,7 +1598,7 @@ export const Constants = {
       pickup_setting: ["admin_only", "open_pickup"],
       request_type: ["file", "text", "checkbox"],
       staff_invite_status: ["invited", "active", "revoked"],
+      vendor_invite_status: ["invited", "active", "revoked"],
     },
   },
 } as const
-

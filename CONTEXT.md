@@ -141,9 +141,21 @@ An admin-uploaded file made visible to a Client, with a title and a description,
 _Avoid_: Document (fine informally, but "Documentation" is the record name), Attachment (reserved for the Form-to-Email-Send relationship — see above)
 
 **Vendor**:
-Not a stored role — a Contact is "a Vendor on Event X" purely by being on that Event's Event Vendor List (`event_vendors`), an external party (caterer, photographer, DJ, ...) the admin makes visible to that Event's Client. No dedicated Vendor table or record — unlike Client and Event Staff, a Vendor carries no login and no fields of its own; it's just a Contact-to-Event link, mirroring how Attendee is a Contact playing a role via Event Attendance rather than its own table.
+A role attached to a Contact: an external party (caterer, photographer, DJ, ...) the admin makes visible to an Event's Client by adding them to that Event's Event Vendor List (`event_vendors`). May optionally log into the Vendor Portal — admin invite, mirroring the Client/Event Staff invite/set-password flow — to see that Event's Vendor Event Detail. Unlike Event Staff/Client, a Vendor's login isn't necessarily permanent: the admin can flag a given Event's access to auto-expire once that Event is Completed. See [`0016-vendors-can-log-in`](./docs/adr/0016-vendors-can-log-in.md).
 _Avoid_: Event Staff (Vendor is external, never on a Roster, never assigned Assignments), Contact (a Vendor is a Contact playing this role on a given Event, not the base identity itself)
 
 **Event Vendor List**:
 The explicit set of Contacts the admin has added as Vendors to a specific Event (`event_vendors`), visible to that Event's Client. Configured per Event only — never at Client Application acceptance, since accepting an Application creates just a Client record, before any Event exists. Managed entirely from the Event's own Edit Vendors modal: search existing Contacts by name to add them, or create a brand new Contact on the spot — there's no standalone Vendors admin page.
 _Avoid_: Roster (reserved for Event Staff — see above)
+
+**Vendor Event Detail**:
+The admin-authored record of what one Vendor needs to know for one Event: arrival time and location, an optional setup time/location and a photo of where to set up, parking instructions, and the admin's own private notes (never shown to the Vendor). One per Event Vendor List entry — mirrors how Request is Client's per-Event, admin-authored ask. Read-only from the Vendor's side; the Vendor's own equivalent going the other direction is Vendor Need, below.
+_Avoid_: Request (reserved for the Client-facing equivalent — see above), Notes (reserved informally for the admin_notes field alone, which is private and never Vendor-visible)
+
+**Vendor Need**:
+A free-text item a Vendor tells the admin they need for an Event (e.g. "2 six-foot tables", "power outlet nearby") — Vendor-authored, the reverse direction of Vendor Event Detail. A Vendor adds or removes their own Needs from the Vendor Portal, until the Event's optional Vendor Needs Deadline passes (Needs already added stay visible and removable after that point — only adding new ones is blocked). The admin sees every Vendor's Needs on that Event's Vendor Details card, read-only. One row per item, not one text blob, so removing a single fulfilled item doesn't require retyping the rest.
+_Avoid_: Request (reserved for the Client-facing, admin-authored equivalent — see above), Vendor Event Detail (reserved for the admin-authored arrival/setup/parking record — see above)
+
+**Vendor Needs Deadline**:
+An optional, admin-set cutoff (`events.vendor_needs_due_date`) after which Vendors can no longer add new Vendor Needs to that Event. Null means no deadline. A plain Event-level setting, like `header_image_path` or the staff-conversation flag — not its own table — since it applies to the Event as a whole, not any one Vendor.
+_Avoid_: Due Date (reserved informally for Assignment/Request's per-item due dates, a different concept)

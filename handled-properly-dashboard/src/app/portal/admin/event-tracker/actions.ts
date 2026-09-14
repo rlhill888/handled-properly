@@ -206,6 +206,31 @@ export async function removeEventHeaderImage(eventId: string): Promise<{ error?:
   return {};
 }
 
+// An optional cutoff for when Vendors must submit their Vendor Needs by
+// (see docs/adr/... vendor_needs table). Null clears the deadline, meaning
+// Vendors can add Needs at any time. Enforced in addVendorNeed (see
+// src/app/portal/vendor/events/[eventId]/actions.ts), not here -- this just
+// sets the event's own copy of the cutoff.
+export async function setVendorNeedsDueDate(
+  eventId: string,
+  dueDate: string | null
+): Promise<{ error?: string }> {
+  const actor = await getCurrentActor();
+  if (actor?.role !== "admin") return { error: "Not authorized." };
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from("events")
+    .update({ vendor_needs_due_date: dueDate })
+    .eq("id", eventId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/portal/admin/event-tracker/${eventId}`);
+  revalidatePath(`/portal/vendor/events/${eventId}`);
+  return {};
+}
+
 export async function markEventCompleted(eventId: string): Promise<{ error?: string }> {
   const actor = await getCurrentActor();
   if (actor?.role !== "admin") return { error: "Not authorized." };

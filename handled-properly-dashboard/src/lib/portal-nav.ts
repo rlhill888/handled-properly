@@ -27,3 +27,7 @@ export const CLIENT_LINKS: PortalNavLink[] = [
   { label: "Events", href: "/portal/client/events" },
   { label: "Requests", href: "/portal/client/requests" },
 ];
+
+export const VENDOR_LINKS: PortalNavLink[] = [
+  { label: "Events", href: "/portal/vendor/events" },
+];

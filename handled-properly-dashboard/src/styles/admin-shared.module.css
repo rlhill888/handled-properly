@@ -181,6 +181,15 @@
   color: var(--foreground);
 }
 
+/* Lays a set of .checkboxRow options out side by side instead of each
+   taking its own line — used for the Pickup radios on the admin
+   Assignment edit form. */
+.checkboxRowGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+
 .actions {
   display: flex;
   gap: 12px;
