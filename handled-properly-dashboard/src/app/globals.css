@@ -11,9 +11,15 @@ html {
   color-scheme: light;
 }
 
+/* overflow-x: hidden alone fully prevents horizontal scrolling regardless
+   of any child's width -- a max-width: 100vw here was redundant with it
+   and actively harmful: 100vw is measured against the window itself, not
+   the actual visible content area, so it's wider than html/body's real
+   available width by however many pixels the vertical scrollbar takes up.
+   That's the textbook cause of a stray gap exactly the scrollbar's width
+   wide along the right edge. */
 html,
 body {
-  max-width: 100vw;
   overflow-x: hidden;
 }
 
@@ -42,6 +48,57 @@ a {
 input[type="checkbox"],
 input[type="radio"] {
   accent-color: #0a0a0a;
+}
+
+/* Page scrollbar: invisible at rest, a thin muted-gray thumb while
+   scrolling/hovering -- applied once here (globals.css loads on every
+   page via the root layout) so it's identical everywhere instead of
+   depending on whatever the browser/OS defaults to per page. Firefox has
+   no ":hover" state for scrollbar-color, so its thumb is always the muted
+   tone at low opacity rather than fully hidden -- still far subtler than
+   the default, just not quite "invisible until scrolling" on that engine.
+   Scoped to html/body (the page's own scroll) only, not "*", so it
+   doesn't reach into unrelated scrollable elements (a modal's own list,
+   for instance) that haven't asked for this treatment. */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+html:hover,
+html:focus-within {
+  scrollbar-color: var(--border) transparent;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 10px;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+}
+
+/* The square where a vertical and horizontal scrollbar would meet --
+   there's no horizontal one on this site, but Chrome still paints this
+   corner in its own default light gray rather than inheriting the page's
+   background, which shows up as a small notch cut into whatever's behind
+   it (a dark footer, for instance) in the bottom corner of the window. */
+html::-webkit-scrollbar-corner,
+body::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+html:hover::-webkit-scrollbar-thumb,
+body:hover::-webkit-scrollbar-thumb {
+  background: var(--border);
 }
 
 /* Form page-background animation presets (see getPageBackgroundAnimationClass

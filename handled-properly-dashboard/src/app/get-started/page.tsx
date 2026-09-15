@@ -11,26 +11,26 @@ export const metadata: Metadata = {
 
 export default function GetStartedPage() {
   return (
-    <main className={styles.page}>
+    <>
       <Navbar />
+      <main className={styles.page}>
+        <div className={styles.intro}>
+          <p className={styles.eyebrow}>
+            <span className={styles.eyebrowLine} />
+            EVENT PLANNING, HANDLED
+          </p>
+          <h1 className={styles.headline}>Tell us about your event.</h1>
+          <p className={styles.subtext}>
+            Send us an inquiry and we&apos;ll follow up to talk through the details — no account or
+            commitment required.
+          </p>
+        </div>
 
-      <div className={styles.intro}>
-        <p className={styles.eyebrow}>
-          <span className={styles.eyebrowLine} />
-          EVENT PLANNING, HANDLED
-        </p>
-        <h1 className={styles.headline}>Tell us about your event.</h1>
-        <p className={styles.subtext}>
-          Send us an inquiry and we&apos;ll follow up to talk through the details — no account or
-          commitment required.
-        </p>
-      </div>
-
-      <div className={styles.formSection}>
-        <GetStartedForm />
-      </div>
-
+        <div className={styles.formSection}>
+          <GetStartedForm />
+        </div>
+      </main>
       <Footer />
-    </main>
+    </>
   );
 }

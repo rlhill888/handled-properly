@@ -1,15 +1,9 @@
 import styles from "./TrustedBy.module.css";
+import type { TrustedPartner } from "@/lib/data/site-content";
 
-const PARTNERS = [
-  "Bloom Events",
-  "Gather & Co.",
-  "Venue Studio",
-  "Catering House",
-  "Lumen Florals",
-  "Rivet Rentals",
-];
+export default function TrustedBy({ partners }: { partners: TrustedPartner[] }) {
+  if (partners.length === 0) return null;
 
-export default function TrustedBy() {
   return (
     <section className={styles.section}>
       <p className={styles.label}>
@@ -18,11 +12,18 @@ export default function TrustedBy() {
         EVENT PROFESSIONALS
       </p>
       <ul className={styles.list}>
-        {PARTNERS.map((name) => (
-          <li key={name} className={styles.item}>
-            {name}
-          </li>
-        ))}
+        {partners.map((partner) =>
+          partner.logoUrl ? (
+            <li key={partner.id} className={styles.item}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={partner.logoUrl} alt={partner.name} className={styles.logo} />
+            </li>
+          ) : (
+            <li key={partner.id} className={styles.item}>
+              {partner.name}
+            </li>
+          )
+        )}
       </ul>
     </section>
   );

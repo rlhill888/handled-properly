@@ -1,0 +1,346 @@
+/* No gap here -- each block controls its own top/bottom margin instead
+   (see docs/adr/0020-per-block-margins.md), so a container gap would just
+   add undeclared space on top of what the admin set. */
+.section {
+  display: flex;
+  flex-direction: column;
+}
+
+.title {
+  max-width: 800px;
+  font-size: clamp(24px, 3.5vw, 32px);
+  font-weight: 800;
+  line-height: 1.2;
+  color: #0a0a0a;
+}
+
+.titleLine {
+  display: block;
+}
+
+.titleLineMuted {
+  color: #b3b3b3;
+}
+
+/* Wraps the heading when supportingText is set -- unconstrained width
+   (unlike standalone .title's 800px cap) since this is meant to span
+   most of .content's own width, matching the reference design's
+   headline+supporting-text row. */
+.titleSplit {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.titleSplit .title {
+  max-width: none;
+}
+
+.titleDivider {
+  width: 100%;
+  height: 1px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.titleSupporting {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+@media (min-width: 800px) {
+  .titleSplit {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 40px;
+  }
+
+  .titleSplit .title {
+    flex: 1;
+  }
+
+  .titleDivider {
+    width: 1px;
+    height: auto;
+    align-self: stretch;
+  }
+
+  .titleSupporting {
+    flex: 0 0 280px;
+    padding-top: 6px;
+  }
+}
+
+.text {
+  max-width: 800px;
+  font-size: 16px;
+  line-height: 1.8;
+  color: #0a0a0a;
+}
+
+.text :global(h2) {
+  font-size: clamp(24px, 3.5vw, 32px);
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 12px;
+}
+
+.text :global(h3) {
+  font-size: clamp(20px, 3vw, 24px);
+  font-weight: 700;
+  line-height: 1.25;
+  margin-bottom: 10px;
+}
+
+.text :global(p) {
+  margin: 0 0 16px;
+}
+
+.text :global(p:last-child) {
+  margin-bottom: 0;
+}
+
+.image {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.imageFull {
+  width: 100%;
+  height: auto;
+  border-radius: 2px;
+}
+
+.caption {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.imageText {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.imageTextMedia {
+  width: 100%;
+}
+
+.imageTextMediaImg {
+  width: 100%;
+  height: auto;
+  border-radius: 2px;
+  display: block;
+  object-fit: cover;
+}
+
+.imageTextBody {
+  width: 100%;
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.imageTextBody :global(h2) {
+  font-size: clamp(24px, 3.5vw, 32px);
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 12px;
+}
+
+.imageTextBody :global(h3) {
+  font-size: clamp(20px, 3vw, 24px);
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.imageTextBody :global(p) {
+  margin: 0 0 16px;
+}
+
+.imageTextBody :global(p:last-child) {
+  margin-bottom: 0;
+}
+
+.dark {
+  background: #0a0a0a;
+  color: #ffffff;
+  padding: 48px 40px;
+  border-radius: 2px;
+}
+
+.dark .imageTextBody {
+  color: #ffffff;
+}
+
+/* Same width as every other block (bounded by .content's max-width, which
+   is itself centered with room on either side on wide screens) -- full-
+   bleed (spanning past that width to the viewport edge) was tried and
+   reverted because it made the divider wider than everything around it
+   instead of lining up with it. */
+.divider {
+  width: 100%;
+  margin: 0;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
+}
+
+.galleryItem {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.galleryImage {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 2px;
+}
+
+.galleryTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0a0a0a;
+}
+
+.galleryCaption {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.imageGrayscale {
+  filter: grayscale(1);
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 32px;
+}
+
+.featureItem {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.featureNumber {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.featureTitle {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0a0a0a;
+}
+
+.featureDescription {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.cta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 56px 40px;
+  border-radius: 2px;
+}
+
+.ctaDark {
+  background: #0a0a0a;
+  color: #ffffff;
+}
+
+.ctaLight {
+  background: var(--surface);
+  color: #0a0a0a;
+}
+
+.ctaHeading {
+  font-size: clamp(28px, 4.5vw, 44px);
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.ctaHeadingLine {
+  display: block;
+}
+
+.ctaButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 14px 24px;
+  border-radius: 2px;
+}
+
+.ctaDark .ctaButton {
+  background: #ffffff;
+  color: #0a0a0a;
+}
+
+.ctaLight .ctaButton {
+  background: #0a0a0a;
+  color: #ffffff;
+}
+
+@media (max-width: 640px) {
+  .cta {
+    padding: 32px 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .dark {
+    padding: 32px 20px;
+  }
+}
+
+@media (min-width: 800px) {
+  /* Grid, not flex -- a flex row's two 50%-width children still shrink
+     below 50% to make room for the gap (50% + 50% + gap > 100%), so
+     neither side actually renders at exactly half. Grid's fr columns
+     divide the space left over *after* the gap, so each side is exactly
+     50% of the row no matter what the gap is. */
+  /* align-items: start, not center -- centering left each side floating
+     independently in the middle of the row, so a short text column next
+     to a tall image sat in empty space instead of lining up with the
+     image's top edge. Starting both at the same line is what makes
+     alternating image-left/image-right blocks read as aligned with each
+     other going down the page, rather than each drifting to wherever its
+     own content's height happens to center it. */
+  .imageText {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+
+  /* order (not row-reverse, now that this is a grid) swaps which column
+     the image renders in while keeping the same DOM/source order. */
+  .imageTextReverse .imageTextMedia {
+    order: 2;
+  }
+
+  .imageTextMedia,
+  .imageTextBody {
+    width: auto;
+  }
+}

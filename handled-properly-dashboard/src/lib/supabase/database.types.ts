@@ -1120,6 +1120,84 @@ export type Database = {
           },
         ]
       }
+      site_about_content: {
+        Row: {
+          blocks: Json
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          blocks?: Json
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          blocks?: Json
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      site_blog_posts: {
+        Row: {
+          blocks: Json
+          category: string | null
+          cover_image_path: string | null
+          created_at: string
+          event_date: string | null
+          excerpt: string | null
+          id: string
+          is_featured: boolean
+          slug: string
+          title: string
+        }
+        Insert: {
+          blocks?: Json
+          category?: string | null
+          cover_image_path?: string | null
+          created_at?: string
+          event_date?: string | null
+          excerpt?: string | null
+          id?: string
+          is_featured?: boolean
+          slug: string
+          title: string
+        }
+        Update: {
+          blocks?: Json
+          category?: string | null
+          cover_image_path?: string | null
+          created_at?: string
+          event_date?: string | null
+          excerpt?: string | null
+          id?: string
+          is_featured?: boolean
+          slug?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      site_trusted_partners: {
+        Row: {
+          created_at: string
+          id: string
+          logo_path: string | null
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          logo_path?: string | null
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          logo_path?: string | null
+          name?: string
+        }
+        Relationships: []
+      }
       submission_answers: {
         Row: {
           file_ref: string | null

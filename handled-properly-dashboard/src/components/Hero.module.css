@@ -120,6 +120,57 @@
   height: 100%;
 }
 
+/* The three wave paths already extend 50 viewBox units past each edge of
+   the visible 0-800 area specifically so they have room to drift
+   sideways without ever exposing a gap at the edge -- a slow, looping
+   translateX on each, each at its own speed/direction, reads as the
+   lines gently flowing rather than a generic UI animation, since it's
+   built on this site's own existing line-art motif rather than
+   something bolted on. Three different durations (not perfect multiples
+   of each other) keep the three lines from ever repeating in sync.
+   Gated behind prefers-reduced-motion like every other animation on this
+   site (see globals.css's formPageBg- rules, and Reveal.module.css). */
+@media (prefers-reduced-motion: no-preference) {
+  .wave {
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+    animation-timing-function: ease-in-out;
+  }
+
+  .wave1 {
+    animation-name: waveDriftA;
+    animation-duration: 19s;
+  }
+
+  .wave2 {
+    animation-name: waveDriftB;
+    animation-duration: 26s;
+  }
+
+  .wave3 {
+    animation-name: waveDriftA;
+    animation-duration: 33s;
+  }
+}
+
+@keyframes waveDriftA {
+  from {
+    transform: translateX(-14px);
+  }
+  to {
+    transform: translateX(14px);
+  }
+}
+
+@keyframes waveDriftB {
+  from {
+    transform: translateX(12px);
+  }
+  to {
+    transform: translateX(-12px);
+  }
+}
+
 .callout {
   position: absolute;
   right: 24px;

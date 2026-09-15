@@ -1,0 +1,38 @@
+/* A fixed, decorative dot-grid layered OVER the page's content (not
+   behind it) -- every section on this site (Hero, TrustedBy, Services,
+   FeaturedEvents, the event cards...) paints its own solid background
+   edge to edge with no gaps, so a version of this sitting behind
+   everything (z-index: -1) was completely invisible: there was no gap in
+   the page for it to ever show through. pointer-events: none means it
+   never blocks clicks/selection despite sitting on top, and the dots are
+   sparse/faint enough (6% black, 1px, 34px apart) not to meaningfully
+   affect text contrast underneath. Same dot-grid language as Hero's own
+   SVG grid lines, extended site-wide as a very faint ambient texture
+   rather than confined to the hero panel, and animated the same
+   slow-drift way as Hero's wave lines and the Form theme's background
+   presets (see Hero.module.css, globals.css). z-index: 1 keeps it below
+   Navbar's sticky z-index: 50, so the nav bar still renders normally on
+   top of it. */
+.background {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image: radial-gradient(circle at 1px 1px, rgba(10, 10, 10, 0.06) 1px, transparent 0);
+  background-size: 34px 34px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .background {
+    animation: ambientDrift 60s linear infinite;
+  }
+}
+
+@keyframes ambientDrift {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 340px 340px;
+  }
+}

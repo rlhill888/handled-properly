@@ -1,0 +1,42 @@
+.page {
+  display: grid;
+  grid-template-columns: 1fr minmax(0, 1440px) 1fr;
+}
+
+.page > * {
+  grid-column: 2;
+}
+
+.intro {
+  padding: 64px 40px 24px;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.eyebrowLine {
+  width: 20px;
+  height: 1px;
+  background: #0a0a0a;
+}
+
+.content {
+  padding: 24px 40px 80px;
+  max-width: 1100px;
+}
+
+@media (max-width: 640px) {
+  .intro,
+  .content {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}

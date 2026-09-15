@@ -159,3 +159,25 @@ _Avoid_: Request (reserved for the Client-facing, admin-authored equivalent — 
 **Vendor Needs Deadline**:
 An optional, admin-set cutoff (`events.vendor_needs_due_date`) after which Vendors can no longer add new Vendor Needs to that Event. Null means no deadline. A plain Event-level setting, like `header_image_path` or the staff-conversation flag — not its own table — since it applies to the Event as a whole, not any one Vendor.
 _Avoid_: Due Date (reserved informally for Assignment/Request's per-item due dates, a different concept)
+
+### Public website content
+
+Admin-managed content shown on the public marketing site (`/`, `/about`, `/events`, `/contact`), edited from `/portal/admin/website`. Read by public pages via the service-role client, not a per-session one — see [`0017-blog-posts-are-not-linked-to-events`](./docs/adr/0017-blog-posts-are-not-linked-to-events.md).
+
+**Blog Post**:
+An admin-authored write-up of a past event, shown on the public `/events` page and (when Featured) on the homepage. Has a title, slug, category, event date, and cover image as fixed fields, plus a body composed of Content Blocks. Not linked to an Event — see [`0017-blog-posts-are-not-linked-to-events`](./docs/adr/0017-blog-posts-are-not-linked-to-events.md).
+_Avoid_: Event (reserved for the internal staffing occurrence — see above), Event Story, Case Study, Portfolio Piece
+
+**Featured** (Blog Post):
+A per-Blog-Post admin flag controlling whether it appears in the homepage's featured grid, in addition to always appearing on `/events`.
+
+**Trusted Partner**:
+An admin-managed entry (name + optional logo) shown in the homepage's "Trusted By" strip. Not a Client, Vendor, or any other Contact role — purely display copy, with no login, no relationship to any real Event or Contact record.
+_Avoid_: Client, Vendor (both are Contact roles tied to real people/companies the system tracks relationships with; a Trusted Partner is just a name and logo for display)
+
+**About Content**:
+The public `/about` page's content, composed entirely of Content Blocks (there is no separate headline/body field — the page's headline is just the first block's content). A singleton — there is exactly one, not a list.
+
+**Content Block**:
+One reusable, admin-stacked section of a page's content — either a Blog Post's body or the whole of About Content. Eight types: `title` (plain text heading — optionally a second muted-gray line, and optionally a short side-by-side supporting paragraph with a divider between them), `paragraph` (rich text, italic only), `image` (a single image with an optional caption and an optional grayscale filter), `image_text` (image + rich text side by side, bold/italic toolbar, optionally styled as a dark "statement" banner), `gallery` (a grid of images with titles/captions, or a `carousel` display mode with arrows/dots and optional pausable autoplay), `divider` (a plain horizontal rule with no fields), `features` (a numbered grid of short title+description items, numbers computed at render time from position), and `cta` (a full-width heading + single button banner, light or dark). Stored as an ordered JSON array (`blocks`), edited via the admin's `BlockEditor` (add/delete, reorder by dragging a handle or by Move Up/Down buttons) and, for rich-text blocks, a `RichTextEditor` whose toolbar varies by block type. See [`0018-four-content-block-types`](./docs/adr/0018-four-content-block-types.md) for why the type list started small, [`0019-sanitize-block-html-server-side`](./docs/adr/0019-sanitize-block-html-server-side.md) for why block HTML is sanitized before storage, [`0023-title-and-paragraph-replace-text`](./docs/adr/0023-title-and-paragraph-replace-text.md) for why Title and Paragraph are separate types rather than one generic Text block, [`0024-remove-highlight-and-narrow-image-text-toolbar`](./docs/adr/0024-remove-highlight-and-narrow-image-text-toolbar.md) for why there's no highlight anywhere and Image & Text has no headings, [`0025-drag-to-reorder-blocks`](./docs/adr/0025-drag-to-reorder-blocks.md) for why dragging was added back alongside the buttons rather than replacing them, and [`0030-heading-and-features-and-cta-blocks`](./docs/adr/0030-heading-and-features-and-cta-blocks.md) for Title's muted/supporting text and the Features/CTA additions.
+_Avoid_: Section, Widget, Component (Component is a React/code term, not a domain one)

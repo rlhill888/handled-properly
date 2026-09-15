@@ -1,46 +1,43 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import styles from "./Navbar.module.css";
 
 const NAV_LINKS = [
   { label: "Home", href: "/" },
+  { label: "About", href: "/about" },
   { label: "Events", href: "/events" },
-  { label: "Vendors", href: "/vendors" },
-  { label: "Timeline", href: "/timeline" },
-  { label: "Budget", href: "/budget" },
   { label: "Contact", href: "/contact" },
 ];
 
 export default function Navbar() {
-  const [activeHref, setActiveHref] = useState("/");
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <header className={styles.header}>
       <div className={styles.bar}>
-        <a href="/" className={styles.logo} onClick={() => setActiveHref("/")}>
+        <a href="/" className={styles.logo}>
           <span className={styles.logoText}>HANDLED PROPERLY</span>
         </a>
 
         <nav className={styles.nav}>
           <ul className={styles.navList}>
-            {NAV_LINKS.map((link) => (
-              <li key={link.href} className={styles.navItem}>
-                <a
-                  href={link.href}
-                  className={`${styles.navLink} ${
-                    activeHref === link.href ? styles.navLinkActive : ""
-                  }`}
-                  onClick={() => setActiveHref(link.href)}
-                >
-                  {link.label}
-                  {activeHref === link.href && (
-                    <span className={styles.navDot} aria-hidden="true" />
-                  )}
-                </a>
-              </li>
-            ))}
+            {NAV_LINKS.map((link) => {
+              const isActive = pathname === link.href;
+              return (
+                <li key={link.href} className={styles.navItem}>
+                  <a
+                    href={link.href}
+                    className={`${styles.navLink} ${isActive ? styles.navLinkActive : ""}`}
+                  >
+                    {link.label}
+                    {isActive && <span className={styles.navDot} aria-hidden="true" />}
+                  </a>
+                </li>
+              );
+            })}
           </ul>
         </nav>
 
@@ -71,10 +68,7 @@ export default function Navbar() {
                 <a
                   href={link.href}
                   className={styles.mobileNavLink}
-                  onClick={() => {
-                    setActiveHref(link.href);
-                    setMenuOpen(false);
-                  }}
+                  onClick={() => setMenuOpen(false)}
                 >
                   {link.label}
                 </a>

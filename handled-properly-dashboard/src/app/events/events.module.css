@@ -1,0 +1,125 @@
+.page {
+  display: grid;
+  grid-template-columns: 1fr minmax(0, 1440px) 1fr;
+}
+
+.page > * {
+  grid-column: 2;
+}
+
+.intro {
+  padding: 64px 40px 24px;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.eyebrowLine {
+  width: 20px;
+  height: 1px;
+  background: #0a0a0a;
+}
+
+.headline {
+  font-size: clamp(32px, 5vw, 56px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: #0a0a0a;
+  max-width: 800px;
+}
+
+.subtext {
+  max-width: 640px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin-top: 16px;
+}
+
+/* A single vertical column of full-width rows, not a multi-column grid. */
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  padding: 24px 40px 80px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: #0a0a0a;
+}
+
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Wide and short, like a banner, not the old 4:3 thumbnail -- at full row
+   width a 4:3 box would be nearly as tall as it is wide, dominating the
+   row rather than reading as a banner strip above the text. */
+.thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 21 / 6;
+  background: linear-gradient(160deg, #1a1a1a 0%, #0a0a0a 60%, #2a2a2a 100%);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.thumbImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 640px) {
+  .thumb {
+    aspect-ratio: 16 / 9;
+  }
+}
+
+.cardCategory {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.cardTitle {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.cardExcerpt {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.empty {
+  padding: 24px 40px 80px;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .intro,
+  .grid,
+  .empty {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}

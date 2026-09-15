@@ -55,18 +55,21 @@ export default function Hero() {
         >
           <rect width="800" height="600" fill="#0a0a0a" />
           <path
+            className={`${styles.wave} ${styles.wave1}`}
             d="M -50 420 C 150 320, 300 520, 500 380 C 650 280, 750 360, 850 300"
             stroke="rgba(255,255,255,0.55)"
             strokeWidth="2"
             fill="none"
           />
           <path
+            className={`${styles.wave} ${styles.wave2}`}
             d="M -50 470 C 150 380, 300 560, 500 430 C 650 340, 750 410, 850 350"
             stroke="rgba(255,255,255,0.3)"
             strokeWidth="2"
             fill="none"
           />
           <path
+            className={`${styles.wave} ${styles.wave3}`}
             d="M -50 380 C 150 270, 300 470, 500 330 C 650 230, 750 310, 850 250"
             stroke="rgba(255,255,255,0.18)"
             strokeWidth="2"

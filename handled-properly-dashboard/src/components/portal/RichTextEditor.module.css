@@ -1,0 +1,50 @@
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--foreground);
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.button:hover {
+  border-color: #0a0a0a;
+}
+
+.buttonItalic {
+  font-style: italic;
+}
+
+/* An inset ring rather than a background swap -- works as a consistent
+   "currently applied at the cursor" indicator regardless of a button's own
+   resting color. */
+.buttonActive {
+  border-color: #0a0a0a;
+  box-shadow: 0 0 0 2px #0a0a0a inset;
+}
+
+@media (max-width: 640px) {
+  .toolbar {
+    gap: 6px;
+  }
+
+  .button {
+    min-width: 34px;
+    height: 34px;
+  }
+}
