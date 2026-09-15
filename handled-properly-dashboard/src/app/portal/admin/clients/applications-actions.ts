@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentActor } from "@/lib/auth/get-current-actor";
-import { findOrCreateContact } from "@/lib/data/contacts";
+import { findOrCreateContact, assertContactCanBecomeClient } from "@/lib/data/contacts";
 import { generateApplicationSummary } from "@/lib/ai-application-summary";
 
 export type ActionState = { error: string } | null;
@@ -80,6 +80,9 @@ export async function convertApplicationToClient(
         phone: application.phone,
       });
   if ("error" in contact) return { error: contact.error };
+
+  const eligibility = await assertContactCanBecomeClient(supabase, contact.id);
+  if (eligibility.error) return { error: eligibility.error };
 
   const { data: client, error: clientError } = await supabase
     .from("clients")

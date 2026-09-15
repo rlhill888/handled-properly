@@ -3,12 +3,16 @@ import Link from "next/link";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentActor } from "@/lib/auth/get-current-actor";
 import EventHeaderImage from "@/components/portal/EventHeaderImage";
+import CalendarIcon from "@/components/portal/CalendarIcon";
+import LocationIcon from "@/components/portal/LocationIcon";
+import PersonIcon from "@/components/portal/PersonIcon";
 import { getEventHeaderImageDataUrl } from "@/lib/data/event-header-image";
 import { formatEventDate } from "@/lib/format-event-date";
 import { CHAT_ENABLED } from "@/lib/feature-flags";
 import StaffAssignmentBoardClient from "./assignments/StaffAssignmentBoardClient";
 import { getStaffAssignments } from "./assignments/data";
 import StaffEventTaskBoard, { type StaffEventTaskData } from "./StaffEventTaskBoard";
+import ModalButton from "@/components/portal/ModalButton";
 import styles from "@/styles/admin-shared.module.css";
 
 export default async function StaffEventDetailPage({
@@ -37,6 +41,19 @@ export default async function StaffEventDetailPage({
   const headerImageUrl = await getEventHeaderImageDataUrl(event.header_image_path);
   const isLocked = event.status === "completed";
 
+  // The admin's title for the signed-in staff member on this event (e.g.
+  // "Modeling Director"), if one's been set — RLS (staff_select_own_roster)
+  // already scopes this to events they're rostered on.
+  const { data: ownRosterEntry } = currentStaffId
+    ? await supabase
+        .from("roster_entries")
+        .select("title")
+        .eq("event_id", eventId)
+        .eq("event_staff_id", currentStaffId)
+        .maybeSingle()
+    : { data: null };
+  const myTitle = ownRosterEntry?.title ?? null;
+
   const assignments = await getStaffAssignments(eventId);
 
   // Every item a vendor has requested for this event, regardless of whether
@@ -58,6 +75,23 @@ export default async function StaffEventDetailPage({
     if (group) group.needs.push({ id: row.id, item: row.item });
     else vendorNeedGroups.push({ vendorName, needs: [{ id: row.id, item: row.item }] });
   }
+
+  // The admin's notes on each vendor for this event — staff-visible per
+  // staff_select_vendor_event_details, even though the vendor themselves
+  // never sees this field.
+  const { data: vendorNoteRows } = await supabase
+    .from("vendor_event_details")
+    .select("contact_id, admin_notes, contacts(name)")
+    .eq("event_id", eventId)
+    .not("admin_notes", "is", null);
+
+  const vendorNotes = (vendorNoteRows ?? [])
+    .filter((row) => row.admin_notes)
+    .map((row) => ({
+      contactId: row.contact_id,
+      vendorName: row.contacts?.name ?? "Unknown vendor",
+      note: row.admin_notes as string,
+    }));
 
   // The same Event Tasks the Client sees for this event, read-only — only
   // the admin moves them.
@@ -137,6 +171,7 @@ export default async function StaffEventDetailPage({
             <span className={event.status === "completed" ? styles.badgeMuted : styles.badge}>
               {event.status === "completed" ? "Completed" : "Active"}
             </span>
+            {myTitle && <span className={styles.pill}>{myTitle}</span>}
           </div>
         </div>
         {CHAT_ENABLED && (
@@ -152,68 +187,124 @@ export default async function StaffEventDetailPage({
       </div>
 
       <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Details</h2>
-        <p className={styles.description}>Basic info about this event.</p>
-        <table className={`${styles.table} ${styles.keyValueTable}`}>
-          <tbody>
-            <tr>
-              <td>Client</td>
-              <td>{clientName}</td>
-            </tr>
-            <tr>
-              <td>Date &amp; time</td>
-              <td>{formatEventDate(event.starts_at, event.ends_at)}</td>
-            </tr>
-            <tr>
-              <td>Location</td>
-              <td>{event.location || "—"}</td>
-            </tr>
-            {event.completed_at && (
-              <tr>
-                <td>Completed</td>
-                <td>{new Date(event.completed_at).toLocaleString()}</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {vendorNeedGroups.length > 0 && (
-        <div className={styles.card}>
-          <h2 className={styles.cardTitle}>Vendor Requested Items</h2>
-          <p className={styles.description}>Everything vendors have requested for this event.</p>
-          <div className={styles.accordionItem}>
-            {vendorNeedGroups.map((group) => (
-              <div key={group.vendorName}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    padding: "10px 16px",
-                    background: "var(--surface)",
-                    borderBottom: "1px solid var(--border)",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "var(--foreground)",
-                  }}
-                >
-                  {group.vendorName}
-                  <span className={styles.optional}>
-                    {group.needs.length} item{group.needs.length === 1 ? "" : "s"}
-                  </span>
+        <div className={styles.cardHeaderRow} style={{ justifyContent: "space-between" }}>
+          <div>
+            <h2 className={styles.cardHeading}>Event details</h2>
+            <p className={styles.description} style={{ marginBottom: 0 }}>
+              Basic info about this event.
+            </p>
+          </div>
+          {(vendorNeedGroups.length > 0 || vendorNotes.length > 0) && (
+            <ModalButton
+              label="Vendor Details"
+              modalTitle="Vendor Details"
+              className={styles.secondaryButton}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "20px 24px" }}>
+                <div>
+                  <h3 className={styles.cardTitle}>Requested Items</h3>
+                  {vendorNeedGroups.length === 0 ? (
+                    <p className={styles.emptyState}>No vendors have requested anything for this event.</p>
+                  ) : (
+                    <div className={styles.accordionItem}>
+                      {vendorNeedGroups.map((group) => (
+                        <div key={group.vendorName}>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              padding: "10px 16px",
+                              background: "var(--surface)",
+                              borderBottom: "1px solid var(--border)",
+                              fontSize: 14,
+                              fontWeight: 700,
+                              color: "var(--foreground)",
+                            }}
+                          >
+                            {group.vendorName}
+                            <span className={styles.optional}>
+                              {group.needs.length} item{group.needs.length === 1 ? "" : "s"}
+                            </span>
+                          </div>
+                          <ul style={{ margin: 0, padding: "6px 16px 6px 32px" }}>
+                            {group.needs.map((need) => (
+                              <li key={need.id} style={{ padding: "4px 0", fontSize: 13, wordBreak: "break-word" }}>
+                                {need.item}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <ul style={{ margin: 0, padding: "6px 16px 6px 32px" }}>
-                  {group.needs.map((need) => (
-                    <li key={need.id} style={{ padding: "4px 0", fontSize: 13, wordBreak: "break-word" }}>
-                      {need.item}
-                    </li>
-                  ))}
-                </ul>
+
+                {vendorNotes.length > 0 && (
+                  <div>
+                    <h3 className={styles.cardTitle}>Vendor Notes</h3>
+                    <div className={styles.accordionItem}>
+                      {vendorNotes.map((entry) => (
+                        <div key={entry.contactId}>
+                          <div
+                            style={{
+                              padding: "10px 16px",
+                              background: "var(--surface)",
+                              borderBottom: "1px solid var(--border)",
+                              fontSize: 14,
+                              fontWeight: 700,
+                              color: "var(--foreground)",
+                            }}
+                          >
+                            {entry.vendorName}
+                          </div>
+                          <p style={{ margin: 0, padding: "6px 16px", fontSize: 13, wordBreak: "break-word" }}>
+                            {entry.note}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            ))}
+            </ModalButton>
+          )}
+        </div>
+
+        <div className={styles.factGrid}>
+          <div className={styles.factItem}>
+            <div className={styles.iconBox}>
+              <PersonIcon size={18} />
+            </div>
+            <div>
+              <p className={styles.factLabel}>Client</p>
+              <p className={styles.factValue}>{clientName}</p>
+            </div>
+          </div>
+          <div className={styles.factDivider} />
+          <div className={styles.factItem}>
+            <div className={styles.iconBox}>
+              <CalendarIcon size={18} />
+            </div>
+            <div>
+              <p className={styles.factLabel}>Date &amp; time</p>
+              <p className={styles.factValue}>{formatEventDate(event.starts_at, event.ends_at)}</p>
+              {event.completed_at && (
+                <p className={styles.factSub}>Completed {new Date(event.completed_at).toLocaleString()}</p>
+              )}
+            </div>
+          </div>
+          <div className={styles.factDivider} />
+          <div className={styles.factItem}>
+            <div className={styles.iconBox}>
+              <LocationIcon size={18} />
+            </div>
+            <div>
+              <p className={styles.factLabel}>Location</p>
+              <p className={styles.factValue}>{event.location || "—"}</p>
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Assignments</h2>

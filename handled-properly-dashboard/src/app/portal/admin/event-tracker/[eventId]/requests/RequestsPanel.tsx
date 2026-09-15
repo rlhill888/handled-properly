@@ -2,6 +2,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCommentsByRequestIds } from "@/lib/data/request-comments";
 import AddModalButton from "@/components/portal/AddModalButton";
+import ClipboardIcon from "@/components/portal/ClipboardIcon";
 import NewRequestForm from "./NewRequestForm";
 import RequestsPanelClient, { type RequestRowData } from "./RequestsPanelClient";
 import styles from "@/styles/admin-shared.module.css";
@@ -50,6 +51,9 @@ export default async function RequestsPanel({
   return (
     <div className={styles.card}>
       <div className={styles.cardHeaderRow}>
+        <div className={styles.iconBox}>
+          <ClipboardIcon size={18} />
+        </div>
         <h2 className={styles.cardTitle} style={{ marginBottom: 0 }}>
           Requests
         </h2>

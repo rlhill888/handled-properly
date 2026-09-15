@@ -22,7 +22,7 @@ export type StaffAssignmentData = {
   id: string;
   title: string;
   description: string | null;
-  status: "in_progress" | "blocked" | "done";
+  status: "not_started" | "in_progress" | "blocked" | "done";
   dueDate: string | null;
   pickupSetting: "admin_only" | "open_pickup";
   assigneeIds: string[];
@@ -38,6 +38,7 @@ export type StaffAssignmentData = {
 };
 
 const STATUS_OPTIONS: { value: StaffAssignmentData["status"]; label: string }[] = [
+  { value: "not_started", label: "Not Started" },
   { value: "in_progress", label: "In Progress" },
   { value: "blocked", label: "Blocked" },
   { value: "done", label: "Done" },
@@ -48,6 +49,7 @@ const STATUS_OPTIONS: { value: StaffAssignmentData["status"]; label: string }[] 
 // dependency pills (amber/red) and the Kanban "Assigned to You" badge
 // (green), rather than inventing a new palette.
 const STATUS_DOT_COLORS: Record<StaffAssignmentData["status"], string> = {
+  not_started: "#6b7280",
   in_progress: "#92400e",
   blocked: "#b91c1c",
   done: "#0a7c2f",
@@ -80,7 +82,11 @@ export default function StaffAssignmentCard({
 }) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [vendorNeedsExpanded, setVendorNeedsExpanded] = useState(false);
+  // Starts open rather than collapsed: this component remounts fresh each
+  // time its modal opens (StaffAssignmentBoardClient only renders it while
+  // openAssignmentId is set), so defaulting to true means the vendor items
+  // list is already expanded the moment staff click into an assignment.
+  const [vendorNeedsExpanded, setVendorNeedsExpanded] = useState(true);
 
   const doneCount = assignment.subtasks.filter((c) => c.status === "done").length;
   const hasSubtasks = assignment.subtasks.length > 0;
@@ -324,13 +330,11 @@ export default function StaffAssignmentCard({
         </div>
       )}
 
-      <div className={detailStyles.section}>
-        <CommentsSection
-          initialComments={assignment.comments}
-          onPost={(body) => addAssignmentComment(assignment.id, body)}
-          variant="row"
-        />
-      </div>
+      <CommentsSection
+        initialComments={assignment.comments}
+        onPost={(body) => addAssignmentComment(assignment.id, body)}
+        variant="row"
+      />
     </div>
   );
 }

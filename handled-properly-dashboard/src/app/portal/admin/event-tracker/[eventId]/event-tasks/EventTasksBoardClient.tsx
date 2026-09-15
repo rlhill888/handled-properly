@@ -14,13 +14,13 @@ export type BlockingRequest = { id: string; title: string; fulfilledAt: string |
 export type LinkedAssignment = {
   id: string;
   title: string;
-  status: "in_progress" | "blocked" | "done";
+  status: "not_started" | "in_progress" | "blocked" | "done";
 };
 export type EventTaskData = {
   id: string;
   title: string;
   description: string | null;
-  status: "in_progress" | "blocked" | "done";
+  status: "not_started" | "in_progress" | "blocked" | "done";
   updates: EventTaskUpdateData[];
   blockingRequests: BlockingRequest[];
   linkedAssignments: LinkedAssignment[];
@@ -37,6 +37,7 @@ function isBlocked(task: EventTaskData): boolean {
 }
 
 const COLUMNS: { status: EventTaskData["status"]; label: string }[] = [
+  { status: "not_started", label: "Not Started" },
   { status: "in_progress", label: "In Progress" },
   { status: "blocked", label: "Blocked" },
   { status: "done", label: "Done" },

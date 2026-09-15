@@ -82,7 +82,7 @@ export default function PortalLoginPage() {
         </a>
 
         <div className={styles.brandContent}>
-          <p className={styles.brandEyebrow}>Staff Portal</p>
+          <p className={styles.brandEyebrow}>Portal</p>
           <h1 className={styles.brandHeadline}>
             EVERY EVENT,
             <br />
@@ -103,7 +103,7 @@ export default function PortalLoginPage() {
           </a>
 
           <div className={styles.heading}>
-            <span className={styles.eyebrow}>Staff Portal</span>
+            <span className={styles.eyebrow}>Portal</span>
             <h1 className={styles.title}>Sign in</h1>
           </div>
 
@@ -140,16 +140,8 @@ export default function PortalLoginPage() {
 
             <button type="submit" className={styles.submit} disabled={submitting}>
               <span>{submitting ? "Signing in..." : "Sign In"}</span>
-              <span className={styles.submitArrow} aria-hidden="true">
-                ↗
-              </span>
             </button>
           </form>
-
-          <p className={styles.footnote}>
-            Staff access is by invitation. Contact an admin if you need an
-            account.
-          </p>
         </div>
       </section>
     </main>

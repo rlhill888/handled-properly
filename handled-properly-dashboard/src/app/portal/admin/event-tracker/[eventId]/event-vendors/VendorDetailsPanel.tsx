@@ -18,18 +18,23 @@ import styles from "@/styles/admin-shared.module.css";
 export default async function VendorDetailsPanel({ eventId }: { eventId: string }) {
   const supabase = await createSupabaseServerClient();
 
-  const [vendors, { data: allContacts }, { data: event }, { data: assignmentRows }, { data: rosterRows }] =
+  const [vendors, { data: allContacts }, { data: event }, { data: assignmentRows }, { data: rosterRows }, { data: clientContactRows }] =
     await Promise.all([
       getEventVendorsWithDetails(eventId),
       supabase.from("contacts").select("id, name").order("name", { ascending: true }),
       supabase.from("events").select("vendor_needs_due_date").eq("id", eventId).maybeSingle(),
       supabase.from("assignments").select("id, title").eq("event_id", eventId).order("created_at", { ascending: true }),
       supabase.from("roster_entries").select("event_staff(id, contacts(name))").eq("event_id", eventId),
+      supabase.from("clients").select("contact_id"),
     ]);
 
   const existingContactIds = new Set(vendors.map((v) => v.contactId));
+  // Clients can't also be added as a Vendor (enforced server-side in
+  // addExistingVendor too — this is just so the picker doesn't offer a
+  // choice that would be rejected).
+  const clientContactIds = new Set((clientContactRows ?? []).map((c) => c.contact_id));
   const contactOptions = (allContacts ?? [])
-    .filter((c) => !existingContactIds.has(c.id))
+    .filter((c) => !existingContactIds.has(c.id) && !clientContactIds.has(c.id))
     .map((c) => ({ id: c.id, label: c.name }));
 
   const existingAssignments = (assignmentRows ?? []).map((a) => ({ id: a.id, title: a.title }));

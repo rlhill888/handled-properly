@@ -12,6 +12,7 @@ import boardStyles from "@/styles/assignments-board.module.css";
 import detailStyles from "./StaffEventTaskBoard.module.css";
 
 const STATUS_LABEL: Record<string, string> = {
+  not_started: "Not Started",
   in_progress: "In Progress",
   blocked: "Blocked",
   done: "Done",
@@ -21,7 +22,7 @@ export type TaskLinkedAssignment = {
   id: string;
   title: string;
   description: string | null;
-  status: "in_progress" | "blocked" | "done";
+  status: "not_started" | "in_progress" | "blocked" | "done";
   dueDate: string | null;
   assigneeNames: string[];
 };
@@ -30,12 +31,13 @@ export type StaffEventTaskData = {
   id: string;
   title: string;
   description: string | null;
-  status: "in_progress" | "blocked" | "done";
+  status: "not_started" | "in_progress" | "blocked" | "done";
   updates: EventTaskUpdateData[];
   linkedAssignments: TaskLinkedAssignment[];
 };
 
 const COLUMNS: { status: StaffEventTaskData["status"]; label: string }[] = [
+  { status: "not_started", label: "Not Started" },
   { status: "in_progress", label: "In Progress" },
   { status: "blocked", label: "Blocked" },
   { status: "done", label: "Done" },

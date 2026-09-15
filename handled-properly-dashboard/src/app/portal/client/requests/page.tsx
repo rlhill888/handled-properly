@@ -21,7 +21,6 @@ export default async function ClientActiveRequestsPage() {
     <div className={styles.page}>
       <div className={styles.header}>
         <div>
-          <span className={styles.eyebrow}>Client Portal</span>
           <h1 className={styles.title}>Requests</h1>
           <p className={styles.description}>Review and complete requests for your events.</p>
         </div>

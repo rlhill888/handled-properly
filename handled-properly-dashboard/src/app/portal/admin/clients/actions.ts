@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentActor } from "@/lib/auth/get-current-actor";
-import { findOrCreateContact } from "@/lib/data/contacts";
+import { findOrCreateContact, assertContactCanBecomeClient } from "@/lib/data/contacts";
 import { sendEmail } from "@/lib/ses";
 
 export type ActionState = { error: string } | null;
@@ -33,6 +33,9 @@ export async function createClientRecord(
 
   const contact = await findOrCreateContact(supabase, { name, email, phone });
   if ("error" in contact) return { error: contact.error };
+
+  const eligibility = await assertContactCanBecomeClient(supabase, contact.id);
+  if (eligibility.error) return { error: eligibility.error };
 
   const { data: client, error: clientError } = await supabase
     .from("clients")

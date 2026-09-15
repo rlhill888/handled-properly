@@ -299,7 +299,10 @@ export default function VendorDetailRow({
 
               <div className={styles.field}>
                 <label className={styles.label}>
-                  Admin notes <span className={styles.optional}>(private — the vendor never sees this)</span>
+                  Admin notes{" "}
+                  <span className={styles.optional}>
+                    (the vendor never sees this, but this event&apos;s staff can)
+                  </span>
                 </label>
                 <textarea name="admin_notes" defaultValue={vendor.adminNotes ?? ""} className={styles.textarea} />
               </div>

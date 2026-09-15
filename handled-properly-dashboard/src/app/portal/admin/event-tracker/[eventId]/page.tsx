@@ -15,6 +15,9 @@ import VendorDetailsPanel from "./event-vendors/VendorDetailsPanel";
 import SettingsModalButton from "@/components/portal/SettingsModalButton";
 import EventHeaderImage from "@/components/portal/EventHeaderImage";
 import CommentIcon from "@/components/portal/CommentIcon";
+import CalendarIcon from "@/components/portal/CalendarIcon";
+import LocationIcon from "@/components/portal/LocationIcon";
+import PersonIcon from "@/components/portal/PersonIcon";
 import { getEventHeaderImageDataUrl } from "@/lib/data/event-header-image";
 import { formatEventDate } from "@/lib/format-event-date";
 import { CHAT_ENABLED } from "@/lib/feature-flags";
@@ -44,7 +47,7 @@ export default async function EventDetailPage({
   const [{ data: rosterRows }, { data: allStaff }] = await Promise.all([
     supabase
       .from("roster_entries")
-      .select("event_staff_id, event_staff(id, contacts(name, email))")
+      .select("event_staff_id, title, event_staff(id, contacts(name, email))")
       .eq("event_id", eventId),
     supabase.from("event_staff").select("id, contacts(name, email)"),
   ]);
@@ -55,6 +58,7 @@ export default async function EventDetailPage({
       id: row.event_staff!.id,
       name: row.event_staff!.contacts!.name,
       email: row.event_staff!.contacts!.email,
+      title: row.title,
     }));
 
   const rosterIds = new Set(rosterMembers.map((m) => m.id));
@@ -69,30 +73,43 @@ export default async function EventDetailPage({
   // Shown on both tabs — see EventDetailTabs.
   const detailsCard = (
     <div className={styles.card}>
-      <h2 className={styles.cardTitle}>Details</h2>
+      <h2 className={styles.cardHeading}>Event details</h2>
       <p className={styles.description}>Basic info about this event.</p>
-      <table className={`${styles.table} ${styles.keyValueTable}`}>
-        <tbody>
-          <tr>
-            <td>Client</td>
-            <td>{clientName}</td>
-          </tr>
-          <tr>
-            <td>Date &amp; time</td>
-            <td>{formatEventDate(event.starts_at, event.ends_at)}</td>
-          </tr>
-          <tr>
-            <td>Location</td>
-            <td>{event.location || "—"}</td>
-          </tr>
-          {event.completed_at && (
-            <tr>
-              <td>Completed</td>
-              <td>{new Date(event.completed_at).toLocaleString()}</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+
+      <div className={styles.factGrid}>
+        <div className={styles.factItem}>
+          <div className={styles.iconBox}>
+            <PersonIcon size={18} />
+          </div>
+          <div>
+            <p className={styles.factLabel}>Client</p>
+            <p className={styles.factValue}>{clientName}</p>
+          </div>
+        </div>
+        <div className={styles.factDivider} />
+        <div className={styles.factItem}>
+          <div className={styles.iconBox}>
+            <CalendarIcon size={18} />
+          </div>
+          <div>
+            <p className={styles.factLabel}>Date &amp; time</p>
+            <p className={styles.factValue}>{formatEventDate(event.starts_at, event.ends_at)}</p>
+            {event.completed_at && (
+              <p className={styles.factSub}>Completed {new Date(event.completed_at).toLocaleString()}</p>
+            )}
+          </div>
+        </div>
+        <div className={styles.factDivider} />
+        <div className={styles.factItem}>
+          <div className={styles.iconBox}>
+            <LocationIcon size={18} />
+          </div>
+          <div>
+            <p className={styles.factLabel}>Location</p>
+            <p className={styles.factValue}>{event.location || "—"}</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 

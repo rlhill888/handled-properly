@@ -32,7 +32,7 @@ export default async function ClientEventDetailPage({
 
   if (!event) notFound();
 
-  const [{ data: taskRows }, { data: requests }, { data: eventVendors }] = await Promise.all([
+  const [{ data: taskRows }, { data: requests }, { data: eventVendors }, { data: rosterRows }] = await Promise.all([
     supabase
       .from("event_tasks")
       .select("id, title, description, status")
@@ -47,11 +47,21 @@ export default async function ClientEventDetailPage({
     // already limits this to this event's Vendor list — no extra filter
     // needed.
     supabase.from("event_vendors").select("contacts(id, name, email, phone)").eq("event_id", eventId),
+    // RLS (client_select_own_roster / client_select_staff_contacts) already
+    // limits this to this event's Staff roster — no extra filter needed.
+    supabase
+      .from("roster_entries")
+      .select("title, event_staff(id, contacts(id, name, email))")
+      .eq("event_id", eventId),
   ]);
 
   const vendors = (eventVendors ?? [])
     .map((row) => row.contacts)
     .filter((c): c is NonNullable<typeof c> => c !== null);
+
+  const staff = (rosterRows ?? [])
+    .filter((row) => row.event_staff?.contacts)
+    .map((row) => ({ ...row.event_staff!.contacts!, title: row.title }));
 
   const taskIds = (taskRows ?? []).map((row) => row.id);
 
@@ -161,7 +171,7 @@ export default async function ClientEventDetailPage({
                 →
               </span>
             </Link>
-            <VendorContactsButton vendors={vendors} />
+            <VendorContactsButton vendors={vendors} staff={staff} />
           </div>
         </div>
 

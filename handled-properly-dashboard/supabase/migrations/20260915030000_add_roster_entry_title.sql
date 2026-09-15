@@ -1,0 +1,13 @@
+-- Lets the admin give a Staff member a free-text title on a given Event
+-- (e.g. "Modeling Director") — distinct from the removed Roster Category
+-- feature (drop_roster_categories.sql), which was an admin-defined,
+-- per-event, multi-select tag list. This is a single optional text field
+-- per roster_entries row, no separate table or reuse enforcement, closer to
+-- Vendor Event Detail's admin_notes than to Roster Category.
+--
+-- No new RLS policy is needed: the existing SELECT policies on
+-- roster_entries (admin_all, staff_select_own_roster, client_select_own_roster)
+-- already expose every column on a visible row, so admin, that Event's
+-- rostered Staff, and that Event's Client can all read it as soon as it's
+-- set — only admin_all permits writing it.
+alter table roster_entries add column title text;

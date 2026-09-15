@@ -7,21 +7,30 @@ import styles from "@/styles/admin-shared.module.css";
 export default async function EventVendorsPanel({ eventId }: { eventId: string }) {
   const supabase = await createSupabaseServerClient();
 
-  const [{ data: allContacts }, { data: eventVendorRows }] = await Promise.all([
+  const [{ data: allContacts }, { data: eventVendorRows }, { data: clientContactRows }] = await Promise.all([
     supabase.from("contacts").select("id, name").order("name", { ascending: true }),
     supabase
       .from("event_vendors")
       .select("contacts(id, name, email, phone)")
       .eq("event_id", eventId),
+    supabase.from("clients").select("contact_id"),
   ]);
 
   const currentVendors = (eventVendorRows ?? [])
     .map((row) => row.contacts)
     .filter((c): c is NonNullable<typeof c> => c !== null);
 
-  const contactOptions = (allContacts ?? []).map((c) => ({ id: c.id, label: c.name }));
-
   const initialSelectedIds = currentVendors.map((c) => c.id);
+
+  // Clients can't also be added as a Vendor (enforced server-side in
+  // setEventVendors too) — a currently-selected contact stays offered even
+  // if they somehow are a client, so an existing (pre-rule) entry can still
+  // be removed rather than becoming unpickable.
+  const clientContactIds = new Set((clientContactRows ?? []).map((c) => c.contact_id));
+  const selectedIdSet = new Set(initialSelectedIds);
+  const contactOptions = (allContacts ?? [])
+    .filter((c) => !clientContactIds.has(c.id) || selectedIdSet.has(c.id))
+    .map((c) => ({ id: c.id, label: c.name }));
 
   return (
     <CollapsibleCard

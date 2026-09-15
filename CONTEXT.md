@@ -61,7 +61,7 @@ An Assignment whose `parent_assignment_id` points at another Assignment. Not a d
 _Avoid_: Sub-assignment, Checklist item
 
 **Status**:
-An Assignment's position in its 3-stage lifecycle: In Progress, Blocked, Done. Any Roster member can move an Assignment's Status; only the admin edits its content.
+An Assignment's position in its 4-stage lifecycle: Not Started, In Progress, Blocked, Done. Any Roster member can move an Assignment's Status; only the admin edits its content.
 
 **Pickup Setting**:
 A per-Assignment flag: either only the admin may assign it to chosen Event Staff, or any Roster member may Pick it up.
@@ -109,7 +109,7 @@ An admin-authored unit of client-visible work on an Event: a title, a descriptio
 _Avoid_: Assignment (reserved for staff-facing work — see above), Task (too generic; always say "Event Task")
 
 **Event Task Status**:
-An Event Task's position in its 3-stage lifecycle: In Progress, Blocked, Done. Distinct from Assignment's Status (same shape, same 3 stages) — a separate enum, because Event Task has no admin/staff split in who moves it: only the admin does.
+An Event Task's position in its 4-stage lifecycle: Not Started, In Progress, Blocked, Done. Distinct from Assignment's Status (same shape, same 4 stages) — a separate enum, because Event Task has no admin/staff split in who moves it: only the admin does.
 
 **Event Task Update**:
 A timestamped, admin-authored note posted to an Event Task, visible to the Client. Mirrors Assignment Comment's shape (chronological, append-only) but single-author (admin only) rather than dual-author, since Clients don't post to their own Event Tasks.
@@ -149,8 +149,8 @@ The explicit set of Contacts the admin has added as Vendors to a specific Event 
 _Avoid_: Roster (reserved for Event Staff — see above)
 
 **Vendor Event Detail**:
-The admin-authored record of what one Vendor needs to know for one Event: arrival time and location, an optional setup time/location and a photo of where to set up, parking instructions, and the admin's own private notes (never shown to the Vendor). One per Event Vendor List entry — mirrors how Request is Client's per-Event, admin-authored ask. Read-only from the Vendor's side; the Vendor's own equivalent going the other direction is Vendor Need, below.
-_Avoid_: Request (reserved for the Client-facing equivalent — see above), Notes (reserved informally for the admin_notes field alone, which is private and never Vendor-visible)
+The admin-authored record of what one Vendor needs to know for one Event: arrival time and location, an optional setup time/location and a photo of where to set up, parking instructions, and the admin's own notes — never shown to the Vendor, but visible to that Event's Roster (Event Staff). One per Event Vendor List entry — mirrors how Request is Client's per-Event, admin-authored ask. Read-only from the Vendor's side; the Vendor's own equivalent going the other direction is Vendor Need, below.
+_Avoid_: Request (reserved for the Client-facing equivalent — see above), Notes (reserved informally for the admin_notes field alone, which is never Vendor-visible but is Roster-visible)
 
 **Vendor Need**:
 A free-text item a Vendor tells the admin they need for an Event (e.g. "2 six-foot tables", "power outlet nearby") — Vendor-authored, the reverse direction of Vendor Event Detail. A Vendor adds or removes their own Needs from the Vendor Portal, until the Event's optional Vendor Needs Deadline passes (Needs already added stay visible and removable after that point — only adding new ones is blocked). The admin sees every Vendor's Needs on that Event's Vendor Details card, read-only. One row per item, not one text blob, so removing a single fulfilled item doesn't require retyping the rest.

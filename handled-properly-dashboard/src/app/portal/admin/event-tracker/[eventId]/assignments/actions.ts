@@ -186,7 +186,7 @@ export async function updateAssignment(
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const dueDate = String(formData.get("due_date") ?? "");
-  const status = String(formData.get("status") ?? "in_progress") as AssignmentStatus;
+  const status = String(formData.get("status") ?? "not_started") as AssignmentStatus;
   const pickupSetting = String(formData.get("pickup_setting") ?? "admin_only") as PickupSetting;
   const assigneeIds = formData.getAll("assignee_ids").map(String);
   const dependsOnIds = formData.getAll("depends_on_ids").map(String);

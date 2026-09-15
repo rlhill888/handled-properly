@@ -119,8 +119,6 @@ export default async function ClientRequestDetailPage({
                 <RequestUploadForm requestId={request.id} />
               </div>
             )}
-
-            <hr className={detailStyles.divider} />
           </>
         )}
 
@@ -134,8 +132,6 @@ export default async function ClientRequestDetailPage({
                 showAction && <RequestTextForm requestId={request.id} defaultValue={request.response_text} />
               )}
             </div>
-
-            <hr className={detailStyles.divider} />
           </>
         )}
 
@@ -152,8 +148,6 @@ export default async function ClientRequestDetailPage({
                 showAction && <RequestCheckOffButton requestId={request.id} />
               )}
             </div>
-
-            <hr className={detailStyles.divider} />
           </>
         )}
 

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentActor } from "@/lib/auth/get-current-actor";
-import { findOrCreateContact } from "@/lib/data/contacts";
+import { findOrCreateContact, assertContactCanBecomeVendorOrStaff } from "@/lib/data/contacts";
 import { sendEmail } from "@/lib/ses";
 
 export type ActionState = { error: string } | null;
@@ -36,6 +36,9 @@ export async function inviteEventStaff(
     .maybeSingle();
 
   if (existingStaff) return { error: "This person is already Event Staff." };
+
+  const eligibility = await assertContactCanBecomeVendorOrStaff(supabase, contact.id);
+  if (eligibility.error) return { error: eligibility.error };
 
   // Inviting requires the Auth Admin API, which only the service-role
   // client can call. We use generateLink (not inviteUserByEmail) because

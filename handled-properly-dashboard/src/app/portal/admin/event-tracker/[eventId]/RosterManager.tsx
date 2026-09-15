@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { addToRoster, removeFromRoster } from "../actions";
+import { useRef, useState, useTransition } from "react";
+import { addToRoster, removeFromRoster, setRosterTitle } from "../actions";
 import SelectDropdown from "@/components/portal/SelectDropdown";
 import Modal from "@/components/portal/Modal";
 import NewStaffForm from "@/app/portal/admin/staff/NewStaffForm";
@@ -9,7 +9,58 @@ import { useRouter } from "next/navigation";
 import styles from "@/styles/admin-shared.module.css";
 
 export type StaffOption = { id: string; name: string; email: string };
-export type RosterMemberData = StaffOption;
+export type RosterMemberData = StaffOption & { title: string | null };
+
+// The admin's free-text title for this Staff member on this Event (e.g.
+// "Modeling Director") — saves on blur/Enter rather than needing its own
+// Save button, since it's a single field in an already-dense table row.
+// Visible to the Client too (see ClientStaffList) — no separate RLS policy
+// needed, roster_entries' existing SELECT policies already expose it.
+function RosterTitleCell({
+  eventId,
+  eventStaffId,
+  initialTitle,
+  disabled,
+  onError,
+}: {
+  eventId: string;
+  eventStaffId: string;
+  initialTitle: string | null;
+  disabled: boolean;
+  onError: (message: string | null) => void;
+}) {
+  const [value, setValue] = useState(initialTitle ?? "");
+  const [isPending, startTransition] = useTransition();
+  const lastSaved = useRef(initialTitle ?? "");
+
+  const save = () => {
+    const trimmed = value.trim();
+    if (trimmed === lastSaved.current) return;
+    onError(null);
+    startTransition(async () => {
+      const result = await setRosterTitle(eventId, eventStaffId, trimmed || null);
+      if (result?.error) onError(result.error);
+      else lastSaved.current = trimmed;
+    });
+  };
+
+  return (
+    <input
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={save}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          (e.target as HTMLInputElement).blur();
+        }
+      }}
+      placeholder="e.g. Modeling Director"
+      disabled={disabled || isPending}
+      className={styles.input}
+    />
+  );
+}
 
 export default function RosterManager({
   eventId,
@@ -58,6 +109,7 @@ export default function RosterManager({
             <tr>
               <th>Name</th>
               <th>Email</th>
+              <th>Title</th>
               <th></th>
             </tr>
           </thead>
@@ -68,6 +120,15 @@ export default function RosterManager({
                   {member.name}
                 </td>
                 <td data-label="Email">{member.email}</td>
+                <td data-label="Title">
+                  <RosterTitleCell
+                    eventId={eventId}
+                    eventStaffId={member.id}
+                    initialTitle={member.title}
+                    disabled={isLocked}
+                    onError={setError}
+                  />
+                </td>
                 <td className={styles.cardActionCell}>
                   {!isLocked && (
                     <button

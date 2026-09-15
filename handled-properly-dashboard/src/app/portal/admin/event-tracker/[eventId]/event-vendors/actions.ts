@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentActor } from "@/lib/auth/get-current-actor";
 import { sendEmail } from "@/lib/ses";
 import { sanitizeStorageFilename } from "@/lib/storage-filename";
+import { assertContactCanBecomeVendorOrStaff, assertContactsCanBecomeVendors } from "@/lib/data/contacts";
 
 export type ActionState = { error: string } | null;
 
@@ -25,6 +26,9 @@ export async function setEventVendors(
   const contactIds = formData.getAll("contact_ids") as string[];
 
   const supabase = await createSupabaseServerClient();
+
+  const eligibility = await assertContactsCanBecomeVendors(supabase, contactIds);
+  if (eligibility.error) return { error: eligibility.error };
 
   const { error: deleteError } = await supabase.from("event_vendors").delete().eq("event_id", eventId);
   if (deleteError) return { error: deleteError.message };
@@ -58,6 +62,10 @@ export async function addExistingVendor(
   if (!contactId) return { error: "Choose a contact to add." };
 
   const supabase = await createSupabaseServerClient();
+
+  const eligibility = await assertContactCanBecomeVendorOrStaff(supabase, contactId);
+  if (eligibility.error) return { error: eligibility.error };
+
   const { error } = await supabase
     .from("event_vendors")
     .upsert({ event_id: eventId, contact_id: contactId }, { onConflict: "event_id,contact_id" });

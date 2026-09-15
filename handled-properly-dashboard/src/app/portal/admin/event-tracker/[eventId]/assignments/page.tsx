@@ -9,6 +9,7 @@ import styles from "@/styles/admin-shared.module.css";
 import boardStyles from "@/styles/assignments-board.module.css";
 
 const COLUMNS: { status: AssignmentData["status"]; label: string }[] = [
+  { status: "not_started", label: "Not Started" },
   { status: "in_progress", label: "In Progress" },
   { status: "blocked", label: "Blocked" },
   { status: "done", label: "Done" },

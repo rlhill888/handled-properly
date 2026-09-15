@@ -1089,16 +1089,19 @@ export type Database = {
           added_at: string
           event_id: string
           event_staff_id: string
+          title: string | null
         }
         Insert: {
           added_at?: string
           event_id: string
           event_staff_id: string
+          title?: string | null
         }
         Update: {
           added_at?: string
           event_id?: string
           event_staff_id?: string
+          title?: string | null
         }
         Relationships: [
           {
@@ -1428,12 +1431,12 @@ export type Database = {
     }
     Enums: {
       assigned_via: "admin" | "pickup"
-      assignment_status: "in_progress" | "blocked" | "done"
+      assignment_status: "not_started" | "in_progress" | "blocked" | "done"
       attendance_source: "manual" | "form_submission"
       client_application_status: "pending" | "converted" | "declined"
       client_invite_status: "invited" | "active" | "revoked"
       event_status: "active" | "completed"
-      event_task_status: "in_progress" | "blocked" | "done"
+      event_task_status: "not_started" | "in_progress" | "blocked" | "done"
       form_field_type:
         | "text"
         | "email"
@@ -1577,12 +1580,12 @@ export const Constants = {
   public: {
     Enums: {
       assigned_via: ["admin", "pickup"],
-      assignment_status: ["in_progress", "blocked", "done"],
+      assignment_status: ["not_started", "in_progress", "blocked", "done"],
       attendance_source: ["manual", "form_submission"],
       client_application_status: ["pending", "converted", "declined"],
       client_invite_status: ["invited", "active", "revoked"],
       event_status: ["active", "completed"],
-      event_task_status: ["in_progress", "blocked", "done"],
+      event_task_status: ["not_started", "in_progress", "blocked", "done"],
       form_field_type: [
         "text",
         "email",

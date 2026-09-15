@@ -17,12 +17,14 @@ import cardStyles from "@/styles/assignments-board.module.css";
 import detailStyles from "./StaffAssignmentCard.module.css";
 
 const STATUS_OPTIONS: { value: StaffAssignmentData["status"]; label: string }[] = [
+  { value: "not_started", label: "Not Started" },
   { value: "in_progress", label: "In Progress" },
   { value: "blocked", label: "Blocked" },
   { value: "done", label: "Done" },
 ];
 
 const STATUS_DOT_COLORS: Record<StaffAssignmentData["status"], string> = {
+  not_started: "#6b7280",
   in_progress: "#92400e",
   blocked: "#b91c1c",
   done: "#0a7c2f",
@@ -261,13 +263,11 @@ export default function StaffAssignmentDetail({
         </div>
       )}
 
-      <div className={detailStyles.section}>
-        <CommentsSection
-          initialComments={assignment.comments}
-          onPost={(body) => addAssignmentComment(assignment.id, body)}
-          variant="row"
-        />
-      </div>
+      <CommentsSection
+        initialComments={assignment.comments}
+        onPost={(body) => addAssignmentComment(assignment.id, body)}
+        variant="row"
+      />
     </div>
   );
 }

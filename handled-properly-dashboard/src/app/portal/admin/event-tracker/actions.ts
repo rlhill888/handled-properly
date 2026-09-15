@@ -109,6 +109,28 @@ export async function removeFromRoster(
   return {};
 }
 
+export async function setRosterTitle(
+  eventId: string,
+  eventStaffId: string,
+  title: string | null
+): Promise<{ error?: string }> {
+  const actor = await getCurrentActor();
+  if (actor?.role !== "admin") return { error: "Not authorized." };
+
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase
+    .from("roster_entries")
+    .update({ title })
+    .eq("event_id", eventId)
+    .eq("event_staff_id", eventStaffId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/portal/admin/event-tracker/${eventId}`);
+  return {};
+}
+
 export async function setStaffCanStartConversations(
   eventId: string,
   allowed: boolean

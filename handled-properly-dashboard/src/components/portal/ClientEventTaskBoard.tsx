@@ -9,6 +9,7 @@ import styles from "@/styles/admin-shared.module.css";
 import boardStyles from "@/styles/assignments-board.module.css";
 
 const STATUS_LABEL: Record<string, string> = {
+  not_started: "Not Started",
   in_progress: "In Progress",
   blocked: "Blocked",
   done: "Done",
@@ -20,12 +21,13 @@ export type ClientEventTaskData = {
   id: string;
   title: string;
   description: string | null;
-  status: "in_progress" | "blocked" | "done";
+  status: "not_started" | "in_progress" | "blocked" | "done";
   updates: EventTaskUpdateData[];
   blockingRequests: ClientBlockingRequest[];
 };
 
 const COLUMNS: { status: ClientEventTaskData["status"]; label: string; description: string }[] = [
+  { status: "not_started", label: "Not Started", description: "Tasks that haven't been started yet." },
   { status: "in_progress", label: "In Progress", description: "Tasks currently being worked on." },
   { status: "blocked", label: "Blocked", description: "Tasks that are blocked currently." },
   { status: "done", label: "Done", description: "Finished tasks." },

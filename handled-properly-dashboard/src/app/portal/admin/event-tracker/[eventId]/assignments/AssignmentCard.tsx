@@ -26,7 +26,7 @@ export type AssignmentData = {
   id: string;
   title: string;
   description: string | null;
-  status: "in_progress" | "blocked" | "done";
+  status: "not_started" | "in_progress" | "blocked" | "done";
   dueDate: string | null;
   pickupSetting: "admin_only" | "open_pickup";
   assigneeIds: string[];
@@ -43,6 +43,7 @@ export type AssignmentData = {
 };
 
 const STATUS_OPTIONS: { value: AssignmentData["status"]; label: string }[] = [
+  { value: "not_started", label: "Not Started" },
   { value: "in_progress", label: "In Progress" },
   { value: "blocked", label: "Blocked" },
   { value: "done", label: "Done" },
@@ -51,6 +52,7 @@ const STATUS_OPTIONS: { value: AssignmentData["status"]; label: string }[] = [
 // Same palette StaffAssignmentCard uses for the same statuses, so status
 // reads the same way for admins and staff.
 const STATUS_DOT_COLORS: Record<AssignmentData["status"], string> = {
+  not_started: "#6b7280",
   in_progress: "#92400e",
   blocked: "#b91c1c",
   done: "#0a7c2f",
@@ -83,7 +85,11 @@ export default function AssignmentCard({
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [addingSubtask, setAddingSubtask] = useState(false);
-  const [vendorNeedsExpanded, setVendorNeedsExpanded] = useState(false);
+  // Starts open rather than collapsed: this component remounts fresh each
+  // time its modal opens (AssignmentBoardClient only renders it while
+  // openAssignmentId is set), so defaulting to true means the vendor items
+  // list is already expanded the moment an admin clicks into an assignment.
+  const [vendorNeedsExpanded, setVendorNeedsExpanded] = useState(true);
   const boundUpdate = updateAssignment.bind(null, eventId, assignment.id);
   const [state, formAction, isPending] = useActionState<ActionState, FormData>(boundUpdate, null);
   const wasPending = useRef(false);
@@ -489,6 +495,7 @@ export default function AssignmentCard({
           <div className={styles.field}>
             <label className={styles.label}>Status</label>
             <select name="status" defaultValue={assignment.status} className={styles.select}>
+              <option value="not_started">Not Started</option>
               <option value="in_progress">In Progress</option>
               <option value="blocked">Blocked</option>
               <option value="done">Done</option>
