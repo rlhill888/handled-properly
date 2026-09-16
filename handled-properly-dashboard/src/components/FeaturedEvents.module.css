@@ -1,15 +1,79 @@
 .section {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 40px;
-  padding: 80px 40px;
+  padding: 36px 40px;
 }
 
+/* Hidden by default (desktop keeps this section's white background,
+   where these light strokes wouldn't show anyway) -- shown in the
+   max-width: 899px block below, alongside the rest of the mobile-only
+   black-background treatment. Same drifting technique as the "Every
+   detail" card, Hero, and the closing CTA. */
+.art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wave {
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+    animation-timing-function: ease-in-out;
+  }
+
+  .wave1 {
+    animation-name: featuredWaveDrift;
+    animation-duration: 22s;
+  }
+
+  .wave2 {
+    animation-name: featuredWaveDrift;
+    animation-duration: 30s;
+    animation-direction: alternate-reverse;
+  }
+}
+
+@keyframes featuredWaveDrift {
+  from {
+    transform: translateX(-16px);
+  }
+  to {
+    transform: translateX(16px);
+  }
+}
+
+/* position: relative lifts these above .art (position: absolute) in
+   paint order -- without it, being non-positioned, they'd paint behind
+   an absolutely-positioned sibling regardless of DOM order. */
 .intro {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 16px;
+}
+
+/* Overrides globals.css's [data-reveal] { opacity: var(--p) }, which maps
+   0 -> fully invisible. This section can peek a sliver above the fold
+   before any scroll (see HeroPeekAdjuster in page.tsx), landing this
+   intro's reveal progress at some arbitrary low value on load instead of
+   a clean 0 or 1 -- a faint, half-rendered ghost that read as broken.
+   Remapping the same --p range to [0.4, 1] keeps a deliberate, always-
+   legible starting point instead, while still fading up to full opacity
+   as it's scrolled further into view. The [data-reveal] prefix matches
+   that rule's specificity plus one class, so this reliably wins
+   regardless of which stylesheet (this module vs. globals.css) the
+   bundler happens to emit first. */
+[data-reveal].introReveal {
+  opacity: calc(0.4 + var(--p, 0) * 0.6);
 }
 
 .eyebrow {
@@ -49,36 +113,83 @@
   color: #0a0a0a;
 }
 
-.grid {
-  display: grid;
-  /* auto-fill + a capped max (not 1fr) keeps each card a fixed, reasonable
-     size regardless of how many featured posts there are -- with 1fr, a
-     grid holding just one or two posts stretches that card to the full
-     row width, and the 3:4 thumbnail below then balloons to match. */
-  grid-template-columns: repeat(auto-fill, minmax(220px, 280px));
-  justify-content: start;
+/* A continuously-scrolling marquee, not a static grid -- overflow: hidden
+   clips the track to the section width so only the "seam" of the loop
+   (handled by the track animating exactly -50%, see FeaturedEvents.tsx)
+   is ever offscreen. A left/right fade mask hints that more cards are
+   scrolling through rather than the row looking abruptly cut off. Same
+   on mobile and desktop. */
+.carousel {
+  overflow: hidden;
+  width: 100%;
+  mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent);
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 40px,
+    #000 calc(100% - 40px),
+    transparent
+  );
+}
+
+.track {
+  display: flex;
+  width: max-content;
   gap: 24px;
+  animation: marquee var(--marquee-duration, 30s) linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track {
+    animation: none;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 .card {
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
+  width: 260px;
   gap: 16px;
   color: #0a0a0a;
 }
 
 .thumb {
   position: relative;
-  aspect-ratio: 3 / 4;
+  /* Shorter on mobile -- a 3:4 portrait thumb at a narrow, near-full-width
+     card gets tall enough to dominate the screen on a phone. A wider
+     ratio here (see the min-width: 640px override below, which restores
+     3:4) keeps the mobile card proportioned like a card, not a poster. */
+  aspect-ratio: 4 / 3;
   background: linear-gradient(160deg, #1a1a1a 0%, #0a0a0a 60%, #2a2a2a 100%);
   border-radius: 2px;
   overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .thumb {
+    aspect-ratio: 3 / 4;
+  }
 }
 
 .thumbImage {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card:hover .thumbImage {
+  transform: scale(1.06);
 }
 
 .thumbIndex {
@@ -88,6 +199,39 @@
   font-size: 12px;
   font-weight: 700;
   color: #ffffff;
+}
+
+/* A faint diagonal light sweeping across each thumbnail on its own
+   loop, staggered per card (see the inline animationDelay in
+   FeaturedEvents.tsx) -- ambient motion for cards that are mostly seen
+   drifting past in the marquee rather than sat on and hovered, same
+   idea as bjp-vending-website's card-sheen but tuned down for a
+   thumbnail-sized image instead of a full hero card. */
+.sheen {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 45%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.14), transparent);
+  transform: translateX(-160%) skewX(-12deg);
+  animation: cardSheen 6.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes cardSheen {
+  0% {
+    transform: translateX(-160%) skewX(-12deg);
+  }
+  35%,
+  100% {
+    transform: translateX(260%) skewX(-12deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheen {
+    display: none;
+  }
 }
 
 .cardFooter {
@@ -100,6 +244,11 @@
 .cardTitle {
   font-size: 14px;
   font-weight: 700;
+  transition: transform 0.3s ease;
+}
+
+.card:hover .cardTitle {
+  transform: translateX(3px);
 }
 
 .cardCategory {
@@ -108,9 +257,28 @@
   color: var(--muted);
 }
 
+.cardArrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
+}
+
+.card:hover .cardArrow {
+  background: #0a0a0a;
+  color: #ffffff;
+  border-color: #0a0a0a;
+  transform: translateX(2px);
+}
+
 @media (min-width: 1100px) {
   .section {
-    padding: 100px 120px;
+    padding: 48px 120px;
   }
 
   .intro {
@@ -118,5 +286,242 @@
     align-items: flex-end;
     justify-content: space-between;
     width: 100%;
+  }
+}
+
+/* This section now always sits directly under the "Built For Your Big
+   Moments" card (see page.module.css's shared order), which already
+   carries its own 56px bottom margin -- stacking the section's own top/
+   bottom padding on top of that (and whatever sits below) left noticeably
+   large gaps on mobile specifically. */
+@media (max-width: 899px) {
+  .section {
+    padding-top: 16px;
+    padding-bottom: 16px;
+    /* Black, pairing with the "Every detail" card right above it (now
+       white -- see BuiltForMoments.module.css) for an alternating
+       light/dark rhythm down the mobile page. Text/border colors below
+       are inverted to match. */
+    background: #0a0a0a;
+    color: #ffffff;
+  }
+
+  .art {
+    display: block;
+  }
+
+  .eyebrow {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .eyebrowLine {
+    background: #ffffff;
+  }
+
+  .heading {
+    color: #ffffff;
+  }
+
+  /* Plain text + arrow on mobile, not a bordered button -- matches the
+     reference look (eyebrow, bold two-line heading, then a plain
+     "EXPLORE ALL EVENTS ↗" line directly under it, no box). */
+  .intro {
+    gap: 12px;
+  }
+
+  .exploreLink {
+    border: none;
+    padding: 0;
+    margin-top: 8px;
+    color: #ffffff;
+  }
+
+  /* The looping marquee is a desktop/tablet thing -- mobile gets the
+     tap-to-expand diagonal strip below instead. */
+  .carousel {
+    display: none;
+  }
+}
+
+/* Driven by JS (a rAF loop translating .mobileTrack), not CSS scroll-snap
+   or a swipe gesture -- see FeaturedEvents.tsx. The scrollbar is hidden
+   since scrolling here isn't a user affordance, just how a manual swipe
+   (which stops the ambient slide for good) works natively.
+
+   Full-bleed: breaks out of .section's 40px side padding (constant at
+   every width below the 1100px desktop breakpoint, where this is hidden
+   anyway) so the strip spans the actual screen edge to edge and the
+   diagonal tiles at either end look like they run off the screen, rather
+   than floating in a padded gutter. */
+.mobileCarousel {
+  /* Lifts this above .art the same way .intro is (see its comment) --
+     doesn't change size/layout, just paint order. */
+  position: relative;
+  z-index: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin-inline: -40px;
+  padding: 4px 0 12px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.mobileCarousel::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .mobileCarousel {
+    display: none;
+  }
+}
+
+.mobileTrack {
+  display: flex;
+  width: max-content;
+}
+
+.mobileCard {
+  --slant: 22px;
+  display: block;
+  position: relative;
+  flex: 0 0 auto;
+  width: 36vw;
+  max-width: 190px;
+  aspect-ratio: 3 / 4;
+  margin-left: calc(-1 * var(--slant));
+  background: linear-gradient(160deg, #1a1a1a 0%, #0a0a0a 60%, #2a2a2a 100%);
+  overflow: hidden;
+  clip-path: polygon(var(--slant) 0, 100% 0, calc(100% - var(--slant)) 100%, 0 100%);
+  transition: opacity 0.3s ease;
+}
+
+.mobileCard:first-child {
+  margin-left: 0;
+}
+
+/* Tapping a tile opens its centered overlay twin (see
+   MobileExpandedEvent) rather than growing this tile in place, so the
+   in-flow tile just dims to show which event is open. */
+.mobileCardActive {
+  opacity: 0.45;
+}
+
+.mobileThumb {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.mobileImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mobileSheen {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 55%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: translateX(-160%) skewX(-12deg);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The overlay mounts fresh each time a tile is tapped, so a one-shot
+   shine here just needs to play on mount -- no toggle class needed. */
+.mobileExpandedThumb .mobileSheen {
+  animation: mobileShine 0.85s ease-out 0.15s 1;
+}
+
+@keyframes mobileShine {
+  0% {
+    transform: translateX(-160%) skewX(-12deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(220%) skewX(-12deg);
+    opacity: 1;
+  }
+}
+
+.mobileExpandBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(10, 10, 10, 0.6);
+  animation: mobileBackdropIn 0.25s ease both;
+}
+
+@keyframes mobileBackdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Centered against the viewport (not the scroll strip), sized to fit
+   comfortably within it on any phone, and still a rhombus -- clip-path
+   below matches .mobileCard's shape, just at a larger --slant to stay
+   proportional at this size. */
+.mobileExpandedCard {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 61;
+  display: flex;
+  flex-direction: column;
+  width: min(84vw, 380px);
+  color: #0a0a0a;
+  text-decoration: none;
+  animation: mobileExpandIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes mobileExpandIn {
+  from {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+
+/* A plain rectangle -- the rhombus clip is reserved for the sliding
+   strip; popping open shows the full, uncropped frame instead. */
+.mobileExpandedThumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  max-height: 68vh;
+  background: linear-gradient(160deg, #1a1a1a 0%, #0a0a0a 60%, #2a2a2a 100%);
+  overflow: hidden;
+}
+
+.mobileExpandedFooter {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  background: #ffffff;
+  padding: 16px 18px;
+  margin-top: -1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobileCard {
+    transition: none;
+  }
+
+  .mobileExpandedThumb .mobileSheen,
+  .mobileExpandBackdrop,
+  .mobileExpandedCard {
+    animation: none;
   }
 }

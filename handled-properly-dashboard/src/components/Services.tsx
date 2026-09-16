@@ -1,3 +1,4 @@
+import ScrollReveal from "@/components/ScrollReveal";
 import styles from "./Services.module.css";
 
 const SERVICES = [
@@ -26,8 +27,8 @@ const SERVICES = [
 export default function Services() {
   return (
     <section className={styles.section}>
-      {SERVICES.map((service) => (
-        <div key={service.title} className={styles.card}>
+      {SERVICES.map((service, i) => (
+        <ScrollReveal key={service.title} delay={Math.min(i, 4) as 0 | 1 | 2 | 3 | 4} className={styles.card}>
           <span className={styles.icon} aria-hidden="true">
             {service.icon}
           </span>
@@ -36,7 +37,7 @@ export default function Services() {
           <span className={styles.arrow} aria-hidden="true">
             →
           </span>
-        </div>
+        </ScrollReveal>
       ))}
     </section>
   );

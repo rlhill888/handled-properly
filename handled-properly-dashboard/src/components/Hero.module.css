@@ -13,6 +13,18 @@
   display: none;
 }
 
+/* Mobile-only video header background -- display toggle lives here
+   (specificity-neutral base state); the actual mobile styling (colors,
+   positioning) is at the bottom of this file, in a media query placed
+   AFTER every unconditional rule it needs to beat. A same-specificity
+   override earlier in the cascade than the rule it's meant to override
+   loses regardless of whether its media condition matches -- CSS doesn't
+   prioritize @media rules, only source order and specificity. */
+.bgVideo,
+.bgOverlay {
+  display: none;
+}
+
 .content {
   display: flex;
   flex-direction: column;
@@ -38,12 +50,51 @@
 }
 
 .headline {
-  font-size: clamp(40px, 6vw, 76px);
+  /* Floor lowered from 40px: at phone widths (content has 40px padding
+     each side, see .content) "WE COORDINATE." didn't fit 40px bold text
+     on one line and wrapped mid-phrase into an orphaned "WE" -- this
+     keeps each line (see .headlineLine in Hero.tsx, one span per line so
+     each can stagger its own entrance) on one line down to ~350px-wide
+     phones. */
+  font-size: clamp(28px, 8vw, 76px);
   font-weight: 800;
   line-height: 1.02;
   letter-spacing: -0.02em;
   color: #0a0a0a;
   max-width: 720px;
+}
+
+.headlineLine {
+  display: block;
+}
+
+/* A one-shot, load-time staggered entrance (not scroll-tied, unlike
+   ScrollReveal elsewhere on the homepage) -- the hero is already fully
+   in view on page load with nothing to scroll into, so each piece
+   fades/rises in on a slight delay from the others instead (same
+   technique as bjp-vending-website's homepage hero). `backwards` fill
+   mode holds the 0% keyframe state (invisible, offset) until each
+   element's own delay elapses, so nothing flashes fully visible before
+   its turn. */
+.reveal {
+  animation: heroFadeUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    animation: none;
+  }
+}
+
+@keyframes heroFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .headlineMuted {
@@ -104,6 +155,13 @@
   border-radius: 50%;
   border: 1px solid #0a0a0a;
   font-size: 10px;
+}
+
+/* Only shown on mobile (see the max-width: 899px block below), where
+   secondaryAction becomes a bordered box matching primaryAction's shape
+   instead of the plain play-dot-plus-text link used at desktop widths. */
+.secondaryArrow {
+  display: none;
 }
 
 .visual {
@@ -173,6 +231,13 @@
 
 .callout {
   position: absolute;
+  /* left is also pinned (not just right) so the auto width is computed
+     to fill exactly between the two edges, then clamped by max-width --
+     with only `right` set, the box kept its natural ~230-250px width
+     regardless of how narrow the container got, so on phones under
+     ~350px wide it overflowed past the container's left edge and was cut
+     off by .visual's overflow: hidden instead of shrinking to fit. */
+  left: 24px;
   right: 24px;
   bottom: 24px;
   display: flex;
@@ -258,5 +323,110 @@
 
   .visual {
     margin: 0 40px 80px 120px;
+  }
+}
+
+/* Placed last deliberately -- see the comment by .bgVideo/.bgOverlay
+   above. Every property here needs to win against an unconditional rule
+   of equal specificity defined earlier in this file, which in plain CSS
+   only happens if this block itself comes later in source order. */
+@media (max-width: 899px) {
+  /* Removes .content's normal 64px top padding so .videoZone starts
+     flush against the bottom of the sticky Navbar instead of leaving a
+     white gap above it. Bottom padding is dropped too -- it used to give
+     the button row breathing room below the video, but .actions is
+     hidden on mobile now (see below; MobileHeroActions renders it
+     elsewhere), so it was just leaving a trailing white gap between the
+     video and whatever comes right after Hero. */
+  .content {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  /* Just the headline + first paragraph, not the whole hero -- .videoZone
+     wraps only that content (see Hero.tsx), so the video/overlay end
+     right where this box ends, before .actions. A dark fallback
+     background here (not on .hero) means only this zone shows dark
+     before the video starts playing; everything below (the button row,
+     .visual) stays on the normal white hero background. */
+  .videoZone {
+    position: relative;
+    overflow: hidden;
+    background: #0a0a0a;
+    /* Breaks out of .content's 40px side padding to run edge to edge --
+       full-bleed, rather than sitting inset as a card like .visual does. */
+    margin: 0 -40px;
+  }
+
+  .bgVideo {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+  }
+
+  .bgOverlay {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(10, 10, 10, 0.55) 0%,
+      rgba(10, 10, 10, 0.72) 55%,
+      rgba(10, 10, 10, 0.88) 100%
+    );
+  }
+
+  .videoZoneText {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    /* Re-inset to the same 40px .content normally uses, so the text lines
+       up with everything below it despite the box itself going edge to
+       edge. */
+    padding: 32px 40px;
+  }
+
+  .eyebrow {
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  .eyebrowLine {
+    background: #ffffff;
+  }
+
+  .headline {
+    color: #ffffff;
+  }
+
+  .headlineMuted {
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  .subtext {
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  /* With .callout hidden, .visual is just an empty dark box with faint
+     wave art and nothing in it -- the mobile hero already leads with the
+     video zone above, so this whole box is dropped rather than left
+     behind as dead space. */
+  .visual {
+    display: none;
+  }
+
+  /* Hidden on mobile -- MobileHeroActions renders an identical-looking
+     copy of these buttons, positioned independently in page.tsx (after
+     the "Every detail" card, per the current mobile order) instead of
+     directly under the video/headline here. Desktop keeps this inline
+     version. */
+  .actions {
+    display: none;
   }
 }

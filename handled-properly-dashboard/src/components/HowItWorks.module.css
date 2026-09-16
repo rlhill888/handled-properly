@@ -1,0 +1,311 @@
+/* Height is set inline (N steps * 100vh) so scrolling through this
+   section takes one viewport-height of scroll per step; .sticky pins for
+   that whole distance while its content crossfades underneath, tracked by
+   scroll position in HowItWorks.tsx (not by a per-step section, and not
+   by CSS scroll-snap). */
+.section {
+  position: relative;
+}
+
+.sticky {
+  position: sticky;
+  top: 64px;
+  height: calc(100vh - 64px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 40px;
+  overflow: hidden;
+}
+
+/* A giant, barely-there step number behind the content -- ambient
+   decoration, not information (its actual value is already in
+   .stepLabel), same idea as the site's other faint background textures
+   (AmbientBackground's dot grid). */
+.bigNumber {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40vw;
+  font-weight: 800;
+  line-height: 1;
+  color: rgba(10, 10, 10, 0.035);
+  pointer-events: none;
+  user-select: none;
+}
+
+.layout {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  width: 100%;
+  max-width: 1100px;
+}
+
+/* Holds the aspect ratio/sizing (previously on .image itself, back when
+   there was only one image) -- now that each step has its own image, the
+   sizing has to live on a wrapper so all four <img>s can sit stacked and
+   crossfade via opacity without fighting each other's box size. */
+.imageStack {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+/* Slides in from the direction you're moving -- up from below for the
+   next step, down from above for the previous one -- via the shared
+   --dir custom property set in HowItWorks.tsx (1 = next, -1 = previous).
+   translateY(calc(var(--dir) * 32px)) is the hidden position for BOTH
+   the incoming and outgoing image, so the two move as one unit rather
+   than two independent fades. z-index puts the incoming one on top so it
+   visually covers the outgoing one instead of both cross-dissolving into
+   a blurry double-exposure -- a short, snappy duration is what actually
+   reads as "clean" here, not a long lingering blend. */
+.image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: translateY(calc(var(--dir, 1) * 20px));
+  transition: opacity 0.25s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.imageActive {
+  opacity: 1;
+  transform: translateY(0);
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .image {
+    transform: none;
+    transition: opacity 0.3s ease;
+  }
+}
+
+.stepper {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 640px;
+  /* Continuous scale set directly on this element's style (see
+     HowItWorks.tsx) rather than via a CSS transition -- it tracks scroll
+     position every frame, so it's smoother as a direct style write than
+     as a transitioned value racing to catch up to a constantly-moving
+     target. Anchored to the left edge so it grows in place instead of
+     visibly shifting the text horizontally as it scales. */
+  transform-origin: left center;
+  will-change: transform;
+}
+
+.kicker {
+  font-size: clamp(22px, 3.4vw, 32px);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #0a0a0a;
+}
+
+/* Every step is rendered at once, stacked on top of each other -- the
+   active one is in normal flow (so the stack's height tracks it) and
+   crossfades in; the rest sit absolutely positioned and faded out. This
+   is a crossfade, not a mount/unmount, so there's no remount flicker on
+   fast scroll. */
+.stepStack {
+  position: relative;
+  min-height: 200px;
+}
+
+/* Same directional slide as .image (see its comment), so the image and
+   text move together as one unit -- everything for a step arrives from
+   the same side at once. */
+.stepPanel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  opacity: 0;
+  transform: translateY(calc(var(--dir, 1) * 20px));
+  transition: opacity 0.25s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.stepPanelActive {
+  position: relative;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stepPanel {
+    transform: none;
+    transition: opacity 0.3s ease;
+  }
+}
+
+/* Same eyebrow language used sitewide (a short line + uppercase, letter-
+   spaced micro-label) instead of a standalone "01 / 04" counter -- keeps
+   the step indicator visually consistent with .eyebrow/.kicker elsewhere
+   rather than introducing a one-off numbering style. */
+.stepLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+
+.stepLabelLine {
+  width: 24px;
+  height: 1px;
+  background: #0a0a0a;
+  flex-shrink: 0;
+}
+
+.stepTitle {
+  font-size: clamp(26px, 4.5vw, 44px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: #0a0a0a;
+}
+
+.stepDescription {
+  font-size: clamp(15px, 1.6vw, 18px);
+  line-height: 1.7;
+  color: var(--muted);
+  max-width: 520px;
+}
+
+/* A slim segmented progress bar (story-style) reads as more deliberate
+   "progress through a sequence" than plain dots, and matches the site's
+   thin hairline-border language (see .eyebrowLine, --border) instead of
+   the rounder, more generic carousel-dot convention. */
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.segment {
+  width: 32px;
+  height: 3px;
+  border-radius: 2px;
+  border: none;
+  padding: 0;
+  background: var(--border);
+  cursor: pointer;
+  transition: width 0.25s ease, background 0.25s ease;
+}
+
+.segment:hover {
+  background: #0a0a0a;
+  opacity: 0.4;
+}
+
+.segmentActive {
+  width: 48px;
+  background: #0a0a0a;
+}
+
+.segmentActive:hover {
+  opacity: 1;
+}
+
+/* Below the row layout: the giant background number was landing right
+   behind the stacked text (image on top, text below) instead of in the
+   open gap beside it that the desktop row layout has -- so it read as a
+   rendering glitch, not decoration. Dropped here rather than shrunk,
+   since there's no place left to put it that isn't behind the text.
+   Everything else is sized up (image, type, spacing) so the stack fills
+   more of the pinned panel -- vertical centering only looked good once
+   the content was bigger; with the old, smaller sizing it left large,
+   unbalanced empty gaps above and below it. */
+@media (max-width: 899px) {
+  .bigNumber {
+    display: none;
+  }
+
+  .sticky {
+    align-items: center;
+  }
+
+  .layout {
+    gap: 40px;
+  }
+
+  .imageStack {
+    aspect-ratio: 1 / 1;
+  }
+
+  .stepper {
+    gap: 28px;
+  }
+
+  .stepTitle {
+    font-size: clamp(30px, 8vw, 44px);
+  }
+
+  .stepDescription {
+    font-size: 16px;
+  }
+
+  /* "The lines at the bottom" -- the progress segments read as centered
+     under the text, not left-hugging the edge like a leftover artifact. */
+  .progress {
+    justify-content: center;
+  }
+}
+
+/* Grid instead of flex here: the kicker is a sibling of imageStack and
+   stepper (not nested inside stepper, so it can sit above the image on
+   mobile -- see HowItWorks.tsx), but on desktop it still needs to group
+   visually above the step text in the same column while the image sits
+   beside both. Naming the same grid-template-areas cell twice ("image"
+   in both rows) spans it across the kicker+stepper rows without needing
+   a shared DOM wrapper. */
+@media (min-width: 900px) {
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 46%;
+    grid-template-areas: "kicker image" "stepper image";
+    align-content: center;
+    column-gap: 80px;
+    row-gap: 20px;
+  }
+
+  .kicker {
+    grid-area: kicker;
+  }
+
+  .imageStack {
+    grid-area: image;
+    width: 100%;
+    aspect-ratio: 4 / 5;
+  }
+
+  .stepper {
+    grid-area: stepper;
+  }
+}
+
+@media (min-width: 1100px) {
+  .sticky {
+    padding: 0 120px;
+  }
+}

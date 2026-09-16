@@ -1,0 +1,182 @@
+.section {
+  position: relative;
+  overflow: hidden;
+  padding: 64px 40px;
+  background: #0a0a0a;
+  color: #ffffff;
+}
+
+.art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+/* Same drifting line-art language as Hero's/BuiltForMoments' wave SVGs --
+   gentle, alternating horizontal drift at durations that aren't perfect
+   multiples of each other, so the two lines never repeat in sync. */
+@media (prefers-reduced-motion: no-preference) {
+  .wave {
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+    animation-timing-function: ease-in-out;
+  }
+
+  .wave1 {
+    animation-name: closingWaveDrift;
+    animation-duration: 21s;
+  }
+
+  .wave2 {
+    animation-name: closingWaveDrift;
+    animation-duration: 29s;
+    animation-direction: alternate-reverse;
+  }
+}
+
+@keyframes closingWaveDrift {
+  from {
+    transform: translateX(-16px);
+  }
+  to {
+    transform: translateX(16px);
+  }
+}
+
+/* The "spotlight" moment: a soft radial glow that slowly drifts and
+   breathes behind the headline -- the bit of extra "pop" beyond the
+   site's usual static line art, fitting for the page's final ask. */
+.glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(720px, 140vw);
+  height: min(720px, 140vw);
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.18) 0%,
+    rgba(255, 255, 255, 0.06) 42%,
+    transparent 70%
+  );
+  z-index: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .glow {
+    animation: closingGlowDrift 12s ease-in-out infinite alternate,
+      closingGlowPulse 6s ease-in-out infinite;
+  }
+}
+
+@keyframes closingGlowDrift {
+  from {
+    transform: translate(-58%, -46%) scale(1);
+  }
+  to {
+    transform: translate(-42%, -54%) scale(1.1);
+  }
+}
+
+@keyframes closingGlowPulse {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 24px;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.eyebrowLine {
+  width: 20px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.heading {
+  font-size: clamp(28px, 5vw, 44px);
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.cta {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  background: #ffffff;
+  color: #0a0a0a;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 16px 28px;
+  border-radius: 2px;
+  transition: opacity 0.2s ease;
+}
+
+.cta:hover {
+  opacity: 0.85;
+}
+
+/* Same sheen technique as the Featured Events cards, tuned dark-on-white
+   (this button is the one light surface in a dark section) and looping
+   softly rather than one-shot, since there's no tap/click to trigger it
+   from here. */
+.ctaSheen {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 45%;
+  background: linear-gradient(100deg, transparent, rgba(10, 10, 10, 0.12), transparent);
+  transform: translateX(-160%) skewX(-12deg);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ctaSheen {
+    animation: closingCtaShine 3.6s ease-in-out infinite;
+  }
+}
+
+@keyframes closingCtaShine {
+  0% {
+    transform: translateX(-160%) skewX(-12deg);
+  }
+  35%,
+  100% {
+    transform: translateX(280%) skewX(-12deg);
+  }
+}
+
+@media (min-width: 1100px) {
+  .section {
+    padding: 96px 120px;
+  }
+}

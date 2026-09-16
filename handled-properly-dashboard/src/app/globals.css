@@ -11,16 +11,23 @@ html {
   color-scheme: light;
 }
 
-/* overflow-x: hidden alone fully prevents horizontal scrolling regardless
-   of any child's width -- a max-width: 100vw here was redundant with it
-   and actively harmful: 100vw is measured against the window itself, not
-   the actual visible content area, so it's wider than html/body's real
-   available width by however many pixels the vertical scrollbar takes up.
-   That's the textbook cause of a stray gap exactly the scrollbar's width
-   wide along the right edge. */
+/* `clip`, not `hidden` -- fully prevents horizontal scrolling regardless
+   of any child's width (a max-width: 100vw here was redundant with it and
+   actively harmful: 100vw is measured against the window itself, not the
+   actual visible content area, so it's wider than html/body's real
+   available width by however many pixels the vertical scrollbar takes
+   up, causing a stray gap along the right edge). `hidden` specifically
+   would break this: per the CSS Overflow spec, setting overflow-x to
+   anything but `visible` forces the *other* axis's default `visible`
+   overflow-y to compute to `auto` instead -- turning body into its own
+   scroll container and breaking `position: sticky` for every descendant
+   on the site (confirmed via a real headless-browser check: the Navbar
+   stopped sticking, moving 1:1 with scroll instead of staying pinned).
+   `overflow: clip` is explicitly exempt from that pairing rule, so it
+   blocks horizontal scroll without that side effect. */
 html,
 body {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
@@ -148,5 +155,45 @@ body:hover::-webkit-scrollbar-thumb {
   }
   50% {
     filter: brightness(1.08);
+  }
+}
+
+/* Scroll-driven reveal (see src/components/ScrollReveal.tsx) -- JS drives
+   --p (0 -> 1) continuously as an element rises through the lower half of
+   the viewport, rather than a single IntersectionObserver on/off toggle.
+   The CSS transition below is what turns that continuously-updating raw
+   value into a smooth "chase" (each tiny per-frame change eases toward
+   its new target) instead of an instant 1:1 scrub. Global, not a CSS
+   module, since ScrollReveal sets the `data-reveal`/`revealDelayN`
+   attribute and class names directly as plain strings. */
+[data-reveal] {
+  --p: 0;
+  opacity: var(--p);
+  transform: translateY(calc((1 - var(--p)) * 26px)) scale(calc(0.98 + var(--p) * 0.02));
+  transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.revealDelay1 {
+  transition-delay: 0.06s;
+}
+
+.revealDelay2 {
+  transition-delay: 0.12s;
+}
+
+.revealDelay3 {
+  transition-delay: 0.18s;
+}
+
+.revealDelay4 {
+  transition-delay: 0.24s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }

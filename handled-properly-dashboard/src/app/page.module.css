@@ -1,0 +1,49 @@
+/* A flex column visually identical to plain block flow (children still
+   stack top-to-bottom edge-to-edge) -- the only reason for it is so
+   individual sections can have their `order` overridden per breakpoint
+   without duplicating any component. Gaps of 10 between default values
+   leave room to slot something between two sections later. */
+.main {
+  display: flex;
+  flex-direction: column;
+}
+
+.hero {
+  order: 10;
+}
+
+/* margin-bottom lives here rather than on BuiltForMoments' own .section --
+   see the comment in BuiltForMoments.module.css for why putting it there
+   trapped it as blank space inside this wrapper instead of a real gap
+   after it. */
+.builtForMoments {
+  order: 20;
+  margin-bottom: 20px;
+}
+
+.trustedBy {
+  order: 30;
+}
+
+.services {
+  order: 50;
+}
+
+.howItWorks {
+  order: 40;
+}
+
+.closingCta {
+  order: 60;
+}
+
+/* Sits right after BuiltForMoments (order: 20) on both breakpoints --
+   on desktop, where BuiltForMoments renders nothing, this just means
+   Featured Events comes right after Hero. */
+.featuredEvents {
+  order: 21;
+}
+
+.footer {
+  order: 70;
+}

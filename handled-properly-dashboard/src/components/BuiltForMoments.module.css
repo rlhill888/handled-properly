@@ -1,0 +1,124 @@
+/* Mobile-only companion to Hero's dark visual -- hidden at desktop
+   widths, where this content has no equivalent yet. The gap before the
+   next section is set on the .builtForMoments wrapper div in
+   page.module.css, not here -- that wrapper is a flex item of .main, and
+   a flex item is its own block-formatting-context boundary, so a bottom
+   margin on this section can't collapse out past it. It ends up trapped
+   as extra (uncolored) height inside the wrapper instead of real space
+   after it, showing as a band of blank space beneath the card. White
+   against the dark hero photo above and the dark Featured Events section
+   below (see FeaturedEvents.module.css) is what gives this its own
+   boundaries, rather than a border. */
+.section {
+  position: relative;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 32px 24px;
+}
+
+.introGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+
+.sunburst {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    rgba(10, 10, 10, 0.85) 0deg 2deg,
+    transparent 2deg 18deg
+  );
+}
+
+.headline {
+  font-size: clamp(22px, 6vw, 30px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: #0a0a0a;
+}
+
+.subtext {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 460px;
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: 100%;
+}
+
+.pill {
+  flex: 1 1 auto;
+  text-align: center;
+  padding: 12px 14px;
+  border: 1px solid rgba(10, 10, 10, 0.3);
+  border-radius: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #0a0a0a;
+}
+
+/* Dark-on-white, matching the site's usual primary-button treatment --
+   this card's background is now white, so the button no longer needs to
+   invert away from it. */
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+  background: #0a0a0a;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 16px 20px;
+  border-radius: 2px;
+  transition: opacity 0.2s ease;
+}
+
+.cta:hover {
+  opacity: 0.85;
+}
+
+@media (min-width: 900px) {
+  .section {
+    display: none;
+  }
+}

@@ -5,6 +5,12 @@
   background: #ffffff;
   color: #0a0a0a;
   border-bottom: 1px solid #e5e5e5;
+  transform: translateY(0);
+  transition: transform 0.25s ease;
+}
+
+.headerHidden {
+  transform: translateY(-100%);
 }
 
 .bar {
@@ -129,42 +135,192 @@
   background: #0a0a0a;
 }
 
-.mobileNav {
-  border-top: 1px solid #e5e5e5;
-  padding: 20px 24px 28px;
+/* Off-canvas drawer that slides in from the left over a dimmed overlay,
+   rather than the plain white panel that used to drop down inline below
+   the bar. Always rendered (not conditionally, like the old dropdown
+   was) so both the open AND close transitions can actually animate
+   instead of the closed state just vanishing instantly. Styled to match
+   the rest of the site (white ground, bold uppercase black type, hairline
+   dividers) rather than the dark themed drawer used elsewhere. */
+.drawerOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(10, 10, 10, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
 }
 
-.mobileNavList {
-  list-style: none;
+.drawerOverlayOpen {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 201;
+  width: 82%;
+  max-width: 320px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  background: #ffffff;
+  padding: 24px 20px;
+  box-shadow: 12px 0 40px rgba(10, 10, 10, 0.12);
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  overflow: hidden;
 }
 
-.mobileNavLink {
-  display: block;
-  padding: 12px 4px;
+.drawerOpen {
+  transform: translateX(0);
+}
+
+.drawerHeader {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  padding-bottom: 20px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.drawerLogo {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(10, 10, 10, 0.75);
-  border-bottom: 1px solid #ededed;
+  color: #0a0a0a;
 }
 
-.mobileCta {
+.drawerClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: 20px;
+  line-height: 1;
+  color: #0a0a0a;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.drawerClose:hover {
+  background: rgba(10, 10, 10, 0.06);
+}
+
+.drawerNav {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.drawerNavEyebrow {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.drawerNavList {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+}
+
+.drawerNavItem {
+  border-bottom: 1px solid var(--border);
+}
+
+.drawerNavItem:first-child {
+  border-top: 1px solid var(--border);
+}
+
+.drawerNavLink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 2px;
+  font-size: clamp(22px, 7vw, 26px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: #0a0a0a;
+  transition: opacity 0.2s ease;
+}
+
+.drawerNavLink:hover {
+  opacity: 0.6;
+}
+
+.drawerNavLinkLabel {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-top: 18px;
+}
+
+.drawerNavDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #0a0a0a;
+}
+
+.drawerNavArrow {
+  flex-shrink: 0;
+  font-size: 16px;
+  color: #0a0a0a;
+}
+
+.drawerNavLinkActive,
+.drawerNavLinkActive:hover {
+  color: #0a0a0a;
+  opacity: 1;
+}
+
+.drawerCta {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
   background: #0a0a0a;
   color: #ffffff;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 12px 20px;
+  padding: 14px 20px;
   border-radius: 2px;
+  transition: opacity 0.2s ease;
+}
+
+.drawerCta:hover {
+  opacity: 0.85;
+}
+
+@media (min-width: 900px) {
+  .drawerOverlay,
+  .drawer {
+    display: none;
+  }
 }
 
 @media (max-width: 900px) {

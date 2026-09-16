@@ -16,23 +16,55 @@ export default function Hero() {
       </div>
 
       <div className={styles.content}>
-        <p className={styles.eyebrow}>
-          <span className={styles.eyebrowLine} />
-          EVENT PLANNING, HANDLED
-        </p>
-        <h1 className={styles.headline}>
-          WE PLAN.
-          <br />
-          WE COORDINATE.
-          <br />
-          <span className={styles.headlineMuted}>WE DELIVER.</span>
-        </h1>
-        <p className={styles.subtext}>
-          Handled Properly is the all-in-one portal for planning unforgettable
-          events — from vendors and budgets to timelines and the big day
-          itself.
-        </p>
-        <div className={styles.actions}>
+        {/* Video zone is just the headline + first paragraph -- it ends
+            here, before .actions, not behind the whole hero. Mobile only
+            (see .bgVideo's media query); on desktop this is a plain,
+            unstyled wrapper. */}
+        <div className={styles.videoZone}>
+          {/* Placeholder footage -- real background video for the header
+              once one exists. Muted + playsInline + loop are all required
+              for autoplay to actually start on mobile Safari/Chrome. */}
+          <video
+            className={styles.bgVideo}
+            src="/hero-mobile-placeholder.mov"
+            poster="/hero-mobile-poster.jpg"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="none"
+            aria-hidden="true"
+          />
+          <div className={styles.bgOverlay} aria-hidden="true" />
+
+          <div className={styles.videoZoneText}>
+            <p className={`${styles.eyebrow} ${styles.reveal}`} style={{ animationDelay: "0.02s" }}>
+              <span className={styles.eyebrowLine} />
+              EVENT PLANNING, HANDLED
+            </p>
+            <h1 className={styles.headline}>
+              <span className={`${styles.headlineLine} ${styles.reveal}`} style={{ animationDelay: "0.15s" }}>
+                WE PLAN.
+              </span>
+              <span className={`${styles.headlineLine} ${styles.reveal}`} style={{ animationDelay: "0.28s" }}>
+                WE COORDINATE.
+              </span>
+              <span
+                className={`${styles.headlineLine} ${styles.headlineMuted} ${styles.reveal}`}
+                style={{ animationDelay: "0.4s" }}
+              >
+                WE DELIVER.
+              </span>
+            </h1>
+            <p className={`${styles.subtext} ${styles.reveal}`} style={{ animationDelay: "0.52s" }}>
+              Handled Properly is the all-in-one portal for planning unforgettable
+              events — from vendors and budgets to timelines and the big day
+              itself.
+            </p>
+          </div>
+        </div>
+
+        <div className={`${styles.actions} ${styles.reveal}`} style={{ animationDelay: "0.64s" }}>
           <a href="/get-started" className={styles.primaryAction}>
             Start Planning
             <span aria-hidden="true">↗</span>
@@ -41,12 +73,15 @@ export default function Hero() {
             <span className={styles.playDot} aria-hidden="true">
               ▶
             </span>
-            View Our Events
+            <span>View Our Events</span>
+            <span className={styles.secondaryArrow} aria-hidden="true">
+              ↗
+            </span>
           </a>
         </div>
       </div>
 
-      <div className={styles.visual}>
+      <div className={`${styles.visual} ${styles.reveal}`} style={{ animationDelay: "0.3s" }}>
         <svg
           className={styles.visualArt}
           viewBox="0 0 800 600"
