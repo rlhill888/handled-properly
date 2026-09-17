@@ -1,6 +1,7 @@
 .page {
   display: grid;
   grid-template-columns: 1fr minmax(0, 1440px) 1fr;
+  flex: 1;
 }
 
 .page > * {

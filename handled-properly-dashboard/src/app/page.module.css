@@ -6,6 +6,7 @@
 .main {
   display: flex;
   flex-direction: column;
+  flex: 1;
 }
 
 .hero {
@@ -46,4 +47,5 @@
 
 .footer {
   order: 70;
+  margin-top: auto;
 }

@@ -1,6 +1,7 @@
 import type { Block, Spacing } from "@/lib/blocks";
 import Reveal from "@/components/Reveal";
 import GalleryCarousel from "@/components/GalleryCarousel";
+import ArrowIcon from "@/components/icons/ArrowIcon";
 import styles from "./BlockRenderer.module.css";
 
 // .section deliberately has no gap of its own (see
@@ -194,7 +195,7 @@ export default function BlockRenderer({
                 </h2>
                 <a href={block.buttonHref} className={styles.ctaButton}>
                   <span>{block.buttonText}</span>
-                  <span aria-hidden="true">↗</span>
+                  <ArrowIcon direction="up-right" />
                 </a>
               </div>
             </Reveal>

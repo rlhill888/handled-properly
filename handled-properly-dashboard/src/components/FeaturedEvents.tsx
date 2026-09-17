@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import ScrollReveal from "@/components/ScrollReveal";
+import ArrowIcon from "@/components/icons/ArrowIcon";
 import styles from "./FeaturedEvents.module.css";
 import type { BlogPostSummary } from "@/lib/data/site-content";
 
@@ -27,8 +28,8 @@ function Card({ post, index, hidden }: { post: BlogPostSummary; index: number; h
           <p className={styles.cardTitle}>{post.title}</p>
           {post.category && <p className={styles.cardCategory}>{post.category}</p>}
         </div>
-        <span className={styles.cardArrow} aria-hidden="true">
-          →
+        <span className={styles.cardArrow}>
+          <ArrowIcon />
         </span>
       </div>
     </a>
@@ -93,8 +94,8 @@ function MobileExpandedEvent({ post, onClose }: { post: BlogPostSummary; onClose
             <p className={styles.cardTitle}>{post.title}</p>
             {post.category && <p className={styles.cardCategory}>{post.category}</p>}
           </div>
-          <span className={styles.cardArrow} aria-hidden="true">
-            →
+          <span className={styles.cardArrow}>
+            <ArrowIcon />
           </span>
         </div>
       </a>
@@ -248,7 +249,7 @@ export default function FeaturedEvents({ posts }: { posts: BlogPostSummary[] }) 
         </h2>
         <a href="/events" className={styles.exploreLink}>
           Explore All Events
-          <span aria-hidden="true">↗</span>
+          <ArrowIcon direction="up-right" />
         </a>
       </ScrollReveal>
 

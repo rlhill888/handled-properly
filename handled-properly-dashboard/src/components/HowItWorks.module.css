@@ -7,11 +7,25 @@
   position: relative;
 }
 
+/* height uses 100dvh, not 100vh -- 100vh is the *largest* possible
+   viewport (toolbars collapsed), so on mobile Chrome (where the address/
+   tab bar can be showing, shrinking the actually-visible area) a pinned
+   height: calc(100vh - 64px) box runs taller than what's really on
+   screen and its bottom edge -- the progress dots, the end of the step
+   description -- ends up sitting behind the browser's own UI. 100dvh
+   tracks the real, currently-visible viewport instead, so the panel's
+   bottom stays clear of it. The plain vh line stays first as a fallback
+   for browsers without dvh support; the second declaration simply wins
+   wherever it's understood. */
 .sticky {
   position: sticky;
   top: 64px;
   height: calc(100vh - 64px);
+  height: calc(100dvh - 64px);
   display: flex;
+  /* Centered here (desktop's row layout, image beside text, already
+     balances fine) -- mobile overrides this to flex-start instead, see
+     the max-width: 899px block below. */
   align-items: center;
   justify-content: center;
   padding: 0 40px;
@@ -233,16 +247,23 @@
    rendering glitch, not decoration. Dropped here rather than shrunk,
    since there's no place left to put it that isn't behind the text.
    Everything else is sized up (image, type, spacing) so the stack fills
-   more of the pinned panel -- vertical centering only looked good once
-   the content was bigger; with the old, smaller sizing it left large,
-   unbalanced empty gaps above and below it. */
+   more of the pinned panel. */
 @media (max-width: 899px) {
   .bigNumber {
     display: none;
   }
 
+  /* flex-start, not .sticky's desktop center -- centering split the
+     panel's leftover vertical space evenly above and below the content,
+     which read as a gap sitting above "HOW IT WORKS" before anything
+     started. Anchoring to the top instead collects all of that leftover
+     space below the content, where it doesn't get in the way of the
+     first thing a visitor should see when this section pins. Desktop's
+     row layout (image beside text) already balances fine centered, so
+     this stays mobile-only. */
   .sticky {
-    align-items: center;
+    align-items: flex-start;
+    padding-top: 0;
   }
 
   .layout {

@@ -2,6 +2,8 @@
 status: accepted
 ---
 
+> **Note**: `/about` briefly became an admin-editable landing page itself (see [`0032`](./0032-about-page-editable-landing-page.md)), then that editable content moved to its own separate route (`/about-and-connect`) rather than staying on `/about` — see [`0033`](./0033-about-and-connect-is-a-separate-page.md). The hand-coded design described below is still accurate, but `/about`'s own text/images are admin-editable again via a new table and admin route — see [`0034`](./0034-about-page-editable-fields-not-blocks.md), which also means paragraph 13 below (the Content Block system being dormant-but-connectable for `/about`) no longer holds: that table/editor were repurposed for `/about-and-connect` instead, not left waiting for `/about`.
+
 # The /about page is hand-coded again, not Content-Block-driven
 
 `/about` was rebuilt on the Content Block system (`docs/adr/0017` onward) so the admin could compose the whole page from stacked blocks. The admin asked for something more specific instead: a real About page following a deliberate content structure (headline+photo → introduction/story → what makes the business different → a testimonial → a "Plan Your Event" CTA), and wanted it hand-coded for full design control rather than assembled from the generic block set.

@@ -1,3 +1,4 @@
+import ArrowIcon from "@/components/icons/ArrowIcon";
 import styles from "./Hero.module.css";
 
 export default function Hero() {
@@ -67,15 +68,15 @@ export default function Hero() {
         <div className={`${styles.actions} ${styles.reveal}`} style={{ animationDelay: "0.64s" }}>
           <a href="/get-started" className={styles.primaryAction}>
             Start Planning
-            <span aria-hidden="true">↗</span>
+            <ArrowIcon direction="up-right" />
           </a>
           <a href="/events" className={styles.secondaryAction}>
             <span className={styles.playDot} aria-hidden="true">
               ▶
             </span>
             <span>View Our Events</span>
-            <span className={styles.secondaryArrow} aria-hidden="true">
-              ↗
+            <span className={styles.secondaryArrow}>
+              <ArrowIcon direction="up-right" />
             </span>
           </a>
         </div>

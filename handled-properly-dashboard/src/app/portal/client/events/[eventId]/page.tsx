@@ -10,6 +10,7 @@ import CalendarIcon from "@/components/portal/CalendarIcon";
 import LocationIcon from "@/components/portal/LocationIcon";
 import FileIcon from "@/components/portal/FileIcon";
 import CommentIcon from "@/components/portal/CommentIcon";
+import ArrowIcon from "@/components/icons/ArrowIcon";
 import { getEventHeaderImageDataUrl } from "@/lib/data/event-header-image";
 import { formatEventDate } from "@/lib/format-event-date";
 import styles from "@/styles/admin-shared.module.css";
@@ -167,8 +168,8 @@ export default async function ClientEventDetailPage({
                 <p className={styles.resourceCardTitle}>Event documentation</p>
                 <p className={styles.resourceCardSubtitle}>View event files and details</p>
               </div>
-              <span className={styles.resourceCardArrow} aria-hidden="true">
-                →
+              <span className={styles.resourceCardArrow}>
+                <ArrowIcon />
               </span>
             </Link>
             <VendorContactsButton vendors={vendors} staff={staff} />

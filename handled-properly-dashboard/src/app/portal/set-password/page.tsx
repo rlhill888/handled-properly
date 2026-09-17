@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import { setPassword, type ActionState } from "./actions";
+import ArrowIcon from "@/components/icons/ArrowIcon";
 import styles from "../signin/portal.module.css";
 
 function SubmitButton() {
@@ -11,8 +12,8 @@ function SubmitButton() {
   return (
     <button type="submit" className={styles.submit} disabled={pending}>
       <span>{pending ? "Saving..." : "Set Password"}</span>
-      <span className={styles.submitArrow} aria-hidden="true">
-        ↗
+      <span className={styles.submitArrow}>
+        <ArrowIcon direction="up-right" />
       </span>
     </button>
   );

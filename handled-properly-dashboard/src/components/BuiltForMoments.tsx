@@ -1,4 +1,5 @@
 import ScrollReveal from "@/components/ScrollReveal";
+import ArrowIcon from "@/components/icons/ArrowIcon";
 import styles from "./BuiltForMoments.module.css";
 
 const PILLS = ["Vendors", "Budgets", "Timelines"];
@@ -41,6 +42,12 @@ export default function BuiltForMoments() {
       </svg>
 
       <div className={styles.content}>
+        {/* Pills now live inside this same ScrollReveal as the headline/
+            subtext above them (each used to be its own separately
+            scroll-tracked reveal) so they share one progress value and
+            appear together with the rest of the card's text instead of
+            needing extra scroll of their own to catch up, position-lagged
+            below it. */}
         <ScrollReveal className={styles.introGroup}>
           <p className={styles.eyebrow}>
             <span className={styles.sunburst} aria-hidden="true" />
@@ -55,24 +62,20 @@ export default function BuiltForMoments() {
             Vendors, budgets, and timelines — everything organized in one
             place, so nothing gets missed.
           </p>
+          <div className={styles.pills}>
+            {PILLS.map((pill) => (
+              <span key={pill} className={styles.pill}>
+                {pill.toUpperCase()}
+              </span>
+            ))}
+          </div>
         </ScrollReveal>
-        <div className={styles.pills}>
-          {PILLS.map((pill, i) => (
-            <ScrollReveal
-              key={pill}
-              delay={Math.min(i + 1, 4) as 0 | 1 | 2 | 3 | 4}
-              className={styles.pill}
-            >
-              {pill.toUpperCase()}
-            </ScrollReveal>
-          ))}
-        </div>
         {/* Moved in from a separate section below this card -- the only
             action offered here now, so there's no need for the two-button
             row that used to live elsewhere on mobile. */}
         <a href="/get-started" className={styles.cta}>
           <span>Start Planning</span>
-          <span aria-hidden="true">↗</span>
+          <ArrowIcon direction="up-right" />
         </a>
       </div>
     </section>

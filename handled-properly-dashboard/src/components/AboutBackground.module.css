@@ -1,0 +1,121 @@
+/* z-index: 1, same tier as AmbientBackground -- both fixed, both behind
+   real content (see about-and-connect.module.css's .page and
+   Footer.module.css's .footer, both explicitly z-index: 2 for this
+   reason). overflow: hidden clips the oversized, off-canvas band shapes
+   (see .band below) so they never introduce horizontal/vertical scroll. */
+.background {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Positioning only -- each wrapper is placed via inline top/right/
+   bottom/left/width/height (see AboutBackground.tsx) and animated with a
+   translate-only drift. The shape's own look (rotation, fill, blur)
+   lives on the inner <span> instead, so the drift animation's transform
+   never fights a shape's static one -- see the long comment in
+   AboutBackground.tsx for why that split matters. */
+.shapeWrap {
+  position: absolute;
+}
+
+.shapeWrap > span {
+  display: block;
+}
+
+/* Large, soft, blurred diagonal bands bleeding off the corner -- the
+   "dramatic" wash behind the crisp diamonds, same idea as a spotlight
+   glow but as a flat rotated rectangle instead of a radial gradient, to
+   match the angular diamond motif rather than introduce a circular one. */
+.band {
+  width: 100%;
+  height: 100%;
+  border-radius: 32px;
+  background: rgba(10, 10, 10, 0.045);
+  filter: blur(40px);
+}
+
+/* The one fully opaque shape here -- everything else is a low-opacity
+   tint so it reads as background texture; this is meant to read as a
+   deliberate graphic element (a diagonal corner ribbon), so it gets the
+   same solid near-black used for real UI (Footer, the CTA banners)
+   rather than a faded version of it. */
+.strip {
+  width: 100%;
+  height: 100%;
+  background: #0a0a0a;
+}
+
+.outlineLg {
+  width: 132px;
+  height: 132px;
+  border: 1.5px solid rgba(10, 10, 10, 0.28);
+  transform: rotate(45deg);
+}
+
+.outlineSm {
+  width: 46px;
+  height: 46px;
+  border: 1.5px solid rgba(10, 10, 10, 0.32);
+  transform: rotate(45deg);
+}
+
+.solidXs {
+  width: 14px;
+  height: 14px;
+  background: rgba(10, 10, 10, 0.85);
+  transform: rotate(45deg);
+}
+
+/* Four drift variants, cycled across the shapes (see
+   AboutBackground.tsx) -- durations that aren't multiples of each other
+   so no two shapes ever repeat in sync. */
+@media (prefers-reduced-motion: no-preference) {
+  .shapeWrap {
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+    animation-timing-function: ease-in-out;
+  }
+
+  .drift1 {
+    animation-name: aboutDriftA;
+    animation-duration: 22s;
+  }
+
+  .drift2 {
+    animation-name: aboutDriftB;
+    animation-duration: 29s;
+  }
+
+  .drift3 {
+    animation-name: aboutDriftA;
+    animation-duration: 34s;
+    animation-direction: alternate-reverse;
+  }
+
+  .drift4 {
+    animation-name: aboutDriftB;
+    animation-duration: 40s;
+    animation-direction: alternate-reverse;
+  }
+}
+
+@keyframes aboutDriftA {
+  from {
+    transform: translate(-1.4vw, 1vh);
+  }
+  to {
+    transform: translate(1.6vw, -1.2vh);
+  }
+}
+
+@keyframes aboutDriftB {
+  from {
+    transform: translate(1.2vw, -1.4vh);
+  }
+  to {
+    transform: translate(-1.6vw, 1.3vh);
+  }
+}

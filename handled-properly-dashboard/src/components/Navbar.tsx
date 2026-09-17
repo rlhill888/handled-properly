@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import ArrowIcon from "@/components/icons/ArrowIcon";
 import styles from "./Navbar.module.css";
 
 const NAV_LINKS = [
@@ -90,8 +91,8 @@ export default function Navbar() {
 
           <a href="/get-started" className={styles.cta}>
             <span>Get Started</span>
-            <span className={styles.ctaArrow} aria-hidden="true">
-              ↗
+            <span className={styles.ctaArrow}>
+              <ArrowIcon direction="up-right" />
             </span>
           </a>
 
@@ -148,8 +149,8 @@ export default function Navbar() {
                       {link.label}
                       {isActive && <span className={styles.drawerNavDot} aria-hidden="true" />}
                     </span>
-                    <span className={styles.drawerNavArrow} aria-hidden="true">
-                      →
+                    <span className={styles.drawerNavArrow}>
+                      <ArrowIcon />
                     </span>
                   </a>
                 </li>
@@ -160,7 +161,7 @@ export default function Navbar() {
 
         <a href="/get-started" className={styles.drawerCta} onClick={() => setMenuOpen(false)}>
           <span>Get Started</span>
-          <span aria-hidden="true">↗</span>
+          <ArrowIcon direction="up-right" />
         </a>
       </div>
     </>

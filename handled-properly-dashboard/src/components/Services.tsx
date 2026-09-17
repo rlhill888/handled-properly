@@ -1,4 +1,5 @@
 import ScrollReveal from "@/components/ScrollReveal";
+import ArrowIcon from "@/components/icons/ArrowIcon";
 import styles from "./Services.module.css";
 
 const SERVICES = [
@@ -24,21 +25,29 @@ const SERVICES = [
   },
 ];
 
+// A single shared ScrollReveal for the whole row/stack (each card used to
+// be its own separately scroll-tracked reveal, staggered by delay AND by
+// each card's own position) rather than one per card. At desktop widths
+// the four cards already sit in one row at nearly the same position, so
+// they already revealed together in practice; on mobile they stack into a
+// single column, where each card's own position pushed its reveal later
+// and later down the page -- sharing one reveal value fixes that, so all
+// four appear at once there too.
 export default function Services() {
   return (
-    <section className={styles.section}>
-      {SERVICES.map((service, i) => (
-        <ScrollReveal key={service.title} delay={Math.min(i, 4) as 0 | 1 | 2 | 3 | 4} className={styles.card}>
+    <ScrollReveal as="section" className={styles.section}>
+      {SERVICES.map((service) => (
+        <div key={service.title} className={styles.card}>
           <span className={styles.icon} aria-hidden="true">
             {service.icon}
           </span>
           <h3 className={styles.title}>{service.title}</h3>
           <p className={styles.description}>{service.description}</p>
-          <span className={styles.arrow} aria-hidden="true">
-            →
+          <span className={styles.arrow}>
+            <ArrowIcon />
           </span>
-        </ScrollReveal>
+        </div>
       ))}
-    </section>
+    </ScrollReveal>
   );
 }

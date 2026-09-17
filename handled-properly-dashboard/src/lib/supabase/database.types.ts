@@ -1122,19 +1122,112 @@ export type Database = {
       }
       site_about_content: {
         Row: {
-          blocks: Json
+          about_body: string
+          headshot_path: string | null
           id: number
           updated_at: string
         }
         Insert: {
-          blocks?: Json
+          about_body?: string
+          headshot_path?: string | null
           id?: number
           updated_at?: string
         }
         Update: {
-          blocks?: Json
+          about_body?: string
+          headshot_path?: string | null
           id?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      site_about_page: {
+        Row: {
+          cta_button_text: string
+          cta_heading: string
+          headline: string
+          hero_image_path: string | null
+          hero_intro: string
+          hero_tagline: string
+          id: number
+          mission_body: string
+          mission_image_path: string | null
+          story_body: string
+          story_image_path: string | null
+          updated_at: string
+          values_image_path: string | null
+          vision_body: string
+          vision_image_path: string | null
+          what_we_do_body: string
+          what_we_do_image_path: string | null
+          who_we_are_body: string
+          who_we_are_image_path: string | null
+        }
+        Insert: {
+          cta_button_text?: string
+          cta_heading?: string
+          headline?: string
+          hero_image_path?: string | null
+          hero_intro?: string
+          hero_tagline?: string
+          id?: number
+          mission_body?: string
+          mission_image_path?: string | null
+          story_body?: string
+          story_image_path?: string | null
+          updated_at?: string
+          values_image_path?: string | null
+          vision_body?: string
+          vision_image_path?: string | null
+          what_we_do_body?: string
+          what_we_do_image_path?: string | null
+          who_we_are_body?: string
+          who_we_are_image_path?: string | null
+        }
+        Update: {
+          cta_button_text?: string
+          cta_heading?: string
+          headline?: string
+          hero_image_path?: string | null
+          hero_intro?: string
+          hero_tagline?: string
+          id?: number
+          mission_body?: string
+          mission_image_path?: string | null
+          story_body?: string
+          story_image_path?: string | null
+          updated_at?: string
+          values_image_path?: string | null
+          vision_body?: string
+          vision_image_path?: string | null
+          what_we_do_body?: string
+          what_we_do_image_path?: string | null
+          who_we_are_body?: string
+          who_we_are_image_path?: string | null
+        }
+        Relationships: []
+      }
+      site_about_values: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          sort_order: number
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          sort_order?: number
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          sort_order?: number
+          title?: string
         }
         Relationships: []
       }
@@ -1174,6 +1267,60 @@ export type Database = {
           is_featured?: boolean
           slug?: string
           title?: string
+        }
+        Relationships: []
+      }
+      site_featured_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          image_path: string | null
+          link_url: string | null
+          sort_order: number
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          image_path?: string | null
+          link_url?: string | null
+          sort_order?: number
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          image_path?: string | null
+          link_url?: string | null
+          sort_order?: number
+          title?: string
+        }
+        Relationships: []
+      }
+      site_social_links: {
+        Row: {
+          created_at: string
+          icon_path: string
+          id: string
+          sort_order: number
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          icon_path: string
+          id?: string
+          sort_order?: number
+          url: string
+        }
+        Update: {
+          created_at?: string
+          icon_path?: string
+          id?: string
+          sort_order?: number
+          url?: string
         }
         Relationships: []
       }

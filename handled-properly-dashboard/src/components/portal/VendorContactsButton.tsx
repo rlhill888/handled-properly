@@ -5,6 +5,7 @@ import Modal from "@/components/portal/Modal";
 import ClientVendorsList, { type ClientVendorData } from "@/components/portal/ClientVendorsList";
 import ClientStaffList, { type ClientStaffData } from "@/components/portal/ClientStaffList";
 import PeopleIcon from "@/components/portal/PeopleIcon";
+import ArrowIcon from "@/components/icons/ArrowIcon";
 import styles from "@/styles/admin-shared.module.css";
 
 // Opens the combined vendor/staff contact list in a modal in place, rather
@@ -34,8 +35,8 @@ export default function VendorContactsButton({
           <p className={styles.resourceCardTitle}>Vendor and Event Staff Contacts</p>
           <p className={styles.resourceCardSubtitle}>View vendor and staff contact list</p>
         </div>
-        <span className={styles.resourceCardArrow} aria-hidden="true">
-          →
+        <span className={styles.resourceCardArrow}>
+          <ArrowIcon />
         </span>
       </button>
 

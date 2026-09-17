@@ -1,3 +1,5 @@
+import ScrollReveal from "@/components/ScrollReveal";
+import ArrowIcon from "@/components/icons/ArrowIcon";
 import styles from "./ClosingCta.module.css";
 
 // The site's final call-to-action, on every breakpoint -- previously this
@@ -45,7 +47,13 @@ export default function ClosingCta() {
         </g>
       </svg>
 
-      <div className={styles.content}>
+      {/* The site's only major content section that didn't fade in on
+          scroll (the wave/glow background is ambient and stays as-is --
+          only the real text/CTA content gets the reveal, same split as
+          BuiltForMoments' .introGroup) -- it used to just pop in fully
+          visible the instant it entered the viewport, out of step with
+          every section above it. */}
+      <ScrollReveal className={styles.content}>
         <p className={styles.eyebrow}>
           <span className={styles.eyebrowLine} />
           READY WHEN YOU ARE
@@ -58,9 +66,9 @@ export default function ClosingCta() {
         <a href="/get-started" className={styles.cta}>
           <span className={styles.ctaSheen} aria-hidden="true" />
           <span>Start Planning Today</span>
-          <span aria-hidden="true">↗</span>
+          <ArrowIcon direction="up-right" />
         </a>
-      </div>
+      </ScrollReveal>
     </section>
   );
 }

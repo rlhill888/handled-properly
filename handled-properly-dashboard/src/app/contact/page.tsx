@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import ArrowIcon from "@/components/icons/ArrowIcon";
 import styles from "./contact.module.css";
 
 export const metadata: Metadata = {
@@ -33,7 +34,7 @@ export default function ContactPage() {
         <div className={styles.actions}>
           <a href="/get-started" className={styles.cta}>
             <span>Start Planning Your Event</span>
-            <span aria-hidden="true">↗</span>
+            <ArrowIcon direction="up-right" />
           </a>
         </div>
       </main>

@@ -24,7 +24,22 @@ function computeProgress(el: HTMLElement) {
   const start = vh * 0.92;
   const end = vh * 0.42;
   const raw = (start - rect.top) / (start - end);
-  return Math.min(1, Math.max(0, raw));
+  const progress = Math.min(1, Math.max(0, raw));
+
+  // Near the very bottom of a page there may not be enough scroll room
+  // left for an element to ever reach the "end" position above -- a
+  // reveal-wrapped element positioned close to the end of the document
+  // (e.g. a closing CTA right before the footer) would otherwise get
+  // stuck at a partial, permanently-faded opacity once the page hits its
+  // maximum scroll position, since scrolling further to finish the reveal
+  // is physically impossible. Once scrolling is maxed out, anything
+  // already on screen counts as fully revealed instead.
+  const maxScrollY = document.documentElement.scrollHeight - window.innerHeight;
+  if (window.scrollY >= maxScrollY - 1 && rect.top < vh) {
+    return 1;
+  }
+
+  return progress;
 }
 
 function tick() {
@@ -62,7 +77,7 @@ type ScrollRevealProps = {
   children: React.ReactNode;
   className?: string;
   delay?: DelayLevel;
-  as?: "div" | "li";
+  as?: "div" | "li" | "section";
 };
 
 export default function ScrollReveal({

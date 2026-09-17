@@ -356,6 +356,19 @@
     /* Breaks out of .content's 40px side padding to run edge to edge --
        full-bleed, rather than sitting inset as a card like .visual does. */
     margin: 0 -40px;
+    /* Without a set height this box was only ever as tall as
+       .videoZoneText's own content, giving the background video very
+       little room to actually show. min-height (not height -- long
+       headline text or a translated language should still be able to
+       push it taller rather than clip) plus flex + justify-content:
+       flex-end anchors the text to the bottom of that taller box, same
+       as a typical video-banner caption, instead of leaving it stranded
+       at the top with a dead gap of plain video underneath. */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    min-height: 50vh;
+    min-height: 50dvh;
   }
 
   .bgVideo {

@@ -1,116 +1,283 @@
 import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import Reveal from "@/components/Reveal";
+import ScrollReveal from "@/components/ScrollReveal";
+import ArrowIcon from "@/components/icons/ArrowIcon";
+import { getAboutPage, getAboutValues } from "@/lib/data/site-content";
 import styles from "./about.module.css";
 
 // Hand-coded, not Content-Block-driven -- see
-// docs/adr/0031-about-page-hand-coded-not-block-driven.md for why. Purely
-// static content, so no admin data fetch and nothing to revalidate --
-// this can (and should) statically prerender at build time.
+// docs/adr/0031-about-page-hand-coded-not-block-driven.md -- but its seven
+// named sections (Hero/Introduction, Our Story, Who We Are, What We Do,
+// Our Mission, Our Vision, Our Values) plus a closing CTA are each
+// admin-editable, via their own dedicated fields. See
+// docs/adr/0034-about-page-editable-fields-not-blocks.md and
+// docs/adr/0035-about-page-seven-sections.md. Admin content, so this
+// can't statically prerender.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "About — Handled Properly",
   description: "Learn about Handled Properly, the all-in-one portal for planning unforgettable events.",
 };
 
-const DIFFERENTIATORS = [
-  {
-    title: "One shared source of truth",
-    description:
-      "Staff, clients, and vendors all see the same schedule and the same updates — not their own separate copy that drifts out of date.",
-  },
-  {
-    title: "Built for the day of, not just the planning",
-    description:
-      "Most tools stop at the spreadsheet. We stay with you through setup, service, and breakdown, not just the weeks before.",
-  },
-  {
-    title: "Clear roles, no guessing",
-    description:
-      "Every staff member knows exactly what they're responsible for and when — not a group chat someone has to keep re-explaining.",
-  },
-];
+function paragraphs(body: string): string[] {
+  return body
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
 
-export default function AboutPage() {
+// This site's drifting wave/grid line-art motif (same technique as the
+// homepage's Hero/BuiltForMoments/ClosingCta) -- shared by every black
+// section on this page (Our Story, What We Do, Our Vision, the closing
+// CTA) rather than four copies of the same SVG markup. Each section wraps
+// it in position: relative; overflow: hidden (see .story/.what/.vision/
+// .cta in about.module.css) since this renders position: absolute; inset:
+// 0 via .whatArt.
+function WaveTexture() {
+  return (
+    <svg className={styles.whatArt} viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <path
+        className={`${styles.whatWave} ${styles.whatWave1}`}
+        d="M -50 340 C 150 260, 300 420, 500 300 C 650 220, 750 280, 850 240"
+        stroke="rgba(255,255,255,0.16)"
+        strokeWidth="2"
+        fill="none"
+      />
+      <path
+        className={`${styles.whatWave} ${styles.whatWave2}`}
+        d="M -50 380 C 150 300, 300 460, 500 340 C 650 260, 750 320, 850 280"
+        stroke="rgba(255,255,255,0.09)"
+        strokeWidth="2"
+        fill="none"
+      />
+      <g stroke="rgba(255,255,255,0.07)" strokeWidth="1">
+        {Array.from({ length: 9 }).map((_, i) => (
+          <line key={`v-${i}`} x1={i * 100} y1="0" x2={i * 100} y2="500" />
+        ))}
+        {Array.from({ length: 6 }).map((_, i) => (
+          <line key={`h-${i}`} x1="0" y1={i * 100} x2="800" y2={i * 100} />
+        ))}
+      </g>
+    </svg>
+  );
+}
+
+export default async function AboutPage() {
+  const [about, values] = await Promise.all([getAboutPage(), getAboutValues()]);
+
+  const headlineLines = about.headline.split("\n").map((line) => line.trim()).filter(Boolean);
+
   return (
     <>
       <Navbar />
       <main className={styles.page}>
+        {/* 1. Hero / Introduction -- white, the first beat of the page's
+            alternating white/black/white... rhythm (see the comment on
+            .hero in about.module.css). Immediately in view on load, so
+            this is the one section that animates on a load-time stagger
+            (see .reveal below) rather than a scroll-triggered one;
+            there's nothing to scroll past to see it. */}
         <section className={styles.hero}>
           <div className={styles.heroText}>
-            <p className={styles.eyebrow}>
+            <p className={`${styles.eyebrow} ${styles.reveal}`} style={{ animationDelay: "0.02s" }}>
               <span className={styles.eyebrowLine} />
               ABOUT US
             </p>
             <h1 className={styles.headline}>
-              Big moments.
-              <br />
-              Small details.
-              <br />
-              <span className={styles.headlineMuted}>Handled properly.</span>
+              {headlineLines.map((line, i) => (
+                <span
+                  key={i}
+                  className={`${styles.headlineLine} ${
+                    i === headlineLines.length - 1 ? styles.headlineMuted : ""
+                  } ${styles.reveal}`}
+                  style={{ animationDelay: `${0.14 + i * 0.1}s` }}
+                >
+                  {line}
+                </span>
+              ))}
             </h1>
+            {about.heroIntro && (
+              <p className={`${styles.heroIntro} ${styles.reveal}`} style={{ animationDelay: "0.5s" }}>
+                {about.heroIntro}
+              </p>
+            )}
+            {about.heroTagline && (
+              <p className={`${styles.heroTagline} ${styles.reveal}`} style={{ animationDelay: "0.62s" }}>
+                <span className={styles.heroTaglineBar} aria-hidden="true" />
+                {about.heroTagline}
+              </p>
+            )}
           </div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/about/hero.png" alt="" className={styles.heroImage} />
+          <img
+            src={about.heroImageUrl ?? "/about/hero.png"}
+            alt=""
+            className={`${styles.heroImage} ${styles.reveal}`}
+            style={{ animationDelay: "0.74s" }}
+          />
         </section>
 
-        <Reveal>
-          <section className={styles.story}>
+        {/* 2. Our Story -- black, full-bleed edge to edge on desktop (see
+            the comment on .hero in about.module.css), same drifting
+            wave/grid texture as every other black section on this page --
+            image beside text, centered at the page's usual 1440px width
+            via the inner .sectionRow wrapper. */}
+        <ScrollReveal as="section" className={styles.story}>
+          <WaveTexture />
+          <div className={styles.sectionRow}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/about/story.png" alt="" className={styles.storyImage} />
+            <img src={about.storyImageUrl ?? "/about/story.png"} alt="" className={styles.storyImage} />
+            <div className={styles.storyText}>
+              <p className={styles.kicker}>OUR STORY</p>
+              {paragraphs(about.storyBody).map((p, i) => (
+                <p key={i} className={styles.storyParagraph}>
+                  {p}
+                </p>
+              ))}
+            </div>
+          </div>
+        </ScrollReveal>
+
+        {/* 3. Who We Are -- text/image order flipped from Our Story for
+            rhythm, and back to white -- sections alternate white/black
+            down the page (see the comment on .hero in about.module.css). */}
+        <ScrollReveal as="section" className={styles.who}>
+          <div className={styles.sectionRow}>
             <div className={styles.storyText}>
               <p className={styles.kicker}>WHO WE ARE</p>
-              <p className={styles.storyParagraph}>
-                Handled Properly is an event-staffing and coordination platform for people planning
-                events who don&apos;t want to run the day off a group chat, a spreadsheet, and a
-                stack of sticky notes. We work with clients and event staff wherever the event is
-                happening — weddings, corporate events, galas, and everything in between.
-              </p>
-              <p className={styles.storyParagraph}>
-                We built it after watching the same thing happen event after event: the plan was
-                solid, the vendors were booked, and things still nearly fell apart because nobody
-                had one shared place to see the roster, the timeline, and who was responsible for
-                what. So we built one — a single portal where staff schedules, client updates, and
-                task assignments live together, instead of scattered across texts and inboxes.
-              </p>
+              {paragraphs(about.whoWeAreBody).map((p, i) => (
+                <p key={i} className={styles.storyParagraph}>
+                  {p}
+                </p>
+              ))}
             </div>
-          </section>
-        </Reveal>
+            {about.whoWeAreImageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={about.whoWeAreImageUrl} alt="" className={styles.storyImage} />
+            )}
+          </div>
+        </ScrollReveal>
 
-        <Reveal>
-          <section className={styles.different}>
-            <p className={styles.kicker}>WHAT MAKES US DIFFERENT</p>
-            <div className={styles.differentGrid}>
-              {DIFFERENTIATORS.map((item, index) => (
-                <div key={item.title} className={styles.differentItem}>
-                  <span className={styles.differentNumber}>{String(index + 1).padStart(2, "0")}</span>
-                  <p className={styles.differentTitle}>{item.title}</p>
-                  <p className={styles.differentDescription}>{item.description}</p>
+        {/* 4. What We Do -- black, full-bleed edge to edge on desktop (see
+            the comment on .hero in about.module.css), this site's
+            drifting wave/grid line-art motif (same technique as the
+            homepage's Hero/BuiltForMoments/ClosingCta) now spanning the
+            full section width too, not just its 1440px content column. */}
+        <ScrollReveal as="section" className={styles.what}>
+          <WaveTexture />
+          <div className={styles.whatContent}>
+            {about.whatWeDoImageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={about.whatWeDoImageUrl} alt="" className={styles.whatImage} />
+            )}
+            <div className={styles.whatText}>
+              <p className={styles.kickerLight}>WHAT WE DO</p>
+              {paragraphs(about.whatWeDoBody).map((p, i) => (
+                <p key={i} className={styles.whatParagraph}>
+                  {p}
+                </p>
+              ))}
+            </div>
+          </div>
+        </ScrollReveal>
+
+        {/* 5. Our Mission -- white for the section itself, with a dark,
+            rounded "statement" card inside it: a photo with a scrim and
+            large centered text over it (same full-bleed-photo + gradient-
+            scrim + overlaid-white-text technique the /about-and-connect
+            profile card uses), rather than another side-by-side section
+            -- the one section on this page meant to read as a single bold
+            declaration. Not full-bleed -- it's white, and was already an
+            inset card rather than an edge-to-edge section. */}
+        <ScrollReveal as="section" className={styles.mission}>
+          <div className={styles.missionCard}>
+            {about.missionImageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={about.missionImageUrl} alt="" className={styles.missionImage} />
+            ) : (
+              <div className={styles.missionPlaceholder} aria-hidden="true" />
+            )}
+            <div className={styles.missionScrim} aria-hidden="true" />
+            <div className={styles.missionContent}>
+              <p className={styles.kickerLight}>OUR MISSION</p>
+              {paragraphs(about.missionBody).map((p, i) => (
+                <p key={i} className={styles.missionParagraph}>
+                  {p}
+                </p>
+              ))}
+            </div>
+          </div>
+        </ScrollReveal>
+
+        {/* 6. Our Vision -- back to black, full-bleed edge to edge on
+            desktop (see the comment on .hero in about.module.css), same
+            drifting wave/grid texture as every other black section: a
+            tall image card with the same shine sweep the
+            /about-and-connect profile photo uses, beside the text -- the
+            flourish that makes this section its own thing rather than a
+            repeat of Our Story. */}
+        <ScrollReveal as="section" className={styles.vision}>
+          <WaveTexture />
+          <div className={styles.sectionRow}>
+            <div className={styles.storyText}>
+              <p className={styles.kicker}>OUR VISION</p>
+              {paragraphs(about.visionBody).map((p, i) => (
+                <p key={i} className={styles.storyParagraph}>
+                  {p}
+                </p>
+              ))}
+            </div>
+            <div className={styles.visionImageWrap}>
+              {about.visionImageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={about.visionImageUrl} alt="" className={styles.visionImage} />
+              ) : (
+                <div className={styles.missionPlaceholder} aria-hidden="true" />
+              )}
+              <span className={styles.visionShine} aria-hidden="true" />
+            </div>
+          </div>
+        </ScrollReveal>
+
+        {/* 7. Our Values -- white, one section-level photo as a slim
+            banner above the grid of short title+description cards
+            (unchanged shape from the previous "what makes us different"
+            grid, just reframed as principles -- see AboutValue in
+            site-content.ts). Not full-bleed, like Our Mission. */}
+        {values.length > 0 && (
+          <ScrollReveal as="section" className={styles.values}>
+            <p className={styles.kicker}>OUR VALUES</p>
+            {about.valuesImageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={about.valuesImageUrl} alt="" className={styles.valuesImage} />
+            )}
+            <div className={styles.valuesGrid}>
+              {values.map((value, index) => (
+                <div key={value.id} className={styles.valueItem}>
+                  <span className={styles.valueNumber}>{String(index + 1).padStart(2, "0")}</span>
+                  <p className={styles.valueTitle}>{value.title}</p>
+                  <p className={styles.valueDescription}>{value.description}</p>
                 </div>
               ))}
             </div>
-          </section>
-        </Reveal>
+          </ScrollReveal>
+        )}
 
-        <Reveal>
-          <section className={styles.testimonial}>
-            <span className={styles.testimonialTag}>Placeholder — add a real client quote here</span>
-            <p className={styles.testimonialQuote}>
-              &ldquo;This is where a real client testimonial will go.&rdquo;
-            </p>
-            <p className={styles.testimonialAttribution}>— Client name, event type</p>
-          </section>
-        </Reveal>
-
-        <Reveal>
-          <section className={styles.cta}>
-            <h2 className={styles.ctaHeading}>Ready to plan your event?</h2>
-            <a href="/get-started" className={styles.ctaButton}>
-              <span>Plan Your Event</span>
-              <span aria-hidden="true">↗</span>
-            </a>
-          </section>
-        </Reveal>
+        {/* 8. Closing CTA -- black, same line-art treatment as every other
+            black section on this page and the homepage's own ClosingCta.
+            Not full-bleed -- like Our Mission/Our Values, it's an inset
+            card, matching every other marketing page on this site closing
+            on a dark CTA. */}
+        <ScrollReveal as="section" className={styles.cta}>
+          <WaveTexture />
+          <h2 className={styles.ctaHeading}>{about.ctaHeading}</h2>
+          <a href="/get-started" className={styles.ctaButton}>
+            <span>{about.ctaButtonText}</span>
+            <ArrowIcon direction="up-right" />
+          </a>
+        </ScrollReveal>
       </main>
       <Footer />
     </>

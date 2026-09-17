@@ -136,15 +136,144 @@ export async function getBlogPostById(id: string): Promise<BlogPost | null> {
   return { ...toSummary(data), blocks, imageUrls: resolveBlockImageUrls(blocks) };
 }
 
-export type AboutContent = { blocks: Block[]; imageUrls: Record<string, string> };
+// About Page Content: the singleton row's fixed fields (headshot + about
+// text) -- see docs/adr/0032-about-page-editable-landing-page.md. Distinct
+// from Social Link and Featured Item, which are their own tables below.
+export type AboutPageContent = { headshotUrl: string | null; aboutBody: string };
 
-export async function getAboutContent(): Promise<AboutContent> {
+export async function getAboutPageContent(): Promise<AboutPageContent> {
   const { data } = await createAdminClient()
     .from("site_about_content")
-    .select("blocks")
+    .select("headshot_path, about_body")
     .eq("id", 1)
     .maybeSingle();
 
-  const blocks = parseStoredBlocks(data?.blocks);
-  return { blocks, imageUrls: resolveBlockImageUrls(blocks) };
+  return {
+    headshotUrl: publicImageUrl(data?.headshot_path ?? null),
+    aboutBody: data?.about_body ?? "",
+  };
+}
+
+export type SocialLink = { id: string; iconUrl: string; url: string };
+
+export async function getSocialLinks(): Promise<SocialLink[]> {
+  const { data } = await createAdminClient()
+    .from("site_social_links")
+    .select("id, icon_path, url")
+    .order("sort_order", { ascending: true });
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    iconUrl: publicImageUrl(row.icon_path) ?? "",
+    url: row.url,
+  }));
+}
+
+export type FeaturedItem = {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string | null;
+  linkUrl: string | null;
+};
+
+export async function getFeaturedItems(): Promise<FeaturedItem[]> {
+  const { data } = await createAdminClient()
+    .from("site_featured_items")
+    .select("id, title, description, image_path, link_url")
+    .order("sort_order", { ascending: true });
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    imageUrl: publicImageUrl(row.image_path),
+    linkUrl: row.link_url,
+  }));
+}
+
+// About Page: the bespoke, hand-coded /about marketing page's own fixed
+// fields -- seven named sections (Hero/Introduction, Our Story, Who We
+// Are, What We Do, Our Mission, Our Vision, Our Values) plus a closing
+// CTA, each with its own text and (except Values, which gets one
+// section-level image alongside its list of cards below) exactly one
+// admin-editable image. See docs/adr/0031-about-page-hand-coded-not-
+// block-driven.md, docs/adr/0034-about-page-editable-fields-not-
+// blocks.md, and docs/adr/0035-about-page-seven-sections.md. A completely
+// different page/table from AboutPageContent above, which belongs to the
+// separate /about-and-connect bio-link page. Every image URL comes back
+// null when the admin hasn't uploaded one yet; the page falls back to its
+// own bundled default images in that case.
+export type AboutPage = {
+  headline: string;
+  heroIntro: string;
+  heroTagline: string;
+  heroImageUrl: string | null;
+  storyBody: string;
+  storyImageUrl: string | null;
+  whoWeAreBody: string;
+  whoWeAreImageUrl: string | null;
+  whatWeDoBody: string;
+  whatWeDoImageUrl: string | null;
+  missionBody: string;
+  missionImageUrl: string | null;
+  visionBody: string;
+  visionImageUrl: string | null;
+  valuesImageUrl: string | null;
+  ctaHeading: string;
+  ctaButtonText: string;
+};
+
+export async function getAboutPage(): Promise<AboutPage> {
+  const { data } = await createAdminClient()
+    .from("site_about_page")
+    // A literal string, not a variable built with .join(", ") -- Supabase's
+    // generated types can only infer the returned row shape from a select
+    // list they can read at compile time.
+    .select(
+      "headline, hero_intro, hero_tagline, hero_image_path, story_body, story_image_path, who_we_are_body, who_we_are_image_path, what_we_do_body, what_we_do_image_path, mission_body, mission_image_path, vision_body, vision_image_path, values_image_path, cta_heading, cta_button_text"
+    )
+    .eq("id", 1)
+    .maybeSingle();
+
+  return {
+    headline: data?.headline ?? "",
+    heroIntro: data?.hero_intro ?? "",
+    heroTagline: data?.hero_tagline ?? "",
+    heroImageUrl: publicImageUrl(data?.hero_image_path ?? null),
+    storyBody: data?.story_body ?? "",
+    storyImageUrl: publicImageUrl(data?.story_image_path ?? null),
+    whoWeAreBody: data?.who_we_are_body ?? "",
+    whoWeAreImageUrl: publicImageUrl(data?.who_we_are_image_path ?? null),
+    whatWeDoBody: data?.what_we_do_body ?? "",
+    whatWeDoImageUrl: publicImageUrl(data?.what_we_do_image_path ?? null),
+    missionBody: data?.mission_body ?? "",
+    missionImageUrl: publicImageUrl(data?.mission_image_path ?? null),
+    visionBody: data?.vision_body ?? "",
+    visionImageUrl: publicImageUrl(data?.vision_image_path ?? null),
+    valuesImageUrl: publicImageUrl(data?.values_image_path ?? null),
+    ctaHeading: data?.cta_heading ?? "",
+    ctaButtonText: data?.cta_button_text ?? "",
+  };
+}
+
+// Our Values: one "value" card (title + short description) in the Values
+// section's grid -- renamed from "Differentiator" now that /about has a
+// dedicated Values section rather than a standalone "what makes us
+// different" grid (docs/adr/0035-about-page-seven-sections.md).
+// Admin-managed count (add/edit/remove/reorder), like Social Link and
+// Featured Item.
+export type AboutValue = { id: string; title: string; description: string };
+
+export async function getAboutValues(): Promise<AboutValue[]> {
+  const { data } = await createAdminClient()
+    .from("site_about_values")
+    .select("id, title, description")
+    .order("sort_order", { ascending: true });
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    title: row.title,
+    description: row.description,
+  }));
 }

@@ -1,0 +1,709 @@
+/* Small pulsing diamond shown by ImageGate while it waits for every <img>
+   on the page to finish loading (or the 4s safety timeout, whichever
+   comes first) -- echoes the diamond motif AboutBackground already uses
+   elsewhere on this page instead of a generic spinner. Fades out (rather
+   than disappearing instantly) once .ready lands on the container. */
+.loadingMark {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 50;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  background: #ffffff;
+  /* AboutBackground's diagonal strips mean whatever sits under this mark
+     is sometimes near-white, sometimes solid black -- difference renders
+     as black on the light parts and white on the dark parts either way,
+     instead of a plain white fill disappearing into the light half. */
+  mix-blend-mode: difference;
+  transform: rotate(45deg);
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .loadingMark {
+    animation: loadingMarkPulse 1s ease-in-out infinite;
+  }
+}
+
+@keyframes loadingMarkPulse {
+  0%,
+  100% {
+    transform: rotate(45deg) scale(1);
+    opacity: 0.45;
+  }
+  50% {
+    transform: rotate(45deg) scale(1.6);
+    opacity: 1;
+  }
+}
+
+/* animation: none is load-bearing here, not just opacity: 0 -- a running
+   CSS animation keeps overriding the plain opacity value every frame
+   regardless of this rule's specificity, so without stopping it the mark
+   would keep pulsing (just doing so at opacity: 0 some frames and 1
+   others) instead of actually fading out. */
+.ready .loadingMark {
+  animation: none;
+  opacity: 0;
+}
+
+/* Solid cover over the ENTIRE screen -- AmbientBackground and
+   AboutBackground render immediately (they're siblings of ImageGate in
+   page.tsx, not gated by it), so without this a visitor saw the page's
+   dot-grid/diamond background right away with no content on top of it
+   yet. z-index: 40 sits above .page (z-index: 2) and the fixed
+   backgrounds (z-index: 1) but below .loadingMark (z-index: 50), so the
+   loading diamond still shows through on top of the black while it's
+   up. Fades away once .ready lands, revealing the (by-then fully
+   loaded and already-animating-in) background and content together in
+   one move, rather than the background appearing first and the content
+   catching up afterward. */
+.blackout {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0a0a;
+  opacity: 1;
+  pointer-events: none;
+}
+
+/* Same triangle mark as Navbar/Footer's own logo (see
+   Navbar.module.css/Footer.module.css's .logoMark -- not a separate
+   asset, just the same CSS shape reused here, on its own without the
+   wordmark), centered on the black screen while it's up. Fades out
+   along with .blackout automatically -- it's a child of an element
+   whose own opacity is animating, so it doesn't need its own
+   animation. */
+.blackoutLogoMark {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  background: #ffffff;
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ready .blackout {
+    animation: blackoutFadeOut 0.4s ease-out both;
+  }
+}
+
+@keyframes blackoutFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ready .blackout {
+    opacity: 0;
+  }
+}
+
+/* Wraps {children} in ImageGate -- the whole page fades in as one quick
+   beat right when .ready lands, before any of the individual elements
+   below (profileCard, profileName, kicker, featuredCard, ...) start
+   their own faster staggered entrances on top of it. Without this, the
+   very first thing a visitor saw was already the profile card animating
+   in on its own; this gives the page itself a single unifying opening
+   move first.
+
+   position: relative + z-index: 2 (matching .page below) is load-bearing
+   here, not decorative -- an element with an opacity animation attached
+   forms its own stacking context, which traps .page's own z-index: 2
+   inside it and makes the *wrapper's* stacking position (z-index: auto,
+   i.e. 0) the one that actually gets compared against AboutBackground/
+   AmbientBackground's z-index: 1 -- without this, those fixed
+   backgrounds paint on top of the entire page while this wrapper's
+   animation is attached, diagonal strip included. */
+.pageFade {
+  position: relative;
+  z-index: 2;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ready .pageFade {
+    animation: pageFadeIn 0.2s ease-out both;
+  }
+}
+
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ready .pageFade {
+    opacity: 1;
+  }
+}
+
+/* z-index: 2 (not just position: relative) is load-bearing -- without an
+   explicit value here, real page content and the fixed background layers
+   (AmbientBackground, AboutBackground, both z-index: 1) paint at the same
+   stacking level, and the backgrounds' DOM position after <main> lets
+   them win, showing e.g. AboutBackground's diamonds on top of the photo
+   card instead of behind it. */
+.page {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr minmax(0, 1440px) 1fr;
+  flex: 1;
+}
+
+.page > * {
+  grid-column: 2;
+}
+
+.kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+  padding: 0 40px;
+  opacity: 0;
+}
+
+/* Same fade-up as .profileName (see profileNameIn below) -- picks up
+   right after the hero content has mostly settled, so the featured
+   section reads as the entrance's next beat rather than sitting there
+   fully visible while the hero above it is still animating in. */
+@media (prefers-reduced-motion: no-preference) {
+  .ready .kicker {
+    animation: profileNameIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+  }
+}
+
+/* --- Hero: a single "profile card" -- full-bleed photo with the name,
+   about text, and social row overlaid at the bottom over a dark scrim,
+   rather than photo and text as separate pieces. Same full-bleed-photo +
+   gradient-scrim + white-text-on-top technique Hero.tsx already uses for
+   its mobile video zone (see Hero.module.css's .bgOverlay/.videoZoneText),
+   just applied at every width here instead of mobile-only, and kept to
+   this site's sharp-edged look (4px radius, no drop shadow) rather than
+   the more rounded "app card" look of the reference this was modeled
+   after. */
+.hero {
+  padding: 20px 24px 20px;
+}
+
+/* Taller than a typical card (4/5 rather than 3/4) so the overlaid name +
+   bio + icons have real breathing room above the photo, instead of
+   cropping the photo tighter to make room. */
+.profileCard {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #0a0a0a;
+  /* Hidden until ImageGate adds .ready to its container (see
+     about-and-connect/ImageGate.tsx) -- every image inside has finished
+     loading by then, so the card's own entrance below is the first thing
+     a visitor sees, rather than a blank frame that fills in piecemeal. */
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ready .profileCard {
+    animation: profileCardIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+  }
+}
+
+@keyframes profileCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.profileImage,
+.profilePlaceholder {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profilePlaceholder {
+  background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+}
+
+/* A long, gradual dissolve rather than a quick ramp -- transparent
+   through the top half, then a slow climb to solid, so the photo reads
+   as fading into the card instead of sitting under a dark box. */
+.profileScrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(10, 10, 10, 0) 0%,
+    rgba(10, 10, 10, 0) 30%,
+    rgba(10, 10, 10, 0.35) 55%,
+    rgba(10, 10, 10, 0.75) 80%,
+    rgba(10, 10, 10, 0.95) 100%
+  );
+}
+
+/* Same diagonal sheen technique as the homepage's ClosingCta button (see
+   ClosingCta.module.css's .ctaSheen/closingCtaShine), but linear and
+   two-keyframe rather than ease-in-out with a long hold at the far end --
+   that easing/hold combination reads fine on a small button (the whole
+   sweep is over in a fraction of a second) but is stretched across a
+   much wider photo card here, so the deceleration into the hold read as
+   the sheen slowing down and getting stuck rather than continuing off
+   the edge. A constant speed the whole way across looks like one
+   continuous pass instead. Sits above the photo/scrim but below
+   .profileContent's z-index so it never washes out the overlaid text.
+
+   The end position is pushed out to 450% (not 280%, which is only
+   ~0.35 x 2.8 = 98% of the card's own width -- still just inside the
+   right edge) so the band is fully clear of the card, skew included,
+   before the loop wraps back to the start; otherwise that last visible
+   sliver snaps away instantly instead of finishing its exit. */
+.profileShine {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 35%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+  transform: translateX(-220%) skewX(-12deg);
+  pointer-events: none;
+}
+
+/* 0.5s delay -- holds off until the card/name/social-row entrance below
+   has mostly settled, so this first pass reads as a deliberate "light
+   sweep drawing attention to it" beat rather than running, unseen, while
+   the card itself is still animating in. Scoped to .ready like the rest
+   of the entrance so it doesn't start sweeping before images are loaded.
+   9s total cycle rather than 3s -- the sweep itself still takes the same
+   3s to cross (0% -> 33.3% below covers the same distance in the same
+   time as the old "from/to" version did), it just then holds off-canvas
+   for another 6s before the next pass, so the light sweeps less often
+   instead of moving slower. */
+@media (prefers-reduced-motion: no-preference) {
+  .ready .profileShine {
+    animation: aboutProfileShine 9s linear 0.5s infinite;
+  }
+}
+
+@keyframes aboutProfileShine {
+  0% {
+    transform: translateX(-220%) skewX(-12deg);
+  }
+  33.3% {
+    transform: translateX(450%) skewX(-12deg);
+  }
+  100% {
+    transform: translateX(450%) skewX(-12deg);
+  }
+}
+
+.profileContent {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 32px;
+  color: #ffffff;
+}
+
+.profileName {
+  font-size: clamp(24px, 4.5vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  opacity: 0;
+}
+
+/* Fades in with a slight upward drift once .ready lands -- delayed just
+   past the profile card's own entrance (above) so the name arrives as
+   the card is settling into place, not before it. */
+@media (prefers-reduced-motion: no-preference) {
+  .ready .profileName {
+    animation: profileNameIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+  }
+}
+
+@keyframes profileNameIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.aboutBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 560px;
+}
+
+/* Clamped to 3 lines regardless of how much the admin writes -- this is
+   a short bio blurb overlaid on a photo, not the space for a full
+   multi-paragraph write-up, so it needs a hard cap rather than growing
+   tall enough to push the name/photo out of the card. Paired with the
+   MAX_ABOUT_CHARS truncation in page.tsx as a second line of defense. */
+.aboutBody p {
+  font-size: clamp(14px, 1.8vw, 16px);
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.82);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.aboutBodyEmpty {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+}
+
+.socialRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.socialButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #ffffff;
+  opacity: 0;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+/* Each icon rises into place on its own delay (set inline per-index in
+   page.tsx, 40ms apart, starting at 0.25s once .ready lands -- just after
+   .profileName starts its own entrance) rather than all arriving at
+   once. The "both" fill-mode animation ends at translateY(0)/opacity: 1
+   with no transform, so the separate :hover transition below still
+   applies normally afterward -- the two never run at the same time. */
+@media (prefers-reduced-motion: no-preference) {
+  .ready .socialButton {
+    animation: socialButtonIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+@keyframes socialButtonIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Users who've asked for reduced motion still wait behind the image
+   load gate (the opacity: 0 base states above apply unconditionally),
+   but once .ready lands they see everything appear at once rather than
+   animate in. */
+@media (prefers-reduced-motion: reduce) {
+  .ready .profileCard,
+  .ready .profileName,
+  .ready .socialButton,
+  .ready .kicker,
+  .ready .featuredCard {
+    opacity: 1;
+  }
+}
+
+.socialButton:hover {
+  transform: translateY(-2px);
+  opacity: 0.85;
+}
+
+.socialIcon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+/* --- Featured items --- */
+
+.featured {
+  padding: 0 0 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* A stack of short bars, each an admin-uploaded icon to the left of a
+   title/description, alternating solid dark and light down the list
+   (see .featuredCardDark/.featuredCardLight below) rather than one flat
+   color for every card. */
+.featuredGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 40px;
+}
+
+.featuredCard {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 72px;
+  padding: 14px 24px;
+  border-radius: 4px;
+  overflow: hidden;
+  opacity: 0;
+  /* Slightly see-through rather than solid -- lets AboutBackground's
+     diamonds/strips read faintly through the card instead of the card
+     sitting as a flat opaque block over it. backdrop-filter keeps the
+     title/description legible over whatever's behind by blurring it. */
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* Same fade-up as .kicker/.profileName, staggered per card (delay set
+   inline in page.tsx, 40ms apart) so the list rises into place one row
+   after another instead of every card appearing at once. */
+@media (prefers-reduced-motion: no-preference) {
+  .ready .featuredCard {
+    animation: profileNameIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+a.featuredCard {
+  transition: opacity 0.2s ease;
+}
+
+a.featuredCard:hover {
+  opacity: 0.85;
+}
+
+/* Each tone gets its own surface texture (see .featuredCardDark::before /
+   .featuredCardLight::before below) rather than sharing one -- this rule
+   just holds what both have in common. */
+.featuredCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.featuredCardDark {
+  background: rgba(10, 10, 10, 0.82);
+}
+
+/* Crosshatched grid -- two diagonal hairline grids overlaid at +/-45deg --
+   tiled small and faint enough to read as the card's own surface rather
+   than another shape floating on top of it. */
+.featuredCardDark::before {
+  background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+/* A hairline border does the work a shadow would on a dark card --
+   white-on-the-page's-own-white background needs some edge to read as
+   a distinct card rather than disappearing into the page. Left plain
+   (no ::before texture) -- just the crosshatch on dark cards now. */
+.featuredCardLight {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(10, 10, 10, 0.08);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .featuredCardDark::before {
+    animation: featuredTextureDriftLines 18s linear infinite;
+  }
+}
+
+@keyframes featuredTextureDriftLines {
+  from {
+    background-position: 0 0, 0 0;
+  }
+  to {
+    background-position: 18px 18px, 18px 18px;
+  }
+}
+
+/* A once-in-a-while light sweep, same technique and exact same timing as
+   .profileShine above (same aboutProfileShine keyframes, same 9s/0.7s
+   animation) -- every shine on the page starts from the same .ready
+   moment with identical duration/delay, so the hero photo and every card
+   sweep in lockstep on each pass instead of drifting out of sync. Dark
+   and light cards get their own sweep color below since a plain white
+   band would disappear against the light cards the same way
+   .loadingMark did before it picked up mix-blend-mode (see ImageGate's
+   comment). */
+.featuredShine {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 35%;
+  transform: translateX(-220%) skewX(-12deg);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ready .featuredShine {
+    animation: aboutProfileShine 9s linear 0.5s infinite;
+  }
+}
+
+.featuredCardDark .featuredShine {
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+}
+
+.featuredCardLight .featuredShine {
+  background: linear-gradient(100deg, transparent, rgba(10, 10, 10, 0.1), transparent);
+}
+
+.featuredIcon {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.featuredTextPanel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.featuredDescription {
+  max-width: 100%;
+  font-size: 13px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.featuredCardDark .featuredDescription {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.featuredCardLight .featuredDescription {
+  color: var(--muted);
+}
+
+.featuredTitle {
+  font-size: clamp(15px, 2vw, 18px);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.featuredCardDark .featuredTitle {
+  color: #ffffff;
+}
+
+.featuredCardLight .featuredTitle {
+  color: var(--foreground);
+}
+
+/* Side by side at desktop -- profile card in a narrower left column,
+   the featured list filling a wider column to its right -- rather than
+   the mobile layout's full-width stack just growing wider. 600 + 840
+   keeps the same 1440px overall cap the single-column version used
+   (.page's own minmax(0, 1440px) center track, before this block
+   splits it in two), just as two explicit tracks instead of one.
+
+   1100px (not the 900px this page's other breakpoint used to use) so
+   tablet-width viewports -- which don't have the room to give the
+   profile card a real 600px column without squeezing the featured list
+   down too far -- fall through to the base (mobile) styles below and
+   stay a full-width single-column stack, same as phones. Matches this
+   site's own desktop cutoff elsewhere (see e.g. Hero.module.css). */
+@media (min-width: 1100px) {
+  .page {
+    grid-template-columns: 1fr minmax(0, 600px) minmax(0, 840px) 1fr;
+    column-gap: 48px;
+    align-items: start;
+  }
+
+  .hero {
+    grid-column: 2;
+    padding: 96px 0 0;
+  }
+
+  .featured {
+    grid-column: 3;
+    padding: 96px 0 0;
+  }
+
+  .profileContent {
+    padding: 40px;
+  }
+
+  .kicker {
+    padding: 0;
+  }
+
+  .featuredGrid {
+    padding: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .kicker {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .featuredGrid {
+    padding: 0 20px;
+  }
+
+  .featuredCard {
+    padding: 12px 16px;
+    gap: 12px;
+  }
+
+  .featuredIcon {
+    width: 34px;
+    height: 34px;
+  }
+}

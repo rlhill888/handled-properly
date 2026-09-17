@@ -1,4 +1,12 @@
+/* position + z-index (not just the opaque background) keep this painting
+   above any page's fixed background layer (AmbientBackground,
+   AboutBackground, etc., all z-index: 1) -- without it, a fixed layer's
+   shapes can render on top of the footer instead of behind it once it's
+   scrolled into view, the same stacking issue those components' own
+   pages guard against on their main content. */
 .footer {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
