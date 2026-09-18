@@ -93,18 +93,18 @@
 
 @keyframes aboutDriftA {
   from {
-    transform: translate(-1.4vw, 1vh);
+    transform: translate(-4vw, 3vh);
   }
   to {
-    transform: translate(1.6vw, -1.2vh);
+    transform: translate(5vw, -3.5vh);
   }
 }
 
 @keyframes aboutDriftB {
   from {
-    transform: translate(1.2vw, -1.4vh);
+    transform: translate(3.5vw, -4vh);
   }
   to {
-    transform: translate(-1.6vw, 1.3vh);
+    transform: translate(-5vw, 4vh);
   }
 }
