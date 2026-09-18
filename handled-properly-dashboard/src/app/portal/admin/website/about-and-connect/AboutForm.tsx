@@ -43,25 +43,28 @@ export default function AboutForm({ about }: { about: AboutPageContent }) {
       )}
 
       <div className={styles.field}>
-        <label className={styles.label} htmlFor="about-headshot">
-          {about.headshotUrl ? "Replace headshot" : "Headshot photo"}
-        </label>
-        <input
-          id="about-headshot"
-          name="headshot"
-          type="file"
-          accept="image/*"
-          className={styles.input}
-          onChange={handleFileChange}
-        />
-      </div>
+        <span className={styles.label}>Headshot photo</span>
+        <div className={styles.eventHeaderImageControls}>
+          <label className={styles.secondaryButton} htmlFor="about-headshot">
+            {about.headshotUrl ? "Replace headshot" : "Add headshot"}
+            <input
+              id="about-headshot"
+              name="headshot"
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={handleFileChange}
+            />
+          </label>
 
-      {about.headshotUrl && !previewUrl && (
-        <label className={styles.checkboxRow}>
-          <input type="checkbox" name="remove_headshot" />
-          Remove current headshot
-        </label>
-      )}
+          {about.headshotUrl && !previewUrl && (
+            <label className={styles.checkboxRow}>
+              <input type="checkbox" name="remove_headshot" />
+              Remove current
+            </label>
+          )}
+        </div>
+      </div>
 
       <div className={styles.field}>
         <label className={styles.label} htmlFor="about-body">

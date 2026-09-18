@@ -25,6 +25,20 @@ const BLOCK_TYPE_LABELS: Record<Block["type"], string> = {
   cta: "Call to Action",
 };
 
+// Block types offered when adding a new block. Features and Call to Action
+// stay in BLOCK_TYPE_LABELS (and every render/edit branch below) so any
+// existing block of those types -- created before they were removed here --
+// still displays and edits correctly; they're just no longer offered as a
+// starting template for new blocks.
+const ADDABLE_BLOCK_TYPES: Block["type"][] = [
+  "title",
+  "paragraph",
+  "image",
+  "image_text",
+  "gallery",
+  "divider",
+];
+
 async function uploadImage(file: File): Promise<{ path: string } | { error: string }> {
   const formData = new FormData();
   formData.append("image", file);
@@ -291,34 +305,35 @@ function GalleryBlockEditor({
       )}
 
       {block.items.map((item, index) => (
-        <div key={index} className={styles.galleryItem}>
+        <div key={index} className={styles.blockItem}>
+          <div className={styles.blockItemHeader}>
+            <span className={styles.blockItemLabel}>Image {String(index + 1).padStart(2, "0")}</span>
+            <button
+              type="button"
+              className={sharedStyles.iconButtonDanger}
+              aria-label={`Remove image ${index + 1}`}
+              onClick={() => removeItem(index)}
+            >
+              ×
+            </button>
+          </div>
           <ImagePicker
             imagePath={item.imagePath || null}
             onUploaded={(path) => updateItem(index, { ...item, imagePath: path })}
             label="image"
           />
-          <div className={styles.galleryItemFields}>
-            <input
-              className={sharedStyles.input}
-              placeholder="Title (optional)"
-              value={item.title ?? ""}
-              onChange={(e) => updateItem(index, { ...item, title: e.target.value || null })}
-            />
-            <input
-              className={sharedStyles.input}
-              placeholder="Caption (optional)"
-              value={item.caption ?? ""}
-              onChange={(e) => updateItem(index, { ...item, caption: e.target.value || null })}
-            />
-            <button
-              type="button"
-              className={sharedStyles.dangerButton}
-              style={{ alignSelf: "flex-start" }}
-              onClick={() => removeItem(index)}
-            >
-              Remove
-            </button>
-          </div>
+          <input
+            className={sharedStyles.input}
+            placeholder="Title (optional)"
+            value={item.title ?? ""}
+            onChange={(e) => updateItem(index, { ...item, title: e.target.value || null })}
+          />
+          <input
+            className={sharedStyles.input}
+            placeholder="Caption (optional)"
+            value={item.caption ?? ""}
+            onChange={(e) => updateItem(index, { ...item, caption: e.target.value || null })}
+          />
         </div>
       ))}
 
@@ -365,11 +380,20 @@ function FeaturesBlockEditor({
   return (
     <div className={styles.galleryList}>
       {block.items.map((item, index) => (
-        <div key={index} className={sharedStyles.card}>
+        <div key={index} className={styles.blockItem}>
+          <div className={styles.blockItemHeader}>
+            <span className={styles.blockItemLabel}>Feature {String(index + 1).padStart(2, "0")}</span>
+            <button
+              type="button"
+              className={sharedStyles.iconButtonDanger}
+              aria-label={`Remove feature ${index + 1}`}
+              onClick={() => removeItem(index)}
+            >
+              ×
+            </button>
+          </div>
           <div className={sharedStyles.field}>
-            <label className={sharedStyles.label}>
-              {String(index + 1).padStart(2, "0")} — Title
-            </label>
+            <label className={sharedStyles.label}>Title</label>
             <input
               className={sharedStyles.input}
               value={item.title}
@@ -377,7 +401,7 @@ function FeaturesBlockEditor({
               placeholder="Clarity at every step."
             />
           </div>
-          <div className={sharedStyles.field} style={{ marginTop: 8 }}>
+          <div className={sharedStyles.field}>
             <label className={sharedStyles.label}>Description</label>
             <textarea
               className={sharedStyles.textarea}
@@ -386,14 +410,6 @@ function FeaturesBlockEditor({
               placeholder="From ideas to itineraries, keep everything organized and easy to manage."
             />
           </div>
-          <button
-            type="button"
-            className={sharedStyles.dangerButton}
-            style={{ alignSelf: "flex-start", marginTop: 8 }}
-            onClick={() => removeItem(index)}
-          >
-            Remove
-          </button>
         </div>
       ))}
 
@@ -613,30 +629,33 @@ export default function BlockEditor({
             )}
             {block.type === "cta" && <CtaBlockEditor block={block} onChange={(b) => updateBlock(index, b)} />}
 
-            <div className={sharedStyles.formRow}>
-              <div className={sharedStyles.field}>
-                <label className={sharedStyles.label}>Top spacing (%)</label>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={0.5}
-                  className={sharedStyles.input}
-                  value={block.marginTop}
-                  onChange={(e) => updateBlock(index, { ...block, marginTop: Number(e.target.value) || 0 })}
-                />
-              </div>
-              <div className={sharedStyles.field}>
-                <label className={sharedStyles.label}>Bottom spacing (%)</label>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={0.5}
-                  className={sharedStyles.input}
-                  value={block.marginBottom}
-                  onChange={(e) => updateBlock(index, { ...block, marginBottom: Number(e.target.value) || 0 })}
-                />
+            <div className={styles.blockSpacing}>
+              <span className={styles.blockSpacingLabel}>Spacing</span>
+              <div className={sharedStyles.formRow}>
+                <div className={sharedStyles.field}>
+                  <label className={sharedStyles.label}>Top (%)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.5}
+                    className={sharedStyles.input}
+                    value={block.marginTop}
+                    onChange={(e) => updateBlock(index, { ...block, marginTop: Number(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className={sharedStyles.field}>
+                  <label className={sharedStyles.label}>Bottom (%)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.5}
+                    className={sharedStyles.input}
+                    value={block.marginBottom}
+                    onChange={(e) => updateBlock(index, { ...block, marginBottom: Number(e.target.value) || 0 })}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -645,17 +664,20 @@ export default function BlockEditor({
 
       {blocks.length === 0 && <p className={sharedStyles.emptyState}>No content blocks yet — add one below.</p>}
 
-      <div className={styles.addBlockRow}>
-        {(Object.keys(BLOCK_TYPE_LABELS) as Block["type"][]).map((type) => (
-          <button
-            key={type}
-            type="button"
-            className={sharedStyles.secondaryButton}
-            onClick={() => addBlock(type)}
-          >
-            + {BLOCK_TYPE_LABELS[type]}
-          </button>
-        ))}
+      <div className={styles.addBlockSection}>
+        <span className={styles.addBlockLabel}>Add a block</span>
+        <div className={styles.addBlockRow}>
+          {ADDABLE_BLOCK_TYPES.map((type) => (
+            <button
+              key={type}
+              type="button"
+              className={sharedStyles.secondaryButton}
+              onClick={() => addBlock(type)}
+            >
+              + {BLOCK_TYPE_LABELS[type]}
+            </button>
+          ))}
+        </div>
       </div>
 
       <input type="hidden" name={fieldName} value={JSON.stringify(blocks)} />

@@ -40,7 +40,11 @@ function ImageField({
   const displayUrl = previewUrl ?? currentUrl;
 
   return (
-    <>
+    <div className={styles.field}>
+      <span className={styles.label}>
+        {label} <span className={styles.optional}>(optional)</span>
+      </span>
+
       {displayUrl && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -51,35 +55,37 @@ function ImageField({
         />
       )}
 
-      <div className={styles.field}>
-        <label className={styles.label} htmlFor={`${idPrefix}-image`}>
-          {currentUrl ? `Replace ${label.toLowerCase()}` : label} <span className={styles.optional}>(optional)</span>
+      <div className={styles.eventHeaderImageControls}>
+        <label className={styles.secondaryButton} htmlFor={`${idPrefix}-image`}>
+          {currentUrl ? `Replace ${label.toLowerCase()}` : `Add ${label.toLowerCase()}`}
+          <input
+            id={`${idPrefix}-image`}
+            name={fileFieldName}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={handleChange}
+          />
         </label>
-        <input
-          id={`${idPrefix}-image`}
-          name={fileFieldName}
-          type="file"
-          accept="image/*"
-          className={styles.input}
-          onChange={handleChange}
-        />
-      </div>
 
-      {currentUrl && !previewUrl && (
-        <label className={styles.checkboxRow}>
-          <input type="checkbox" name={removeFieldName} />
-          Remove current {label.toLowerCase()}
-        </label>
-      )}
-    </>
+        {currentUrl && !previewUrl && (
+          <label className={styles.checkboxRow}>
+            <input type="checkbox" name={removeFieldName} />
+            Remove current
+          </label>
+        )}
+      </div>
+    </div>
   );
 }
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
+// A labeled, bordered card grouping one section's fields — see .formSection.
+function FormSection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <h3 style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", margin: "8px 0 -8px" }}>
+    <div className={styles.formSection}>
+      <span className={styles.formSectionLabel}>{label}</span>
       {children}
-    </h3>
+    </div>
   );
 }
 
@@ -90,205 +96,206 @@ export default function AboutPageForm({ about }: { about: AboutPage }) {
     <form action={formAction} className={styles.form}>
       {state?.error && <p className={styles.error}>{state.error}</p>}
 
-      <SectionHeading>Hero / Introduction</SectionHeading>
+      <FormSection label="Hero / Introduction">
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="about-headline">
+            Headline
+          </label>
+          <textarea
+            id="about-headline"
+            name="headline"
+            rows={3}
+            defaultValue={about.headline}
+            className={styles.input}
+            placeholder={"Big moments.\nSmall details.\nHandled properly."}
+          />
+          <p className={styles.optional}>One line per line break. The last line is shown in a lighter, muted color.</p>
+        </div>
 
-      <div className={styles.field}>
-        <label className={styles.label} htmlFor="about-headline">
-          Headline
-        </label>
-        <textarea
-          id="about-headline"
-          name="headline"
-          rows={3}
-          defaultValue={about.headline}
-          className={styles.input}
-          placeholder={"Big moments.\nSmall details.\nHandled properly."}
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="about-hero-intro">
+            Short intro — who you are
+          </label>
+          <textarea
+            id="about-hero-intro"
+            name="hero_intro"
+            rows={3}
+            defaultValue={about.heroIntro}
+            className={styles.input}
+          />
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="about-hero-tagline">
+            One-line mission / positioning
+          </label>
+          <input
+            id="about-hero-tagline"
+            name="hero_tagline"
+            defaultValue={about.heroTagline}
+            className={styles.input}
+          />
+        </div>
+
+        <ImageField
+          idPrefix="about-hero"
+          fileFieldName="hero_image"
+          removeFieldName="remove_hero_image"
+          label="Hero photo"
+          currentUrl={about.heroImageUrl}
         />
-        <p className={styles.optional}>One line per line break. The last line is shown in a lighter, muted color.</p>
-      </div>
+      </FormSection>
 
-      <div className={styles.field}>
-        <label className={styles.label} htmlFor="about-hero-intro">
-          Short intro — who you are
-        </label>
-        <textarea
-          id="about-hero-intro"
-          name="hero_intro"
-          rows={3}
-          defaultValue={about.heroIntro}
-          className={styles.input}
+      <FormSection label="Our Story">
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="about-story-body">
+            Where it started, the original idea, key moments along the way
+          </label>
+          <textarea
+            id="about-story-body"
+            name="story_body"
+            rows={8}
+            defaultValue={about.storyBody}
+            className={styles.input}
+          />
+          <p className={styles.optional}>Leave a blank line between paragraphs.</p>
+        </div>
+
+        <ImageField
+          idPrefix="about-story"
+          fileFieldName="story_image"
+          removeFieldName="remove_story_image"
+          label="Story photo"
+          currentUrl={about.storyImageUrl}
         />
-      </div>
+      </FormSection>
 
-      <div className={styles.field}>
-        <label className={styles.label} htmlFor="about-hero-tagline">
-          One-line mission / positioning
-        </label>
-        <input
-          id="about-hero-tagline"
-          name="hero_tagline"
-          defaultValue={about.heroTagline}
-          className={styles.input}
+      <FormSection label="Who We Are">
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="about-who-we-are-body">
+            The people behind it, backgrounds, what brings everyone together
+          </label>
+          <textarea
+            id="about-who-we-are-body"
+            name="who_we_are_body"
+            rows={6}
+            defaultValue={about.whoWeAreBody}
+            className={styles.input}
+          />
+        </div>
+
+        <ImageField
+          idPrefix="about-who-we-are"
+          fileFieldName="who_we_are_image"
+          removeFieldName="remove_who_we_are_image"
+          label="Photo"
+          currentUrl={about.whoWeAreImageUrl}
         />
-      </div>
+      </FormSection>
 
-      <ImageField
-        idPrefix="about-hero"
-        fileFieldName="hero_image"
-        removeFieldName="remove_hero_image"
-        label="Hero photo"
-        currentUrl={about.heroImageUrl}
-      />
+      <FormSection label="What We Do">
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="about-what-we-do-body">
+            Core products/services, what you provide, and who for
+          </label>
+          <textarea
+            id="about-what-we-do-body"
+            name="what_we_do_body"
+            rows={6}
+            defaultValue={about.whatWeDoBody}
+            className={styles.input}
+          />
+        </div>
 
-      <SectionHeading>Our Story</SectionHeading>
-
-      <div className={styles.field}>
-        <label className={styles.label} htmlFor="about-story-body">
-          Where it started, the original idea, key moments along the way
-        </label>
-        <textarea
-          id="about-story-body"
-          name="story_body"
-          rows={8}
-          defaultValue={about.storyBody}
-          className={styles.input}
+        <ImageField
+          idPrefix="about-what-we-do"
+          fileFieldName="what_we_do_image"
+          removeFieldName="remove_what_we_do_image"
+          label="Photo"
+          currentUrl={about.whatWeDoImageUrl}
         />
-        <p className={styles.optional}>Leave a blank line between paragraphs.</p>
-      </div>
+      </FormSection>
 
-      <ImageField
-        idPrefix="about-story"
-        fileFieldName="story_image"
-        removeFieldName="remove_story_image"
-        label="Story photo"
-        currentUrl={about.storyImageUrl}
-      />
+      <FormSection label="Our Mission">
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="about-mission-body">
+            Why you exist, the change you&apos;re trying to create
+          </label>
+          <textarea
+            id="about-mission-body"
+            name="mission_body"
+            rows={6}
+            defaultValue={about.missionBody}
+            className={styles.input}
+          />
+        </div>
 
-      <SectionHeading>Who We Are</SectionHeading>
-
-      <div className={styles.field}>
-        <label className={styles.label} htmlFor="about-who-we-are-body">
-          The people behind it, backgrounds, what brings everyone together
-        </label>
-        <textarea
-          id="about-who-we-are-body"
-          name="who_we_are_body"
-          rows={6}
-          defaultValue={about.whoWeAreBody}
-          className={styles.input}
+        <ImageField
+          idPrefix="about-mission"
+          fileFieldName="mission_image"
+          removeFieldName="remove_mission_image"
+          label="Photo"
+          currentUrl={about.missionImageUrl}
         />
-      </div>
+      </FormSection>
 
-      <ImageField
-        idPrefix="about-who-we-are"
-        fileFieldName="who_we_are_image"
-        removeFieldName="remove_who_we_are_image"
-        label="Photo"
-        currentUrl={about.whoWeAreImageUrl}
-      />
+      <FormSection label="Our Vision">
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="about-vision-body">
+            Where you&apos;re going, what the future looks like if you succeed
+          </label>
+          <textarea
+            id="about-vision-body"
+            name="vision_body"
+            rows={6}
+            defaultValue={about.visionBody}
+            className={styles.input}
+          />
+        </div>
 
-      <SectionHeading>What We Do</SectionHeading>
-
-      <div className={styles.field}>
-        <label className={styles.label} htmlFor="about-what-we-do-body">
-          Core products/services, what you provide, and who for
-        </label>
-        <textarea
-          id="about-what-we-do-body"
-          name="what_we_do_body"
-          rows={6}
-          defaultValue={about.whatWeDoBody}
-          className={styles.input}
+        <ImageField
+          idPrefix="about-vision"
+          fileFieldName="vision_image"
+          removeFieldName="remove_vision_image"
+          label="Photo"
+          currentUrl={about.visionImageUrl}
         />
-      </div>
+      </FormSection>
 
-      <ImageField
-        idPrefix="about-what-we-do"
-        fileFieldName="what_we_do_image"
-        removeFieldName="remove_what_we_do_image"
-        label="Photo"
-        currentUrl={about.whatWeDoImageUrl}
-      />
+      <FormSection label="Our Values">
+        <p className={styles.optional}>
+          One section photo — the individual value cards themselves are managed below, in their own list.
+        </p>
 
-      <SectionHeading>Our Mission</SectionHeading>
-
-      <div className={styles.field}>
-        <label className={styles.label} htmlFor="about-mission-body">
-          Why you exist, the change you&apos;re trying to create
-        </label>
-        <textarea
-          id="about-mission-body"
-          name="mission_body"
-          rows={6}
-          defaultValue={about.missionBody}
-          className={styles.input}
+        <ImageField
+          idPrefix="about-values"
+          fileFieldName="values_image"
+          removeFieldName="remove_values_image"
+          label="Photo"
+          currentUrl={about.valuesImageUrl}
         />
-      </div>
+      </FormSection>
 
-      <ImageField
-        idPrefix="about-mission"
-        fileFieldName="mission_image"
-        removeFieldName="remove_mission_image"
-        label="Photo"
-        currentUrl={about.missionImageUrl}
-      />
+      <FormSection label="Closing CTA">
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="about-cta-heading">
+            Heading
+          </label>
+          <input id="about-cta-heading" name="cta_heading" defaultValue={about.ctaHeading} className={styles.input} />
+        </div>
 
-      <SectionHeading>Our Vision</SectionHeading>
-
-      <div className={styles.field}>
-        <label className={styles.label} htmlFor="about-vision-body">
-          Where you&apos;re going, what the future looks like if you succeed
-        </label>
-        <textarea
-          id="about-vision-body"
-          name="vision_body"
-          rows={6}
-          defaultValue={about.visionBody}
-          className={styles.input}
-        />
-      </div>
-
-      <ImageField
-        idPrefix="about-vision"
-        fileFieldName="vision_image"
-        removeFieldName="remove_vision_image"
-        label="Photo"
-        currentUrl={about.visionImageUrl}
-      />
-
-      <SectionHeading>Our Values</SectionHeading>
-      <p className={styles.optional} style={{ marginTop: -8 }}>
-        One section photo — the individual value cards themselves are managed below, in their own list.
-      </p>
-
-      <ImageField
-        idPrefix="about-values"
-        fileFieldName="values_image"
-        removeFieldName="remove_values_image"
-        label="Photo"
-        currentUrl={about.valuesImageUrl}
-      />
-
-      <SectionHeading>Closing CTA</SectionHeading>
-
-      <div className={styles.field}>
-        <label className={styles.label} htmlFor="about-cta-heading">
-          Heading
-        </label>
-        <input id="about-cta-heading" name="cta_heading" defaultValue={about.ctaHeading} className={styles.input} />
-      </div>
-
-      <div className={styles.field}>
-        <label className={styles.label} htmlFor="about-cta-button-text">
-          Button text
-        </label>
-        <input
-          id="about-cta-button-text"
-          name="cta_button_text"
-          defaultValue={about.ctaButtonText}
-          className={styles.input}
-        />
-      </div>
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="about-cta-button-text">
+            Button text
+          </label>
+          <input
+            id="about-cta-button-text"
+            name="cta_button_text"
+            defaultValue={about.ctaButtonText}
+            className={styles.input}
+          />
+        </div>
+      </FormSection>
 
       <div className={styles.actions}>
         <SubmitButton pendingLabel="Saving…">Save Changes</SubmitButton>

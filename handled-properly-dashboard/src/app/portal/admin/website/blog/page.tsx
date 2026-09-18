@@ -27,38 +27,36 @@ export default async function BlogPage() {
       {posts.length === 0 ? (
         <p className={styles.emptyState}>No posts yet.</p>
       ) : (
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Category</th>
-              <th>Event date</th>
-              <th>Featured</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {posts.map((post) => (
-              <tr key={post.id}>
-                <td>{post.title}</td>
-                <td>{post.category ?? "—"}</td>
-                <td>{post.eventDate ?? "—"}</td>
-                <td>{post.isFeatured ? <span className={styles.badge}>Featured</span> : "—"}</td>
-                <td>
-                  <div className={styles.actions}>
-                    <Link
-                      href={`/portal/admin/website/blog/${post.id}/edit`}
-                      className={styles.secondaryButton}
-                    >
-                      Edit
-                    </Link>
-                    <DeletePostButton postId={post.id} title={post.title} />
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className={styles.postCardGrid}>
+          {posts.map((post) => (
+            <div key={post.id} className={styles.postCard}>
+              {post.coverImageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={post.coverImageUrl} alt="" className={styles.eventCardImage} />
+              ) : (
+                <div className={styles.eventCardImagePlaceholder}>No cover image</div>
+              )}
+              <div className={styles.postCardBody}>
+                <div className={styles.postCardTitleRow}>
+                  <span className={styles.postCardTitle}>{post.title}</span>
+                  {post.isFeatured && <span className={styles.badge}>Featured</span>}
+                </div>
+                <span className={styles.postCardMeta}>
+                  {post.category ?? "No category"} · {post.eventDate ?? "No event date"}
+                </span>
+              </div>
+              <div className={styles.postCardActions}>
+                <Link
+                  href={`/portal/admin/website/blog/${post.id}/edit`}
+                  className={styles.secondaryButton}
+                >
+                  Edit
+                </Link>
+                <DeletePostButton postId={post.id} title={post.title} />
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

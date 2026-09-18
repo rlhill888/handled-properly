@@ -108,21 +108,32 @@
   gap: 12px;
 }
 
-.galleryItem {
+/* A repeatable item nested inside a block's editor (one Gallery image, one
+   Features entry) -- a numbered label + remove button up top, its fields
+   below, so a list of them reads as a clear stack of small cards instead of
+   a Remove button awkwardly trailing a pair of inputs. */
+.blockItem {
   display: flex;
-  gap: 12px;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 10px;
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 12px;
 }
 
-.galleryItemFields {
+.blockItemHeader {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  flex: 1;
-  min-width: 0;
+}
+
+.blockItemLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .dividerPreview {
@@ -130,6 +141,45 @@
   border: none;
   border-top: 1px solid var(--border);
   margin: 0;
+}
+
+/* A block's own Top/Bottom spacing (%) fields -- set off from its content
+   fields above with a divider and a muted label so it reads as a
+   structural setting, not just two more content fields tacked on the end. */
+.blockSpacing {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.blockSpacingLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* A dashed "well" around the add-block buttons, echoing .imagePlaceholder's
+   dashed border elsewhere in this editor -- reads as "drop/add here" rather
+   than just another row of buttons at the end of the block list. */
+.addBlockSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  padding: 16px;
+}
+
+.addBlockLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .addBlockRow {
@@ -145,8 +195,7 @@
     gap: 8px;
   }
 
-  .imageUpload,
-  .galleryItem {
+  .imageUpload {
     flex-direction: column;
   }
 }

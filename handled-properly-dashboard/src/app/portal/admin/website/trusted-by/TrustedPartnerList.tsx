@@ -24,48 +24,41 @@ export default function TrustedPartnerList({ partners }: { partners: TrustedPart
 
   return (
     <>
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th>Logo</th>
-            <th>Name</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {partners.map((partner) => (
-            <tr key={partner.id}>
-              <td>
+      <div className={styles.itemGrid}>
+        {partners.map((partner) => (
+          <div key={partner.id} className={styles.itemCard}>
+            <div className={styles.itemCardHeader}>
+              <span className={`${styles.itemCardMedia} ${styles.itemCardMediaContain}`}>
                 {partner.logoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={partner.logoUrl} alt="" style={{ height: 28, width: "auto" }} />
+                  <img src={partner.logoUrl} alt="" />
                 ) : (
-                  <span className={styles.emptyState}>—</span>
+                  "No logo"
                 )}
-              </td>
-              <td>{partner.name}</td>
-              <td>
-                <div className={styles.actions}>
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={() => setEditing(partner)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.dangerButton}
-                    onClick={() => handleDelete(partner)}
-                  >
-                    Remove
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              </span>
+              <div className={styles.itemCardBody}>
+                <p className={styles.itemCardTitle}>{partner.name}</p>
+              </div>
+            </div>
+            <div className={styles.itemCardActions}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => setEditing(partner)}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                className={styles.dangerButton}
+                onClick={() => handleDelete(partner)}
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
 
       <Modal open={editing !== null} onClose={() => setEditing(null)} title="Edit Trusted Partner">
         {editing && <EditTrustedPartnerForm partner={editing} />}

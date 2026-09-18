@@ -1,66 +1,12 @@
-/* Small pulsing diamond shown by ImageGate while it waits for every <img>
-   on the page to finish loading (or the 4s safety timeout, whichever
-   comes first) -- echoes the diamond motif AboutBackground already uses
-   elsewhere on this page instead of a generic spinner. Fades out (rather
-   than disappearing instantly) once .ready lands on the container. */
-.loadingMark {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  z-index: 50;
-  width: 10px;
-  height: 10px;
-  margin: -5px 0 0 -5px;
-  background: #ffffff;
-  /* AboutBackground's diagonal strips mean whatever sits under this mark
-     is sometimes near-white, sometimes solid black -- difference renders
-     as black on the light parts and white on the dark parts either way,
-     instead of a plain white fill disappearing into the light half. */
-  mix-blend-mode: difference;
-  transform: rotate(45deg);
-  pointer-events: none;
-  transition: opacity 0.4s ease;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .loadingMark {
-    animation: loadingMarkPulse 1s ease-in-out infinite;
-  }
-}
-
-@keyframes loadingMarkPulse {
-  0%,
-  100% {
-    transform: rotate(45deg) scale(1);
-    opacity: 0.45;
-  }
-  50% {
-    transform: rotate(45deg) scale(1.6);
-    opacity: 1;
-  }
-}
-
-/* animation: none is load-bearing here, not just opacity: 0 -- a running
-   CSS animation keeps overriding the plain opacity value every frame
-   regardless of this rule's specificity, so without stopping it the mark
-   would keep pulsing (just doing so at opacity: 0 some frames and 1
-   others) instead of actually fading out. */
-.ready .loadingMark {
-  animation: none;
-  opacity: 0;
-}
-
 /* Solid cover over the ENTIRE screen -- AmbientBackground and
    AboutBackground render immediately (they're siblings of ImageGate in
    page.tsx, not gated by it), so without this a visitor saw the page's
    dot-grid/diamond background right away with no content on top of it
    yet. z-index: 40 sits above .page (z-index: 2) and the fixed
-   backgrounds (z-index: 1) but below .loadingMark (z-index: 50), so the
-   loading diamond still shows through on top of the black while it's
-   up. Fades away once .ready lands, revealing the (by-then fully
-   loaded and already-animating-in) background and content together in
-   one move, rather than the background appearing first and the content
-   catching up afterward. */
+   backgrounds (z-index: 1). Fades away once .ready lands, revealing the
+   (by-then fully loaded and already-animating-in) background and content
+   together in one move, rather than the background appearing first and
+   the content catching up afterward. */
 .blackout {
   position: fixed;
   inset: 0;
@@ -124,7 +70,7 @@
    i.e. 0) the one that actually gets compared against AboutBackground/
    AmbientBackground's z-index: 1 -- without this, those fixed
    backgrounds paint on top of the entire page while this wrapper's
-   animation is attached, diagonal strip included. */
+   animation is attached. */
 .pageFade {
   position: relative;
   z-index: 2;
@@ -487,7 +433,7 @@
   overflow: hidden;
   opacity: 0;
   /* Slightly see-through rather than solid -- lets AboutBackground's
-     diamonds/strips read faintly through the card instead of the card
+     diamonds read faintly through the card instead of the card
      sitting as a flat opaque block over it. backdrop-filter keeps the
      title/description legible over whatever's behind by blurring it. */
   backdrop-filter: blur(6px);
@@ -564,9 +510,7 @@ a.featuredCard:hover {
    moment with identical duration/delay, so the hero photo and every card
    sweep in lockstep on each pass instead of drifting out of sync. Dark
    and light cards get their own sweep color below since a plain white
-   band would disappear against the light cards the same way
-   .loadingMark did before it picked up mix-blend-mode (see ImageGate's
-   comment). */
+   band would disappear against the light cards. */
 .featuredShine {
   position: absolute;
   inset-block: 0;
@@ -688,6 +632,13 @@ a.featuredCard:hover {
 }
 
 @media (max-width: 640px) {
+  /* Noticeably shorter than the base 4/5 on phones -- the overlaid
+     name/bio/icons don't need that much photo behind them on a narrow
+     screen, and it leaves more of the page visible above the fold. */
+  .profileCard {
+    aspect-ratio: 1 / 1;
+  }
+
   .kicker {
     padding-left: 20px;
     padding-right: 20px;

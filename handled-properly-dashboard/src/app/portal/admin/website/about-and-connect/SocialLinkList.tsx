@@ -30,62 +30,57 @@ export default function SocialLinkList({ links }: { links: SocialLink[] }) {
 
   return (
     <>
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th>Icon</th>
-            <th>Link</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {links.map((link, index) => (
-            <tr key={link.id}>
-              <td>
+      <div className={styles.itemGrid}>
+        {links.map((link, index) => (
+          <div key={link.id} className={styles.itemCard}>
+            <div className={styles.itemCardHeader}>
+              <span className={`${styles.itemCardMedia} ${styles.itemCardMediaContain}`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={link.iconUrl} alt="" style={{ height: 28, width: 28, objectFit: "contain" }} />
-              </td>
-              <td>{link.url}</td>
-              <td>
-                <div className={styles.actions}>
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={() => handleMove(link, "up")}
-                    disabled={index === 0}
-                    aria-label="Move up"
-                  >
-                    ↑
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={() => handleMove(link, "down")}
-                    disabled={index === links.length - 1}
-                    aria-label="Move down"
-                  >
-                    ↓
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={() => setEditing(link)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.dangerButton}
-                    onClick={() => handleDelete(link)}
-                  >
-                    Remove
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                <img src={link.iconUrl} alt="" />
+              </span>
+              <div className={styles.itemCardBody}>
+                <p className={styles.itemCardTitle}>{link.url}</p>
+              </div>
+            </div>
+            <div className={styles.itemCardActions}>
+              <div className={styles.itemCardReorder}>
+                <button
+                  type="button"
+                  className={styles.iconButton}
+                  onClick={() => handleMove(link, "up")}
+                  disabled={index === 0}
+                  aria-label="Move up"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  className={styles.iconButton}
+                  onClick={() => handleMove(link, "down")}
+                  disabled={index === links.length - 1}
+                  aria-label="Move down"
+                >
+                  ↓
+                </button>
+              </div>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => setEditing(link)}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                className={styles.dangerButton}
+                onClick={() => handleDelete(link)}
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
 
       <Modal open={editing !== null} onClose={() => setEditing(null)} title="Edit Social Link">
         {editing && <EditSocialLinkForm link={editing} />}

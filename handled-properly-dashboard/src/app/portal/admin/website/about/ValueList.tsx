@@ -30,51 +30,44 @@ export default function ValueList({ items }: { items: AboutValue[] }) {
 
   return (
     <>
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Description</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item, index) => (
-            <tr key={item.id}>
-              <td>{item.title}</td>
-              <td>{item.description || <span className={styles.emptyState}>—</span>}</td>
-              <td>
-                <div className={styles.actions}>
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={() => handleMove(item, "up")}
-                    disabled={index === 0}
-                    aria-label="Move up"
-                  >
-                    ↑
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={() => handleMove(item, "down")}
-                    disabled={index === items.length - 1}
-                    aria-label="Move down"
-                  >
-                    ↓
-                  </button>
-                  <button type="button" className={styles.secondaryButton} onClick={() => setEditing(item)}>
-                    Edit
-                  </button>
-                  <button type="button" className={styles.dangerButton} onClick={() => handleDelete(item)}>
-                    Remove
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className={styles.itemGrid}>
+        {items.map((item, index) => (
+          <div key={item.id} className={styles.itemCard}>
+            <div className={styles.itemCardBody}>
+              <p className={styles.itemCardTitle}>{item.title}</p>
+              {item.description && <p className={styles.itemCardDescription}>{item.description}</p>}
+            </div>
+            <div className={styles.itemCardActions}>
+              <div className={styles.itemCardReorder}>
+                <button
+                  type="button"
+                  className={styles.iconButton}
+                  onClick={() => handleMove(item, "up")}
+                  disabled={index === 0}
+                  aria-label="Move up"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  className={styles.iconButton}
+                  onClick={() => handleMove(item, "down")}
+                  disabled={index === items.length - 1}
+                  aria-label="Move down"
+                >
+                  ↓
+                </button>
+              </div>
+              <button type="button" className={styles.secondaryButton} onClick={() => setEditing(item)}>
+                Edit
+              </button>
+              <button type="button" className={styles.dangerButton} onClick={() => handleDelete(item)}>
+                Remove
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
 
       <Modal open={editing !== null} onClose={() => setEditing(null)} title="Edit Value">
         {editing && <EditValueForm item={editing} />}

@@ -602,6 +602,17 @@
   margin-bottom: 16px;
 }
 
+/* A card's own section heading with a trailing action (e.g. "+ New Value")
+   pinned to the card's right edge, rather than sitting right next to the
+   heading text the way .titleRow lays out a page-level title + button. */
+.sectionHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
 .link {
   color: var(--foreground);
   font-weight: 700;
@@ -833,6 +844,186 @@
   background: var(--surface);
   border-radius: 6px;
   padding: 16px;
+}
+
+/* Card-grid replacement for a plain admin list table (Trusted Partners,
+   Values, Featured Items, Social Links) — same visual language as the
+   event-tracker's assignment cards (white bg, hairline border that darkens
+   on hover, a divider-topped actions row) instead of cramped table rows. */
+.itemGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.itemCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.itemCard:hover {
+  border-color: #0a0a0a;
+}
+
+.itemCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.itemCardMedia {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--surface);
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.itemCardMedia img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.itemCardMediaContain img {
+  object-fit: contain;
+  padding: 7px;
+}
+
+.itemCardBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemCardTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemCardSubtitle {
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+.itemCardDescription {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.itemCardActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.itemCardReorder {
+  display: flex;
+  gap: 4px;
+  margin-right: auto;
+}
+
+/* A labeled, visually separated sub-section within a longer form (e.g. one
+   of the About page's eight sections) — the same bordered-card treatment a
+   content Block gets in the page builder, so a long form reads as a stack
+   of distinct sections instead of one undifferentiated scroll. */
+.formSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 18px;
+}
+
+.formSectionLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Card-grid post listing (Events Blog) — a wider sibling of .itemCard with
+   room for a cover image, built from the same pieces as .eventCard but as
+   a plain div (not a Link) since each card needs its own Edit/Delete
+   actions row rather than being click-through in its entirety. */
+.postCardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.postCard {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.postCard:hover {
+  border-color: #0a0a0a;
+}
+
+.postCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+}
+
+.postCardTitleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.postCardTitle {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--foreground);
+}
+
+.postCardMeta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.postCardActions {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px 14px;
+  border-top: 1px solid var(--border);
 }
 
 @media (max-width: 640px) {

@@ -21,15 +21,9 @@ import styles from "./AboutBackground.module.css";
 // rather than merging with an inline one -- a rotate() set on the same
 // element as the animation would just get overwritten.
 type Shape = {
-  type: "band" | "outlineLg" | "outlineSm" | "solidXs" | "strip";
+  type: "band" | "outlineLg" | "outlineSm" | "solidXs";
   wrapperStyle: CSSProperties;
   rotate?: number;
-  // Pivot the rotation around the shape's own left-center edge instead of
-  // its center (the default) -- lets a strip's wrapper top/left place its
-  // pivot exactly at a viewport corner, so the shape sweeps outward from
-  // that corner at the given angle instead of rotating in place around
-  // its middle. Used for the corner-to-corner diagonal strip below.
-  originLeft?: boolean;
   drift: 1 | 2 | 3 | 4;
 };
 
@@ -41,24 +35,6 @@ type Shape = {
 // true viewport corner means at least part of each one lands in that
 // slim margin instead of being fully hidden.
 const SHAPES: Shape[] = [
-  // A solid (not blurred/faint like the bands) diagonal strip anchored at
-  // the true top-left corner, sweeping down and out to the right --
-  // distinct from the two soft corner clusters below, and the one place
-  // this background commits to a bold, fully opaque black shape rather
-  // than a low-opacity tint.
-  { type: "strip", wrapperStyle: { top: "-3vh", left: "-14vw", width: "92vw", height: "7vw" }, rotate: -8, drift: 2 },
-
-  // A second strip, same corner and same solid treatment, running the
-  // full corner-to-corner diagonal (top-left to bottom-right) instead of
-  // nearly horizontal like the one above. originLeft pins the rotation
-  // pivot to this shape's own left-center edge, placed right at the
-  // corner via the wrapper's top/left -- the shape then sweeps out from
-  // that exact point at the given angle, rather than rotating around its
-  // middle (which would need the wrapper positioned and sized just right
-  // for the pivot to land anywhere close to the corner -- see the
-  // straightforward math in the comment on `originLeft` above).
-  { type: "strip", wrapperStyle: { top: "-3vh", left: "-3vw", width: "115vw", height: "6vw" }, rotate: 40, originLeft: true, drift: 4 },
-
   // Top-right cluster
   { type: "band", wrapperStyle: { top: "-14vh", right: "-12vw", width: "40vw", height: "68vh" }, rotate: 38, drift: 1 },
   { type: "band", wrapperStyle: { top: "-6vh", right: "-18vw", width: "26vw", height: "48vh" }, rotate: -40, drift: 2 },
@@ -82,7 +58,6 @@ const SHAPE_CLASS: Record<Shape["type"], string> = {
   outlineLg: "outlineLg",
   outlineSm: "outlineSm",
   solidXs: "solidXs",
-  strip: "strip",
 };
 
 export default function AboutBackground() {
@@ -92,14 +67,7 @@ export default function AboutBackground() {
         <div key={i} className={`${styles.shapeWrap} ${styles[`drift${shape.drift}`]}`} style={shape.wrapperStyle}>
           <span
             className={styles[SHAPE_CLASS[shape.type]]}
-            style={
-              shape.rotate !== undefined
-                ? {
-                    transform: `rotate(${shape.rotate}deg)`,
-                    transformOrigin: shape.originLeft ? "0% 50%" : undefined,
-                  }
-                : undefined
-            }
+            style={shape.rotate !== undefined ? { transform: `rotate(${shape.rotate}deg)` } : undefined}
           />
         </div>
       ))}

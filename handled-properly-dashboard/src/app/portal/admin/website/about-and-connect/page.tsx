@@ -25,15 +25,13 @@ export default async function AboutAndConnectAdminPage() {
       </div>
 
       <div className={styles.card}>
-        <h2 className={styles.title} style={{ fontSize: 18, marginTop: 0 }}>
-          Headshot &amp; About Text
-        </h2>
+        <h2 className={styles.sectionHeading}>Headshot &amp; About Text</h2>
         <AboutForm about={about} />
       </div>
 
       <div className={styles.card}>
-        <div className={styles.titleRow}>
-          <h2 className={styles.title} style={{ fontSize: 18, marginTop: 0 }}>
+        <div className={styles.sectionHeaderRow}>
+          <h2 className={styles.sectionHeading} style={{ marginBottom: 0 }}>
             Social Links
           </h2>
           <AddModalButton label="New Social Link" modalTitle="New Social Link">
@@ -45,8 +43,8 @@ export default async function AboutAndConnectAdminPage() {
       </div>
 
       <div className={styles.card}>
-        <div className={styles.titleRow}>
-          <h2 className={styles.title} style={{ fontSize: 18, marginTop: 0 }}>
+        <div className={styles.sectionHeaderRow}>
+          <h2 className={styles.sectionHeading} style={{ marginBottom: 0 }}>
             Featured Items
           </h2>
           <AddModalButton label="New Featured Item" modalTitle="New Featured Item">

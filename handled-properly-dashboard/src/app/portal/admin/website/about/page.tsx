@@ -22,15 +22,13 @@ export default async function AboutPageAdminPage() {
       </div>
 
       <div className={styles.card}>
-        <h2 className={styles.title} style={{ fontSize: 18, marginTop: 0 }}>
-          Sections
-        </h2>
+        <h2 className={styles.sectionHeading}>Sections</h2>
         <AboutPageForm about={about} />
       </div>
 
       <div className={styles.card}>
-        <div className={styles.titleRow}>
-          <h2 className={styles.title} style={{ fontSize: 18, marginTop: 0 }}>
+        <div className={styles.sectionHeaderRow}>
+          <h2 className={styles.sectionHeading} style={{ marginBottom: 0 }}>
             Our Values
           </h2>
           <AddModalButton label="New Value" modalTitle="New Value">
