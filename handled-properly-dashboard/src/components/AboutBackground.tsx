@@ -5,13 +5,13 @@ import styles from "./AboutBackground.module.css";
 // Connect page: two diagonal corner clusters (top-right, bottom-left)
 // rather than shapes scattered across the whole canvas -- each cluster
 // mixes a couple of large, soft blurred gray bands bleeding off the
-// corner with a handful of crisp diamonds (a large and a small hollow
-// outline, plus a couple of tiny solid black accents), leaving the
-// middle of the page clean. Every shape drifts on its own slow,
-// independent loop so the composition keeps moving rather than reading
-// as a fixed graphic -- fixed like AmbientBackground (which this page
-// also renders) so it stays parked in the viewport while content scrolls
-// over it.
+// corner with a dense scatter of crisp diamonds (one large hollow
+// outline, several smaller hollow outlines, and several tiny solid
+// black accents), leaving the middle of the page clean. Every shape
+// drifts on its own slow, independent loop so the composition keeps
+// moving rather than reading as a fixed graphic -- fixed like
+// AmbientBackground (which this page also renders) so it stays parked
+// in the viewport while content scrolls over it.
 //
 // Each shape is a positioned wrapper (top/right/bottom/left -- animated
 // with a translate-only drift) around an inner <span> that carries the
@@ -43,6 +43,10 @@ const SHAPES: Shape[] = [
   { type: "outlineLg", wrapperStyle: { top: "1vh", right: "-2vw" }, drift: 4 },
   { type: "solidXs", wrapperStyle: { top: "14vh", right: "1vw" }, drift: 2 },
   { type: "outlineSm", wrapperStyle: { top: "21vh", right: "2vw" }, drift: 3 },
+  { type: "solidXs", wrapperStyle: { top: "8vh", right: "12vw" }, drift: 4 },
+  { type: "outlineSm", wrapperStyle: { top: "10vh", right: "-3vw" }, drift: 2 },
+  { type: "solidXs", wrapperStyle: { top: "26vh", right: "6vw" }, drift: 1 },
+  { type: "outlineSm", wrapperStyle: { top: "5vh", right: "15vw" }, drift: 3 },
 
   // Bottom-left cluster
   { type: "band", wrapperStyle: { bottom: "-14vh", left: "-12vw", width: "40vw", height: "68vh" }, rotate: 38, drift: 2 },
@@ -51,6 +55,11 @@ const SHAPES: Shape[] = [
   { type: "outlineSm", wrapperStyle: { bottom: "2vh", left: "2vw" }, drift: 3 },
   { type: "outlineLg", wrapperStyle: { bottom: "1vh", left: "-2vw" }, drift: 1 },
   { type: "solidXs", wrapperStyle: { bottom: "14vh", left: "1vw" }, drift: 2 },
+  { type: "outlineSm", wrapperStyle: { bottom: "21vh", left: "2vw" }, drift: 4 },
+  { type: "solidXs", wrapperStyle: { bottom: "8vh", left: "12vw" }, drift: 1 },
+  { type: "outlineSm", wrapperStyle: { bottom: "10vh", left: "-3vw" }, drift: 3 },
+  { type: "solidXs", wrapperStyle: { bottom: "26vh", left: "6vw" }, drift: 4 },
+  { type: "outlineSm", wrapperStyle: { bottom: "5vh", left: "15vw" }, drift: 2 },
 ];
 
 const SHAPE_CLASS: Record<Shape["type"], string> = {
