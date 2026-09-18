@@ -12,6 +12,14 @@ import styles from "./about-and-connect.module.css";
 // content (the page's own data fetch stays in page.tsx); this component
 // only needs to exist client-side to track the load events and flip a
 // class once they're done.
+//
+// The loading screen also always stays up at least this long, even when
+// every image is already warm in cache and would otherwise resolve near-
+// instantly -- a loading screen that flashes for a few ms reads as a
+// glitch, not a load. If images take longer than this, that's fine: they
+// still gate .ready same as before, this just sets a floor under it, not
+// a ceiling.
+const MIN_LOADING_MS = 1000;
 
 export default function ImageGate({ children }: { children: React.ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -21,13 +29,13 @@ export default function ImageGate({ children }: { children: React.ReactNode }) {
     const container = containerRef.current;
     if (!container) return;
 
-    const images = Array.from(container.querySelectorAll("img"));
-    if (images.length === 0) {
-      setReady(true);
-      return;
-    }
-
     let cancelled = false;
+
+    const minDelay = new Promise<void>((resolve) => {
+      setTimeout(resolve, MIN_LOADING_MS);
+    });
+
+    const images = Array.from(container.querySelectorAll("img"));
 
     const waits = images.map(
       (img) =>
@@ -54,7 +62,12 @@ export default function ImageGate({ children }: { children: React.ReactNode }) {
       setTimeout(resolve, 4000);
     });
 
-    Promise.race([Promise.all(waits), timeout]).then(() => {
+    const imagesReady = Promise.race([Promise.all(waits), timeout]);
+
+    // Both have to clear -- images loaded (or timed out) AND the minimum
+    // floor above -- so a fast load still waits out the floor, and a slow
+    // one still waits for the images (up to the 4s cap) beyond it.
+    Promise.all([imagesReady, minDelay]).then(() => {
       if (!cancelled) setReady(true);
     });
 

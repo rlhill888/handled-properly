@@ -22,10 +22,13 @@
 /* Same triangle mark as Navbar/Footer's own logo (see
    Navbar.module.css/Footer.module.css's .logoMark -- not a separate
    asset, just the same CSS shape reused here, on its own without the
-   wordmark), centered on the black screen while it's up. Fades out
-   along with .blackout automatically -- it's a child of an element
-   whose own opacity is animating, so it doesn't need its own
-   animation. */
+   wordmark), centered on the black screen while it's up. Pulses gently
+   in place -- a plain, static mark reads as a stalled page rather than
+   one that's actively loading, but this stays a breathing animation on
+   the logo itself rather than a separate spinner/shape next to it.
+   Fades out along with .blackout automatically -- it's a child of an
+   element whose own opacity is animating, so it doesn't need its own
+   fade-out. */
 .blackoutLogoMark {
   width: 34px;
   height: 34px;
@@ -35,8 +38,31 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  .blackoutLogoMark {
+    animation: blackoutLogoPulse 0.9s ease-in-out infinite;
+  }
+
   .ready .blackout {
     animation: blackoutFadeOut 0.4s ease-out both;
+  }
+
+  /* Stops the pulse once .ready lands -- .blackout is already fading to
+     opacity: 0 by then, so this is just to not leave an infinite
+     animation running forever on a now-invisible element. */
+  .ready .blackoutLogoMark {
+    animation: none;
+  }
+}
+
+@keyframes blackoutLogoPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
   }
 }
 
