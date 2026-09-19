@@ -35,6 +35,8 @@ function revalidateAbout() {
 
 // --- About text + headshot (singleton row) ---
 
+const HEX_COLOR_RE = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+
 export async function updateAboutPageContent(
   _prevState: ActionState,
   formData: FormData
@@ -43,12 +45,25 @@ export async function updateAboutPageContent(
 
   const aboutBody = String(formData.get("about_body") ?? "").trim();
   const removeHeadshot = formData.get("remove_headshot") === "on";
+  const removeBackgroundImage = formData.get("remove_background_image") === "on";
   const file = formData.get("headshot");
+  const backgroundFile = formData.get("background_image");
+
+  const backgroundColorRaw = String(formData.get("background_color") ?? "").trim();
+  if (backgroundColorRaw && !HEX_COLOR_RE.test(backgroundColorRaw)) {
+    return { error: "Background color must be a hex color like #0a0a0a." };
+  }
+  const backgroundColor = backgroundColorRaw || null;
+
+  const fadeIntensityRaw = Number(formData.get("profile_fade_intensity"));
+  if (!Number.isInteger(fadeIntensityRaw) || fadeIntensityRaw < 0 || fadeIntensityRaw > 100) {
+    return { error: "Photo fade intensity must be a whole number between 0 and 100." };
+  }
 
   const supabase = await createSupabaseServerClient();
   const { data: existing } = await supabase
     .from("site_about_content")
-    .select("headshot_path")
+    .select("headshot_path, background_image_path")
     .eq("id", 1)
     .maybeSingle();
 
@@ -62,15 +77,35 @@ export async function updateAboutPageContent(
     headshotPath = null;
   }
 
+  let backgroundImagePath = existing?.background_image_path ?? null;
+
+  if (backgroundFile instanceof File && backgroundFile.size > 0) {
+    const uploaded = await uploadSiteImage(backgroundFile, "about/background");
+    if ("error" in uploaded) return { error: uploaded.error };
+    backgroundImagePath = uploaded.path;
+  } else if (removeBackgroundImage) {
+    backgroundImagePath = null;
+  }
+
   const { error } = await supabase
     .from("site_about_content")
-    .update({ about_body: aboutBody, headshot_path: headshotPath, updated_at: new Date().toISOString() })
+    .update({
+      about_body: aboutBody,
+      headshot_path: headshotPath,
+      background_color: backgroundColor,
+      background_image_path: backgroundImagePath,
+      profile_fade_intensity: fadeIntensityRaw,
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", 1);
 
   if (error) return { error: error.message };
 
   if (existing?.headshot_path && existing.headshot_path !== headshotPath) {
     await createAdminClient().storage.from("site-images").remove([existing.headshot_path]);
+  }
+  if (existing?.background_image_path && existing.background_image_path !== backgroundImagePath) {
+    await createAdminClient().storage.from("site-images").remove([existing.background_image_path]);
   }
 
   revalidateAbout();

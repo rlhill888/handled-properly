@@ -47,12 +47,29 @@ export default async function AboutAndConnectPage() {
 
   return (
     <>
+      {(about.backgroundColor || about.backgroundImageUrl) && (
+        <div
+          className={styles.customBackground}
+          style={{
+            backgroundColor: about.backgroundColor ?? undefined,
+            backgroundImage: about.backgroundImageUrl ? `url(${about.backgroundImageUrl})` : undefined,
+          }}
+          aria-hidden="true"
+        />
+      )}
       <AmbientBackground />
-      <AboutBackground />
+      {/* AboutBackground's diamonds are decoration for the site's own
+          plain white default -- an admin-uploaded photo background is its
+          own finished image, so layering the diamond motif on top of it
+          would just clutter it rather than accent it. */}
+      {!about.backgroundImageUrl && <AboutBackground />}
       <ImageGate>
         <main className={styles.page}>
           <section className={styles.hero}>
-            <div className={styles.profileCard}>
+            <div
+              className={styles.profileCard}
+              style={{ "--profile-fade-intensity": about.profileFadeIntensity } as React.CSSProperties}
+            >
               {about.headshotUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={about.headshotUrl} alt="" className={styles.profileImage} />

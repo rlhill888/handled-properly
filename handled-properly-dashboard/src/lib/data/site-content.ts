@@ -137,20 +137,37 @@ export async function getBlogPostById(id: string): Promise<BlogPost | null> {
 }
 
 // About Page Content: the singleton row's fixed fields (headshot + about
-// text) -- see docs/adr/0032-about-page-editable-landing-page.md. Distinct
-// from Social Link and Featured Item, which are their own tables below.
-export type AboutPageContent = { headshotUrl: string | null; aboutBody: string };
+// text + optional page background) -- see
+// docs/adr/0032-about-page-editable-landing-page.md. Distinct from Social
+// Link and Featured Item, which are their own tables below.
+export type AboutPageContent = {
+  headshotUrl: string | null;
+  aboutBody: string;
+  backgroundColor: string | null;
+  backgroundImageUrl: string | null;
+  // What percentage of the profile photo's own height, measured up from
+  // the bottom, fades away to transparent (0-100, see
+  // about-and-connect.module.css's .profileImage mask) -- revealing
+  // whatever's actually behind the card. Not tied to
+  // backgroundColor/backgroundImageUrl above, which are the page's own
+  // background rather than this fade on the photo itself (though the
+  // fade is what makes that background visible through the photo).
+  profileFadeIntensity: number;
+};
 
 export async function getAboutPageContent(): Promise<AboutPageContent> {
   const { data } = await createAdminClient()
     .from("site_about_content")
-    .select("headshot_path, about_body")
+    .select("headshot_path, about_body, background_color, background_image_path, profile_fade_intensity")
     .eq("id", 1)
     .maybeSingle();
 
   return {
     headshotUrl: publicImageUrl(data?.headshot_path ?? null),
     aboutBody: data?.about_body ?? "",
+    backgroundColor: data?.background_color ?? null,
+    backgroundImageUrl: publicImageUrl(data?.background_image_path ?? null),
+    profileFadeIntensity: data?.profile_fade_intensity ?? 40,
   };
 }
 

@@ -263,7 +263,7 @@
      this stays mobile-only. */
   .sticky {
     align-items: flex-start;
-    padding-top: 0;
+    padding-top: 24px;
   }
 
   .layout {

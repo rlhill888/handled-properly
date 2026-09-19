@@ -1123,20 +1123,29 @@ export type Database = {
       site_about_content: {
         Row: {
           about_body: string
+          background_color: string | null
+          background_image_path: string | null
           headshot_path: string | null
           id: number
+          profile_fade_intensity: number
           updated_at: string
         }
         Insert: {
           about_body?: string
+          background_color?: string | null
+          background_image_path?: string | null
           headshot_path?: string | null
           id?: number
+          profile_fade_intensity?: number
           updated_at?: string
         }
         Update: {
           about_body?: string
+          background_color?: string | null
+          background_image_path?: string | null
           headshot_path?: string | null
           id?: number
+          profile_fade_intensity?: number
           updated_at?: string
         }
         Relationships: []

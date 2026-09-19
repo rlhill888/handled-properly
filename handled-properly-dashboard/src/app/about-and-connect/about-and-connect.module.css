@@ -124,12 +124,27 @@
   }
 }
 
+/* The admin's optional page background (site-content.ts's backgroundColor
+   / backgroundImageUrl) -- sits behind AmbientBackground/AboutBackground
+   (both z-index: 1) so the ambient dot-grid still reads on top of it, and
+   naturally behind .page's own z-index: 2 content. Only rendered at all
+   when the admin has set one (see page.tsx); the page's plain white
+   default needs no extra layer. */
+.customBackground {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
 /* z-index: 2 (not just position: relative) is load-bearing -- without an
    explicit value here, real page content and the fixed background layers
-   (AmbientBackground, AboutBackground, both z-index: 1) paint at the same
-   stacking level, and the backgrounds' DOM position after <main> lets
-   them win, showing e.g. AboutBackground's diamonds on top of the photo
-   card instead of behind it. */
+   (AmbientBackground, AboutBackground, .customBackground) paint at the
+   same stacking level, and the backgrounds' DOM position after <main>
+   lets them win, showing e.g. AboutBackground's diamonds on top of the
+   photo card instead of behind it. */
 .page {
   position: relative;
   z-index: 2;
@@ -183,11 +198,11 @@
   aspect-ratio: 4 / 5;
   border-radius: 4px;
   overflow: hidden;
-  background: #0a0a0a;
-  /* Hidden until ImageGate adds .ready to its container (see
-     about-and-connect/ImageGate.tsx) -- every image inside has finished
-     loading by then, so the card's own entrance below is the first thing
-     a visitor sees, rather than a blank frame that fills in piecemeal. */
+  /* No solid fallback fill here -- .profileImage/.profilePlaceholder below
+     cover the card completely on their own, and now that they fade to
+     transparent at the bottom (see their mask below), a fallback color
+     here would just show through as a solid block instead of the actual
+     page behind the card. */
   opacity: 0;
 }
 
@@ -208,21 +223,58 @@
   }
 }
 
+/* Fades the photo itself to transparent over its bottom
+   --profile-fade-intensity percent (0-100, set inline on .profileCard in
+   page.tsx from the admin's own profileFadeIntensity setting -- see
+   site-content.ts) -- e.g. 40 means the bottom 40% of the photo dissolves
+   away, revealing the actual page behind the card (its plain white
+   default, or the admin's own background color/image) rather than a
+   solid fallback color. .profileContent (the name/bio/social row) is a
+   separate, unmasked sibling -- see the JSX -- so it stays fully opaque
+   and legible regardless of where the photo has faded to.
+
+   translateZ(0) forces this onto its own GPU compositing layer --
+   without it, Chromium can badly mis-rasterize a masked element while an
+   ancestor (.profileCard's own profileCardIn entrance animation above) is
+   transformed, leaving a stale dark smudge baked into part of the photo
+   after the animation settles. */
 .profileImage,
 .profilePlaceholder {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transform: translateZ(0);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 calc(100% - var(--profile-fade-intensity, 40) * 1%),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 calc(100% - var(--profile-fade-intensity, 40) * 1%),
+    transparent 100%
+  );
 }
 
 .profilePlaceholder {
   background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
 }
 
-/* A long, gradual dissolve rather than a quick ramp -- transparent
-   through the top half, then a slow climb to solid, so the photo reads
-   as fading into the card instead of sitting under a dark box. */
+/* A light, fixed darkening (not tied to --profile-fade-intensity) purely
+   so the name/bio/social row overlaid on top of it stays legible --
+   independent of how much of the photo itself is fading away below it.
+   Modest on purpose: this is a legibility aid, not the "fade" effect
+   itself (that's .profileImage's mask above).
+
+   Peaks at 80% and ramps back down to fully transparent by 100% -- it
+   used to just hold at its darkest all the way to the edge, which left a
+   residual tint behind even where the photo itself (and .profileImage's
+   mask) had faded away to nothing, so the very bottom never actually
+   reached true transparency. This element isn't masked itself (unlike
+   .profileImage), so it has to return to 0 on its own to match. */
 .profileScrim {
   position: absolute;
   inset: 0;
@@ -230,10 +282,9 @@
   background: linear-gradient(
     180deg,
     rgba(10, 10, 10, 0) 0%,
-    rgba(10, 10, 10, 0) 30%,
-    rgba(10, 10, 10, 0.35) 55%,
-    rgba(10, 10, 10, 0.75) 80%,
-    rgba(10, 10, 10, 0.95) 100%
+    rgba(10, 10, 10, 0) 45%,
+    rgba(10, 10, 10, 0.55) 80%,
+    rgba(10, 10, 10, 0) 100%
   );
 }
 
@@ -261,6 +312,22 @@
   background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.22), transparent);
   transform: translateX(-220%) skewX(-12deg);
   pointer-events: none;
+  /* Same mask as .profileImage -- without it, this sweeps at full
+     strength straight through the zone the photo is fading away in,
+     which reads as a stray light smudge cutting across an area that's
+     not supposed to have anything left to catch a "shine" off of. */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 calc(100% - var(--profile-fade-intensity, 40) * 1%),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 calc(100% - var(--profile-fade-intensity, 40) * 1%),
+    transparent 100%
+  );
 }
 
 /* 0.5s delay -- holds off until the card/name/social-row entrance below
